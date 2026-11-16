@@ -125,11 +125,92 @@ Expected: ... (with units, tolerance)
 Status: draft | verified-by-<name>
 ```
 
-- VC-001 — Simply supported lintel, UDL. *(to write)*
-- VC-002 — One-way slab, tributary load to two parallel walls. *(to write)*
-- VC-003 — Two-storey load takedown on a single wall. *(to write)*
-- VC-004 — Pier between two openings, redistributed load. *(to write)*
-- VC-005 — Self-weight of a wall with one opening (subtract the opening area!). *(to write; classic bug: forgetting to subtract openings)*
+**First five cases (session #11, 2026-11-16).** Status of all: **draft — hand calc by Claude (AI), arithmetic re-checked with a script; NOT reviewed by an engineer (E-22).**
+Rules for these cases:
+- Every input is a **given test input**, chosen for easy arithmetic. None is a material value, default load, or recommendation (ADR-018). E.g. "γ = 14 kN/m³" below is *not* "the unit weight of a Brazilian block".
+- Only textbook mechanics (statics, simply supported beam formulas, σ = N/A). No code clauses, no safety factors, no allowable values: these test the *calculator*, not a code check.
+- Units: kN, m, kN/m, kN/m² (kPa), MPa = 1000 kPa. (ADR-006 still open; cases are unit-explicit so they survive whatever it decides.)
+- Tolerance: relative 1e-6 on the calculator output (exact arithmetic), unless stated.
+
+```
+VC-001a — Simply supported lintel, uniform load (UDL)
+Source: hand calc by Claude (AI), 2026-11-16. Formulas: standard simply supported beam
+        (M = wL²/8, V = wL/2, δ = 5wL⁴/(384EI)); any mechanics textbook.
+Input:  span L = 1.20 m (GIVEN; how L follows from opening + bearing is R-OPEN-002/E-10, not tested here)
+        w = 8.0 kN/m (total, given)
+        section b × h = 0.14 m × 0.20 m, rectangular → I = b·h³/12
+        E = 25 000 MPa = 25·10⁶ kN/m² (given test input)
+Hand:   I  = 0.14 × 0.20³ / 12 = 0.14 × 0.008 / 12 = 9.3333·10⁻⁵ m⁴
+        M  = 8.0 × 1.20² / 8 = 8.0 × 1.44 / 8 = 1.44 kN·m   (at midspan)
+        V  = 8.0 × 1.20 / 2 = 4.80 kN                      (at each support = each reaction)
+        δ  = 5 × 8.0 × 1.20⁴ / (384 × 25·10⁶ × 9.3333·10⁻⁵)
+           = 5 × 8.0 × 2.0736 / (384 × 2333.33) = 82.944 / 896 000 = 9.257·10⁻⁵ m
+Expected: M = 1.44 kN·m · V = 4.80 kN · reactions 4.80 + 4.80 = 9.60 kN = w·L ✔ · δ = 0.0926 mm
+Status: draft
+
+VC-001b — Same formulas, second case (CLAUDE.md: ≥ 2 cases per calculator)
+Input:  L = 2.00 m · w = 12.0 kN/m · b × h = 0.14 × 0.30 m · E = 25·10⁶ kN/m²
+Hand:   I = 0.14 × 0.027 / 12 = 3.15·10⁻⁴ m⁴
+        M = 12 × 4 / 8 = 6.00 kN·m · V = 12 × 2 / 2 = 12.0 kN
+        δ = 5 × 12 × 16 / (384 × 25·10⁶ × 3.15·10⁻⁴) = 960 / 3 024 000 = 3.175·10⁻⁴ m
+Expected: M = 6.00 kN·m · V = 12.0 kN · δ = 0.317 mm
+Status: draft
+
+VC-002 — One-way slab, tributary load to two parallel walls
+Source: hand calc by Claude (AI), 2026-11-16. Method: one-way slab simply supported on two
+        parallel walls → each wall takes half the span ("tributary width" = span / 2).
+Input:  walls W-1 and W-2 parallel, 6.0 m long, 4.0 m apart (slab span L = 4.0 m, spans W-1 → W-2)
+        q = 5.0 kN/m² total on the slab (given)
+Hand:   line load on each wall = q × L / 2 = 5.0 × 4.0 / 2 = 10.0 kN/m
+        total per wall = 10.0 × 6.0 = 60.0 kN
+        check: whole slab = 5.0 × 4.0 × 6.0 = 120 kN = 60 + 60 ✔ (no load lost or created)
+Expected: 10.0 kN/m on W-1 and on W-2; 0 on the two short end walls (one-way assumption)
+Status: draft · ❓ the "0 on end walls" is what one-way means; two-way slabs (45° rule, §4 item 2) are a separate case.
+
+VC-003 — Two-storey load takedown on one wall
+Source: hand calc by Claude (AI), 2026-11-16. Method: add loads from top to bottom; a wall's
+        own weight counts at its base.
+Input:  same wall line on both storeys, t = 0.14 m, storey wall height h = 2.70 m
+        γ = 14 kN/m³ (given test input) → wall self-weight per storey = t × h × γ
+        roof slab onto the upper wall: 6.0 kN/m (given)
+        floor slab onto the ground wall: 10.0 kN/m (given; = VC-002 result)
+Hand:   self-weight per storey = 0.14 × 2.70 × 14 = 5.292 kN/m
+        top of upper wall      = 6.000
+        base of upper wall     = 6.000 + 5.292           = 11.292 kN/m
+        top of ground wall     = 11.292 + 10.000          = 21.292 kN/m
+        base of ground wall    = 21.292 + 5.292           = 26.584 kN/m
+        stress at base, per 1 m of wall: σ = N / (t × 1 m) = 26.584 / 0.14 = 189.9 kN/m² = 0.190 MPa
+Expected: N = 26.584 kN/m · σ = 0.1899 MPa (no slenderness reduction, no safety factors)
+Status: draft · ❓ engineer: is "own weight at the base" the convention you'd show a beginner? (E-22)
+
+VC-004 — Pier between two openings, redistributed load
+Source: hand calc by Claude (AI), 2026-11-16. Method (simplified, §4 item 6): the load that would
+        sit over each opening goes half to each side; arching ignored (conservative per Q-033).
+Input:  line load at lintel level w = 20.0 kN/m (given) · wall t = 0.14 m
+        opening A 1.00 m wide · pier 0.80 m · opening B 1.20 m wide (A | pier | B)
+Hand:   pier's own share       = 0.80 × 20 = 16.0 kN
+        half of A              = 0.5 × 1.00 × 20 = 10.0 kN
+        half of B              = 0.5 × 1.20 × 20 = 12.0 kN
+        pier load P = 38.0 kN
+        pier stress σ = P / (0.80 × 0.14) = 38.0 / 0.112 = 339.3 kN/m² = 0.339 MPa
+        cross-check: without the openings the same 0.80 m would carry 16 kN → ×2.375
+Expected: P = 38.0 kN · σ = 0.3393 MPa
+Status: draft · ❓ engineer: is "half to each side" acceptable as the first simplified method? (E-21)
+
+VC-005 — Self-weight of a wall with one opening (subtract the opening!)
+Source: hand calc by Claude (AI), 2026-11-16.
+Input:  wall 4.00 m × 2.70 m, t = 0.14 m, γ = 14 kN/m³ (given test input)
+        one window 1.20 m × 1.20 m (fully inside the wall)
+Hand:   gross face area = 4.00 × 2.70 = 10.80 m²
+        opening area    = 1.20 × 1.20 = 1.44 m²
+        net area        = 9.36 m² → volume 9.36 × 0.14 = 1.3104 m³
+        weight          = 1.3104 × 14 = 18.346 kN
+        the classic bug (no subtraction): 10.80 × 0.14 × 14 = 21.168 kN → +15.4 % too high
+Expected: 18.346 kN (and a test that FAILS if the opening isn't subtracted)
+Status: draft · Not included: lintel/frame weight, finishes (plaster) — a later case.
+```
+
+Still to write (later): two-way slab (45° rule), lintel with triangular/arching load (Q-033), wall with two openings + pier (VC-004 + VC-005 combined).
 
 ## 6. Unverified values register
 

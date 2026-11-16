@@ -274,3 +274,15 @@ Owner: "push it and start spike B". Pushed Spike A (`48c2523`) to `spikes/d-e`. 
 **Inferences/defaults logged**: ADR-017 kept open via a profile toggle (`assume-bearing` = option D, default in the spike; `skip`). pt-BR banned-word list added to SAFETY as *proposed* (translation of the existing rule, inferable from ADR-021 + SAFETY). Lintel drawn "200 mm each side" is a drawing default with a code comment saying it's not a recommendation. Settle delay 1.2 s inside ADR-025's 1–2 s. Bond beam [cinta] added to GLOSSARY. Viewer chrome English-only (developer UI); product text all i18n.
 
 **Next**: owner decides ADR-012 + ADR-006; engineer batch 1 + E-06/E-07; validation cases (Phase 0 #8).
+
+### Session #11, part 4 — push + validation cases, 2026-11-16
+
+Owner (remote): "I can't run git push… if you can, push it; if not, continue". Pushed `8aefbb5`. Found that PR #1 (D + E + A) had already been merged to `main` and the branch deleted; the push re-created `spikes/d-e` with Spike B on top of the merged history (1 commit ahead of `main`). No PR opened (no `gh` here).
+
+**Done**: ROADMAP Phase 0 #8 — VC-001a, VC-001b (lintel M/V/δ), VC-002 (one-way slab tributary), VC-003 (two-storey takedown + base stress), VC-004 (pier with half-each-side redistribution), VC-005 (wall self-weight minus opening; the "forgot to subtract" bug = +15.4 %). All inputs are **given test inputs** (no material values, loads, factors, or code clauses → ADR-018 untouched); arithmetic re-checked with a script. Status draft; engineer review = E-22 (now also asks about the two simplified methods).
+
+Added a **Phase 0 exit checklist** to CURRENT_STATE: every ADR the ROADMAP needs, with spike evidence, lean, confidence, and default, so the owner can answer in one pass. No ADR status changed.
+
+**Inferences/defaults logged**: kept the branch name `spikes/d-e` (cheap, reversible). No calculator code written: calculators are Phase 3 (golden rule 12); cases become tests when a calculator exists.
+
+**Next**: owner answers the exit checklist → Phase 1 plan.
