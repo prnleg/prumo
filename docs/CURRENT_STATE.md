@@ -9,12 +9,13 @@
 |---|---|
 | Code | **Spikes only (throwaway, `/spikes`)**: `spikes/stack` (Spike D), `spikes/modules` (Spike E, 28 tests), `spikes/joins` (Spike A, 56 tests + browser viewer), `spikes/rule` (Spike B, 21 tests + browser viewer). **No production code** (`packages/` doesn't exist). D + E + A merged to `main` (PR #1); Spike B + validation cases pushed on `spikes/d-e`, no PR yet. CI workflow `spike-stack` pushed; result not checked. |
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
-| PROPOSED | ADR-018, 021, 022, 024, 025; crash-report mechanics (028). |
+| ACCEPTED (s#11, 2026-11-16) | ADR-003 (2D plan is truth), 005 (Tier 0 first, improves in later versions), 006 (float mm + tolerance, Y up), 010 (build our own; interoperability later), 012 (own geometry math; library when areas need it), 018 (no invented thresholds), 021 (i18n), 022 (namespaced components). |
+| PROPOSED | ADR-024, 025, 033 (monorepo/tooling), 034 (i18n library), 035 (zip library); crash-report mechanics (028). |
 | ACCEPTED (s#8) | ADR-032 (missing modules & export with module selection); ADR-008 snapshots = full copies. |
-| OPEN | ADR-003, 005, 006, 008, 010, 011, 012, 013, 015, 016 (name), 017, 023. |
+| OPEN | ADR-008 (accepted in principle), 011, 013, 015, 016 (name), 017, 023. |
 | Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
-| Phase | Phase 0: decisions & spikes. A, B, D, E done (D on macOS only). Left: ADR decisions (012, 006, 017…), validation cases, engineer batch. |
+| Phase | **Phase 0 exit criteria met** (2026-11-16): spikes A, B, D, E done (D on macOS only), required ADRs accepted, VC-001…005 drafted. Engineer review + Windows run still pending (don't block Phase 1). **Phase 1 not started**: waits on ADR-011/015/024/025/033/034/035. |
 
 ## Blocked items
 
@@ -48,28 +49,13 @@ Stubbed/faked: `FAKE-STRUCT-001` is **not a structural rule** (no source, never 
 
 ## Phase 0 exit checklist (session #11)
 
-ROADMAP Phase 0 exit = all 🔴 answered ✅ (none left) · spikes A, B, D, E done with lessons ✅ (D: Windows not measured, Q-130) · validation cases VC-001…005 written ✅ (draft, engineer review pending, E-22) · these ADRs accepted ⬇:
-
-| ADR | Status | Spike evidence | Lean (confidence) | Default if owner doesn't care |
-|---|---|---|---|---|
-| 003 2D-first vs 3D-first | OPEN | D: 2D SVG plan + derived Three.js view, both smooth | A: 2D plan is truth, 3D derived (high) | A |
-| 005 analysis tiers | OPEN | B: Tier 0 rule end to end works | MVP Tier 0, Phase 3 Tier 1, Tier 2 optional, Tier 3 never (high) | as lean |
-| 006 units/coordinates | OPEN | A, B, E: float mm + tolerance + Y up, nothing broke | float64 mm + tolerance + snapping, Y up (medium-high) | as lean |
-| 010 build vs extend | OPEN | D/A/B/E: own stack small and fast; Spike C skipped | build our own (medium; Spike C never run) | build |
-| 012 geometry library | OPEN | A: own math enough for drawing; fails only on areas | own math Phase 1; library when areas need it (medium) | as lean |
-| 018 no invented thresholds | PROPOSED | B: works with `UNSOURCED` + UNVERIFIED badge | accept (high) | accept |
-| 021 i18n | PROPOSED | B: keys + typed params work; needs ICU-style plurals/gender | accept; library = later dependency ADR (high) | accept |
-| 022 namespaced components | PROPOSED | E: all 7 MODULES rules held | accept (medium-high) | accept |
-
-Not required for Phase 0 exit but blocks Phase 2: ADR-017 (load-bearing), engineer batch 1.
+All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details in DECISIONS. Q-135/136 defaults accepted.
 
 ## Next immediate step
 
-1. Owner: check the `spike-stack` CI run on GitHub (Actions) and note the Windows installer sizes; later run it on a Windows PC (bench: `PRUMO_SPIKE_BENCH=15`) (Q-130).
-2. Spike B pushed to `spikes/d-e` (Spike A already merged to `main` via PR #1). Owner: open a PR for Spike B when convenient.
-3. Owner: go through the **Phase 0 exit checklist** above (one word per ADR is enough: "lean"/"default" or a change); answer Q-135/136 or keep defaults.
-4. Owner: forward `ENGINEER_QUESTIONS.md` batch 1 + E-06 (R-OPEN-001 source) to the engineer.
-5. Then: Phase 1 plan (monorepo skeleton, `packages/core`, Architect module) once the ADRs above are accepted.
+1. Owner: decide the Phase 1 batch — ADR-011 (undo), 015 (levels), 024 (hosting), 025 (quiet feedback), 033 (monorepo/tooling), 034 (i18n library), 035 (zip library). Leans in DECISIONS.
+2. Owner: open a PR for `spikes/d-e` (Spike B + docs) when convenient; Windows run (Q-130); forward engineer batch 1 + E-06/E-07/E-22.
+3. Then: Phase 1 slice 1 (skeleton) per ROADMAP "Build order".
 
 ## Older next steps
 

@@ -60,6 +60,18 @@ Scope:
 - Save/load JSON with `schemaVersion`.
 - Dimensions displayed (wall lengths, opening widths).
 
+**Build order (session #11 plan — vertical slices, each ends with tests + docs):**
+0. **Decisions first:** ADR-011 (undo), 015 (levels), 024 (hosting), 025 (quiet feedback), 033 (tooling), 034 (i18n lib), 035 (zip lib).
+1. **Skeleton:** monorepo (ADR-033), `packages/core` with the model (`levels[]` per ADR-015, namespaced components per ADR-022), boundary lint, CI (lint/typecheck/test). Ends with: an empty project saves and reloads byte-identical.
+2. **Commands + history (ADR-011) + `.prumo` save/load (ADR-008/035)** with round-trip tests and the missing-module flow from Spike E.
+3. **Draw walls:** wall tool, snapping (grid/endpoint/orthogonal), joins + clean outline **re-written from Spike A** (not copied), SVG renderer, pan/zoom. First runnable desktop build.
+4. **Openings** hosted on walls (ADR-024): place, slide, resize, door swing; Spike A limit (4) and Q-134 step.
+5. **Selection + operations** per `EDITING_OPERATIONS.md` (move, copy, duplicate, mirror, rotate, delete), all undoable as one step.
+6. **Room tool + wall kinds** (full, half, fence/railing, room separator); room detection.
+7. **Properties panel, dimensions, finishes.**
+8. **App shell:** i18n (ADR-034), Vision switcher, start screen + examples, theme, module manager stage 1, autosave/recovery, crash log, onboarding tour.
+9. **ADR-025 plumbing** (commit/settle events) — can be done alongside 2–3.
+
 Exit criteria:
 - [ ] Every operation in `EDITING_OPERATIONS.md` passes its tests, edge cases included.
 - [ ] Undo/redo works for every operation, including multi-element ones, as a single step.

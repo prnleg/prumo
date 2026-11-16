@@ -286,3 +286,15 @@ Added a **Phase 0 exit checklist** to CURRENT_STATE: every ADR the ROADMAP needs
 **Inferences/defaults logged**: kept the branch name `spikes/d-e` (cheap, reversible). No calculator code written: calculators are Phase 3 (golden rule 12); cases become tests when a calculator exists.
 
 **Next**: owner answers the exit checklist → Phase 1 plan.
+
+### Session #11, part 5 — Phase 0 exit decisions, Phase 1 plan, 2026-11-16
+
+Owner: "Lean. Most of it is simple right now, like the ADR 005, and later on it will get better (v1.1 or v2, whatever). ADR 010 we might need to add them in the future because people will probably want to implement tools that are present in other projects. The defaults for Q-135/136 are fine."
+
+**Decisions recorded (ACCEPTED 2026-11-16)**: ADR-003, 005, 006, 010, 012, 018, 021, 022 as leaned; owner notes added to 005 (improve in later versions) and 010 (interoperability / familiar tools from other software later, through the module API — not now). Q-135, Q-136 → Resolved with defaults. Phase 0 exit criteria met; engineer review + Windows run pending but not blocking Phase 1.
+
+**Inference logged**: read the ADR-010 caveat as *interoperability later* (import/export, modules re-creating familiar tools), not as "extend an existing tool now".
+
+**Phase 1 plan**: ROADMAP "Build order" (slices 0–9). New PROPOSED ADRs because they add dependencies (golden rule 4): ADR-033 (pnpm monorepo, TS strict, Vitest, ESLint boundary rules, Prettier, Node 22 pinned), ADR-034 (i18n: lean ICU `intl-messageformat` over vue-i18n, since findings are formatted outside Vue), ADR-035 (zip: lean fflate, pure JS in core). Phase 1 code waits on these + ADR-011/015/024/025.
+
+**Next**: owner answers the Phase 1 batch → slice 1 (skeleton).
