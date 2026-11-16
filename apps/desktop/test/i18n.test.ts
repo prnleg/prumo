@@ -19,6 +19,9 @@ describe("UI i18n (ADR-021/034)", () => {
             kind: "door",
             example: "14,5",
             room: "Sala",
+            name: "casa.prumo",
+            error: "disk full",
+            modules: "org.example.electrical",
           }),
         ).not.toThrow();
     }

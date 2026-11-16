@@ -297,3 +297,21 @@ describe("property: N random operations, undo N times → original (EDITING_OPER
     return (h as unknown as { past: unknown[] }).past.length;
   }
 });
+
+describe("History.load (New / Open)", () => {
+  it("replaces the document, clears undo/redo, is not dirty, emits change + commit", () => {
+    const h = new History(house());
+    h.execute(updateCommand(L("x"), ["w-1"], (e) => (e.type === "wall" ? { ...e, thickness: 200 } : e)));
+    const ev: string[] = [];
+    h.subscribe((e) => ev.push(e.type));
+    const other = blank();
+    h.load(other);
+    expect(h.current).toBe(other);
+    expect([h.canUndo, h.canRedo, h.dirty]).toEqual([false, false, false]);
+    expect(ev).toEqual(["change", "commit"]);
+    expect(() => {
+      h.beginGesture(L("g"));
+      h.load(blank());
+    }).toThrow(HistoryError);
+  });
+});

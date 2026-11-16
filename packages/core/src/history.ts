@@ -120,6 +120,20 @@ export class History {
     this.saved = this.present;
   }
 
+  /**
+   * Replace the whole document (New / Open): clears undo and redo, marks it saved, emits
+   * change + commit so views and analysis refresh. Ends nothing silently: refuses during a gesture.
+   */
+  load(p: Project, label: Label = { key: "cmd.open" }): void {
+    this.assertIdle("load");
+    this.past = [];
+    this.future = [];
+    this.present = this.prepare(p);
+    this.saved = this.present;
+    this.emit({ type: "change", project: this.present, reason: "execute" });
+    this.emit({ type: "commit", project: this.present, label });
+  }
+
   subscribe(fn: (e: HistoryEvent) => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);

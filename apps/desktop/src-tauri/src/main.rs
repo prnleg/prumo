@@ -4,6 +4,10 @@
 
 fn main() {
     tauri::Builder::default()
+        // ADR-036: native Save/Open dialogs + reading/writing ONLY the files the user picks in them
+        // (the dialog plugin adds each picked path to the fs scope; no broad file access).
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .run(tauri::generate_context!())
         .expect("error while running Prumo");
 }

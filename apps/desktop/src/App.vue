@@ -45,6 +45,8 @@ import {
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
+import { platform } from "./platform";
+import { Session, type Outcome } from "./session";
 import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
 
 const locale = ref(detectLocale(navigator.languages));
@@ -54,11 +56,11 @@ const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
 const modules = new ModuleHost([architectManifest]);
 
-const levelId = randomIds();
+const firstLevelId = randomIds();
 const history = new History(
   emptyProject({
     id: randomIds(),
-    levelId,
+    levelId: firstLevelId,
     name: t("project.untitled"),
     now: new Date().toISOString(),
     profileId: "br-nbr/structural-masonry",
@@ -67,6 +69,36 @@ const history = new History(
 );
 
 const project = shallowRef<Project>(history.current);
+const newProject = () =>
+  emptyProject({
+    id: randomIds(),
+    levelId: randomIds(),
+    name: t("project.untitled"),
+    now: new Date().toISOString(),
+    profileId: "br-nbr/structural-masonry",
+  });
+const session = new Session(history, modules, platform, t, newProject, randomIds, () => new Date().toISOString());
+const fileTick = ref(0);
+const readOnly = computed(() => (void fileTick.value, session.readOnly));
+history.subscribe(() => void platform.setTitle(session.title));
+void platform.setTitle(session.title);
+platform.onCloseRequested(() => session.confirmDiscard());
+
+async function file(op: () => Promise<Outcome>) {
+  endTools();
+  const r = await op();
+  fileTick.value++;
+  if (!r.ok && r.reason === "error") notice.value = r.message;
+  else if (r.ok) notice.value = "";
+  void platform.setTitle(session.title);
+  sync();
+  if (r.ok) setTimeout(fitAll, 0);
+}
+const doNew = () => file(() => session.newProject());
+const doOpen = () => file(() => session.open());
+const doSave = (as = false) => file(() => session.save(as));
+/** The level being edited (UI shows one level until Phase 5, ADR-015). Follows New/Open. */
+const level = ref(firstLevelId);
 const tick = ref(0); // undo/redo availability changes without a model change on commit
 history.subscribe((e) => {
   project.value = e.project;
@@ -81,7 +113,7 @@ history.subscribe((e) => {
 
 const wallTool = new WallTool(history, {
   ids: randomIds,
-  levelId,
+  levelId: firstLevelId,
   thickness: 140, // drawing default, editable later (slice 7); not a structural value
   height: history.current.levels[0]?.defaultWallHeight ?? 2700,
   alignment: "center",
@@ -91,20 +123,30 @@ const wallTool = new WallTool(history, {
 
 const openingTool = new OpeningTool(history, {
   ids: randomIds,
-  levelId,
+  levelId: firstLevelId,
   kind: "door",
   sizes: DEFAULT_OPENING_SIZES,
   grid: DEFAULT_SNAP.grid,
   magnetPx: DEFAULT_SNAP.endpointRadiusPx,
 });
 
-const selectTool = new SelectTool(history, { levelId, grid: DEFAULT_SNAP.grid, dragPx: 4, pickPx: 6 });
+/** After New/Open the level ids change: point every tool at the project's first level. */
+history.subscribe((e) => {
+  if (e.project.levels.some((l) => l.id === level.value)) return;
+  const first = e.project.levels[0];
+  if (!first) return;
+  level.value = first.id;
+  for (const tl of [wallTool, openingTool, roomTool, selectTool]) tl.options = { ...tl.options, levelId: first.id };
+  selectTool.selection = [];
+});
+
+const selectTool = new SelectTool(history, { levelId: firstLevelId, grid: DEFAULT_SNAP.grid, dragPx: 4, pickPx: 6 });
 const selection = ref<string[]>([]);
 const box = shallowRef(selectTool.box);
 
 const roomTool = new RoomTool(history, {
   ids: randomIds,
-  levelId,
+  levelId: firstLevelId,
   thickness: 140,
   height: history.current.levels[0]?.defaultWallHeight ?? 2700,
   alignment: "center",
@@ -120,11 +162,11 @@ const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
 const tooShort = ref(false);
 
-const geometry = computed(() => planGeometry(project.value, levelId));
-const walls = computed(() => wallsOnLevel(project.value, levelId));
+const geometry = computed(() => planGeometry(project.value, level.value));
+const walls = computed(() => wallsOnLevel(project.value, level.value));
 const detected = computed(() => {
-  const rs = detectRooms(project.value, levelId);
-  const tags = matchRoomTags(rs, roomTags(project.value, levelId));
+  const rs = detectRooms(project.value, level.value);
+  const tags = matchRoomTags(rs, roomTags(project.value, level.value));
   return rs.map((r) => {
     const tag = tags.get(r.key);
     return { ...r, name: tag?.name ?? "", floorFinish: tag ? architectData(tag).floor : undefined };
@@ -198,7 +240,7 @@ function paintFloor(key: string, finishId: string) {
   run(
     editRoomCommand(
       history.current,
-      levelId,
+      level.value,
       key,
       { key: "cmd.paint" },
       (tg) => setRoomFloor(tg, finishId || undefined),
@@ -207,7 +249,7 @@ function paintFloor(key: string, finishId: string) {
   );
 }
 function nameRoom(key: string, name: string) {
-  run(nameRoomCommand(history.current, levelId, key, name, randomIds));
+  run(nameRoomCommand(history.current, level.value, key, name, randomIds));
 }
 const view = ref<ViewState>({ x: -2000, y: 6000, scale: 0.1 });
 let fitted = false;
@@ -430,6 +472,15 @@ function onKey(e: KeyboardEvent) {
   } else if (mod && e.key.toLowerCase() === "y") {
     e.preventDefault();
     redo();
+  } else if (mod && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    void doSave(e.shiftKey);
+  } else if (mod && e.key.toLowerCase() === "o") {
+    e.preventDefault();
+    void doOpen();
+  } else if (mod && e.key.toLowerCase() === "n") {
+    e.preventDefault();
+    void doNew();
   } else if (mod && e.key.toLowerCase() === "d") {
     e.preventDefault();
     duplicateSelection();
@@ -479,7 +530,7 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   if (demo === "names" || demo === "paint") {
     roomTool.finish();
     const key = (x: number, y: number) =>
-      detectRooms(history.current, levelId).find(
+      detectRooms(history.current, level.value).find(
         (r) => r.floor.length && r.labelAt && Math.abs(r.labelAt.x - x) < 1500 && Math.abs(r.labelAt.y - y) < 1500,
       )?.key ?? "";
     nameRoom(key(2000, 1500), "Sala");
@@ -553,6 +604,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
     <header class="toolbar">
       <strong class="brand">{{ t("app.name") }}</strong>
       <div class="group">
+        <button :title="t('action.new.tip')" @click="doNew">{{ t("action.new") }}</button>
+        <button :title="t('action.open.tip')" @click="doOpen">{{ t("action.open") }}</button>
+        <button :title="t('action.save.tip')" :disabled="!!readOnly" @click="doSave(false)">
+          {{ t("action.save") }}
+        </button>
+      </div>
+      <div class="group">
         <button :class="{ on: tool === 'select' }" :title="t('tool.select.tip')" @click="setTool('select')">
           {{ t("tool.select") }}
         </button>
@@ -614,6 +672,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @rotate="rotateSelection"
         @mirror="mirrorSelection"
       />
+      <p v-if="readOnly" class="blocked">{{ readOnly }}</p>
       <p v-if="notice" class="blocked">{{ notice }}</p>
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
     </main>
