@@ -149,7 +149,8 @@ Open sub-question: can a "generic opening" (the owner said doors don't need to b
 ---
 
 ## ADR-008 — Project file format
-Status: **OPEN**
+Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). Proposed (Q-110): the format id inside the file, not the extension, identifies it, so a future rename keeps opening `.prumo` files.
+Original status: **OPEN**
 Lean: **JSON**, with `schemaVersion` at the root, stable UUIDs for every element, and a migration function for every version bump. Possibly IFC export later, but **not** as the native format (IFC is huge and complex). Confidence: high.
 
 ---
@@ -318,7 +319,8 @@ Status: **ACCEPTED in principle (2026-11-15, owner: Q-076 "yes, your case makes 
   - The project has exactly **one holder** at a time. The holder edits; everyone else opens it **read-only + can add notes**.
   - Handing off = an explicit action ("Hand to engineer…") that records who, when, and a message, and creates a **named snapshot** ("Sent to engineer #1") for the compare view.
   - Opening a copy where you're not the holder → read-only banner + a "Take over" button (logged, with a warning). File-based locks can't be enforced (copies exist), so this is **convention + visibility**, not security.
-  - The owner's nuance: *"keep working but not changing things done"* is fine; *changing everything all the time* is not. → Q-102 asks whether the non-holder may keep working on *new, unrelated* parts in v1. Default: no.
+  - **Q-102 resolved: no.** While someone else holds the project, you can only view and add notes.
+  - **Q-103 resolved:** the app doesn't move files; people send them however they like (email, Drive, etc.). Sync features only if needed later.
 - (Previous text kept for history:) ⚠️ **Biggest open problem: parallel edits.** If the architect keeps working while the engineer reviews a copy, there are two divergent files. Options: (a) **sequential "turns"** — only one side edits at a time, enforced by convention + a "handed off to X" banner; (b) **compare view** (diff two versions visually) but merge manually; (c) automatic merge (element-level three-way merge: hard). Lean: **(a) + (b) for v1.** Merge is a later problem. → Q-091.
 
 ## ADR-030 — Two kinds of extensions: data packs vs code modules

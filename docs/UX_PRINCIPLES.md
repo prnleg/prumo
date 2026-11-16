@@ -34,7 +34,7 @@
 |---|---|---|
 | Full wall | ✅ yes | Can be bearing (Structural Vision decides) |
 | Half wall / parapet | ✅ **yes** (owner, Q-088: e.g. a kitchen divider) | Usually non-bearing; still has weight |
-| Fence / railing | ❓ Q-106 (default: no) | None (maybe a guardrail-height rule in an Architect pack) |
+| Fence / railing | ❌ **no** (owner, Q-106) | None (maybe a guardrail-height rule in an Architect pack) |
 | Room separator (invisible boundary, e.g. an open kitchen/living room) | ✅ yes (bounds a room without a wall) | None |
 
 **Room detection:** rooms = closed loops formed by full walls + **half walls** + room separators. An unclosed area isn't an error; it's simply "not a room yet" (draft, ADR-025). ⚠️ Doubt: what does a beginner see when a room "won't close" because of a 2 mm gap? → auto-heal gaps under the snap tolerance + a visible "open end" marker (R-34).

@@ -8,39 +8,39 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 
 ---
 
-## Round 5 — raised in session #4
+## Round 6 — raised in session #6
 
-### Handoff ("baton" model — ADR-029)
+### Clarification needed
 
-**Q-102 🟠 While the engineer holds the project, may the architect keep working on *new, unrelated* parts** (e.g. drawing the second floor while the ground floor is under review)? You said "keep working but not changing things done" is OK.
-Doing this safely needs **scoped holding** ("the engineer holds the ground floor only"), which is close to the merge problem again.
-Default: **no in v1.** The non-holder is read-only + notes. Scoped holding becomes a later ADR if it hurts in practice.
+**Q-108 🟡 (your answer was cut off: "I guess it should…")** Where do snapping/grid settings live: per user, per project, or both (user default + project override)? Default: both.
 
-**Q-103 🟠 How does the file travel?** Email/Drive/WhatsApp (the app does nothing) vs a shared folder (the app notices a newer version) vs a built-in sync service (server = scope + cost + privacy).
-Default: the app does nothing; the file travels however people like. The holder + history live **inside** the file.
+### Files & saving
 
-**Q-104 🟠 Version history inside the project:** named snapshots ("Sent to engineer #1", "Engineer review #1") stored in the project file, used by the compare view. Default: yes; manual + automatic on each handoff; a size limit/pruning ❓.
+**Q-110 🟠 File extension vs product name.** You liked `.prumo` but the name may change (Q-109). Proposal: the file stores a **format id** inside (`"format": "prumo-project"`, plus `schemaVersion`), independent of the extension. Use `.prumo` for now; if the name changes, the new app keeps opening `.prumo` forever (registered as a legacy extension). Default: yes.
 
-**Q-105 🟡 File format:** one `.prumo` file (a zip containing the model JSON + snapshots + a thumbnail + embedded data-pack versions) vs a plain JSON file. Default: zip container. Easy to email, can grow, still inspectable by unzipping. (Refines ADR-008.)
+**Q-111 🟠 Autosave + crash recovery?** Beginners lose work. Proposal: autosave to a recovery file every ~30 s and on Vision switch; offer "Recover unsaved work?" after a crash. Not the same as the named snapshots (Q-104). Default: yes, Phase 1.
 
-### Rooms
+**Q-112 🟡 Snapshot storage:** full copies (simple, files grow) or deltas (small, complex)? Default: full copies, compressed inside the zip, with a warning when the file passes ~50 MB.
 
-**Q-106 🟡 Do fences/railings close a room?** (Half walls do — owner, session #4.) Default: no; use a half wall or a room separator if you want a room.
+**Q-113 🟡 Opening a file from a newer app version, or one that uses modules you don't have:** open read-only with a banner (default), open and risk it, or refuse?
 
-**Q-107 🟠 Room types** (bedroom, kitchen, bathroom, living room, garage…)? Architect packs need them (minimum area *per room type*), and Electrical will too (outlets per room type). Default: an optional room type, picked from a list that packs can extend.
+### Rooms (Q-107 ✅)
 
-### Settings
+**Q-114 🟠 Who owns the room-type list?** The core (a fixed list), the Architect module (a default list), or packs (extendable: e.g. *"área de serviço"*, *"edícula"* are very Brazilian)? Default: the Architect module ships a default list; data packs can add types; users can add a custom type with a free name.
 
-**Q-108 🟡 Where do snapping/grid settings live?** Per user (your preference everywhere), per project (travels with the file), or both (user default + project override)?
-Default: both. The status bar shows the current values and is clickable (owner: "let them know how to change it").
+**Q-115 🟡 Default room types:** bedroom, suite, bathroom, toilet (*lavabo*), kitchen, living room, dining room, laundry/service area, garage, office, hallway/circulation, balcony, storage, other. Missing anything?
 
-### Name
+### Beginner details (Brazil + i18n)
 
-**Q-109 🟠 "Prumo" collides with an existing commercial construction app** (remodeling estimating software). Keep it anyway, use a variant, or pick another name before the public release? Default: Prumo as the codename now; trademark check (INPI/USPTO/EUIPO) before the first release; decide then.
+**Q-116 🟠 Number format:** pt-BR writes `3,50 m` (comma decimal), English `3.50 m`. Input should accept **both** `3,5` and `3.5` regardless of locale? Default: yes, accept both; display in the UI language's format.
 
-### Furniture (owner: "discuss better later")
+**Q-117 🟡 Floor naming:** Brazil says *térreo, 1º andar*; the US says *first floor* for the ground floor; the UK says *ground floor*. Default: levels are named per UI locale (Térreo / Ground floor) and the user can rename them.
 
-**Q-096 🟡 Furniture/objects** — parked for a dedicated discussion. Questions to have ready: is it an "Interior" Vision or part of Architect? Asset source and licences (3D models need licence-compatible sources: CC0/CC-BY)? Do objects affect rules (clearances, accessibility, loads like a full bathtub or a water tank)?
+**Q-118 🟠 Export an image/PDF of the plan in Phase 1?** Beginners will want to share ("look at my house"). Default: PNG + PDF export of the 2D plan in Phase 1, with the disclaimer line (SAFETY doc).
+
+**Q-119 🟡 Starter template content:** an empty lot, a small 2-bedroom house, or an apartment? Default: one small 2-bedroom house + empty.
+
+**Q-120 🟡 Dark mode / themes?** Default: light + dark following the OS.
 
 ### Still open from round 4
 
@@ -132,4 +132,10 @@ Default: both. The status bar shows the current values and is clickable (owner: 
 - **Q-087** — Snapping defaults OK (10 cm, 15°, Alt = free), but users must be told clearly how to change them. — 2026-11-15 — ADR-031, Q-108
 - **Q-088** — Half walls **can** close a room (e.g. a kitchen divider). — 2026-11-15 — UX_PRINCIPLES. Follow-up Q-106
 - **Q-099** — Name: owner likes **Prumo**. — 2026-11-15 — ADR-016 (codename; collision → Q-109)
+- **Q-102** — No. The non-holder can't keep working during a handoff. (The owner reconsidered the earlier nuance.) — 2026-11-15 — ADR-029
+- **Q-103** — The app does nothing about transport; the file travels however people like. Build features later if needed. — 2026-11-15 — ADR-029
+- **Q-104** — Named snapshots inside the project file: yes. — 2026-11-15 — DATA_MODEL
+- **Q-105** — Single zip-container file, `.prumo` for now; the extension may change with the name. — 2026-11-15 — ADR-008, Q-110
+- **Q-107** — Room types: yes. — 2026-11-15 — DATA_MODEL, Q-114/115
+- **Q-106** — Fences/railings do **not** close rooms. — 2026-11-15 — UX_PRINCIPLES
 

@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 > This file must always be **truthful**. If something is stubbed, faked, or broken, say so here.
-> Last updated: 2026-11-15, session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
+> Last updated: 2026-11-15, session #6 (round-5 answers). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
 
 ## Summary
 
@@ -11,7 +11,7 @@
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
 | PROPOSED | ADR-018, 021, 022, 024, 025; crash-report mechanics (028). |
 | OPEN | ADR-003, 005, 006, 008, 010, 011, 012, 013, 015, 016 (name), 017, 023. |
-| Owner answers | Rounds 1–4 answered (except leftovers with defaults). Round 5 asked (Q-102…109). |
+| Owner answers | Rounds 1–5 answered (except leftovers with defaults). Round 6 asked (Q-108 clarification, Q-110…120). |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
 | Phase | Phase 0: decisions & spikes. |
 
@@ -19,8 +19,6 @@
 
 | Blocked item | Blocked by |
 |---|---|
-| Handoff details | Q-102 (work on unrelated parts?), Q-103 (how files travel), Q-104 (snapshots) |
-| File format | Q-105 (zip container?) |
 | Final name | Trademark check before the first release (Q-109) |
 | Structural rules | ENGINEER_QUESTIONS batch 1–2, ADR-017 |
 

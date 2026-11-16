@@ -91,7 +91,7 @@ Protection { elementId, byVision, reason, author, createdAt }   // informs; neve
 Project.handoff: { holder: string, since, message, history: HandoffEvent[] }  // "baton" model (ADR-029, accepted)
 HandoffEvent { from, to, at, message, snapshotId }
 Snapshot { id, name, createdAt, author, model /* full or delta ❓ */ }        // for the compare view (Q-104)
-Room { id, seedPoint, name, roomType? /* Q-107 */, floorFinishId? }
+Room { id, seedPoint, name, roomType? /* Q-107 ✅; list owner → Q-114 */, floorFinishId? }
 ```
 
 Doubts:

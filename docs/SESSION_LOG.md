@@ -147,3 +147,15 @@ Next step: nothing 🔴 is pending from the owner. A Claude Code session can now
 - The owner created the public repo https://github.com/prnleg/prumo (with an Apache-2.0 LICENSE).
 - The planning docs were added as the first content commit. Owner preference: **no `Co-Authored-By` trailers in commit messages** (recorded in CLAUDE.md).
 - Next step: Spikes D + E; forward ENGINEER_QUESTIONS batch 1.
+
+---
+
+## Session #6 — 2026-11-15 — Round 5 answers (Claude, chat; edits made directly in the local clone)
+
+Owner answers: Q-102 no (reconsidered); Q-103 the app doesn't move files; Q-104/105 `.prumo` zip with snapshots, OK (the name may change); Q-107 room types yes; Q-106 fences don't close rooms; Q-108 answer was cut off → re-asked.
+
+Done: ADR-008 accepted in principle (zip container, format id inside); ADR-029 handoff details resolved; UX_PRINCIPLES/DATA_MODEL updated; OPEN_QUESTIONS round 6 (Q-110…120: extension vs name, autosave, snapshots, newer-version files, room-type list, number format `3,5` vs `3.5`, floor naming, image/PDF export, template, themes).
+
+Doubts: Brazilian conventions (comma decimals, *térreo*, *área de serviço*) are easy to get wrong if defaults are US-centric. Treat pt-BR as a first-class locale, not a translation.
+
+Next step: owner answers round 6; Spikes D + E can start in parallel (nothing 🔴 pending).
