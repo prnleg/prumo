@@ -100,6 +100,8 @@ Doubts:
 
 ## Invariants (must be enforced in code + tested)
 
+> **Implemented (Phase 1 slice 2, `packages/core/src/edit.ts`):** I-1…I-5 plus positive sizes and level existence, checked on every command for the changed elements and their hosts/hosted; violating edits are **refused** (Q-072 default, block). Tolerance `EPS = 0.01 mm`. `MIN_WALL_LENGTH = 1 mm`. `project.modules` (usage record) is **derived at save** from the data, never an input.
+
 - I-1 An opening's `[offset, offset + width]` lies within `[0, wallLength]` (minus a minimal edge distance?).
 - I-2 An opening's `sillHeight + height ≤ wall.height`.
 - I-3 Openings on the same wall don't overlap.

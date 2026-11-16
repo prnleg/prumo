@@ -20,6 +20,7 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 
 - **Q-133 🟡** When a half wall (or fence) touches a full wall, should the plan draw them as **one merged shape** (no line between them) or keep a line to show they're different? Default (Spike A): merged outline, different fill colour per kind. Reversible.
 - **Q-134 🟡** Two walls of **different thickness** meeting almost in a straight line: today the corner cuts a small wedge off the thicker wall. Default for Phase 1: show a simple step (thick wall ends square, thin wall continues), implemented when the real editor is built. Reversible.
+- **Q-137 🟡** Language vs country (ADR-034): construction words are local (*verga*, *cinta*), so should a project's country profile drive the language? Default: **UI language = user's choice** (any shipped language works with any profile); the profile **suggests** the default language for new projects; when UI language ≠ profile language, local terms appear in brackets ("lintel (verga)"). Nothing is excluded. Reversible.
 
 ### Defaults on record (from earlier rounds)
 
@@ -79,6 +80,8 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 
 ## Resolved
 
+- **Q-135** — Same check on many elements → **one card per rule listing the elements** (expandable per element); badges stay on each element. — 2026-11-16 (owner: defaults fine) — R-57
+- **Q-136** — Default assumptions (e.g. wall treated as load-bearing because unmarked) → **shown up front on the card**, same severity, plus a one-click "mark this wall" action. Severity question still goes to the engineer (E-07). — 2026-11-16 (owner: defaults fine)
 - **Q-001** — For the owner first, but **open source, modular, beginner-friendly, for everyone**; multiple Visions. — 2026-11-15 — VISION, ADR-019, ADR-014
 - **Q-002** — Senior SWE (.NET, Angular/Vue; Rust/C#/Python/WPF/Flutter/Tauri 2). Easiest cross-platform install. — 2026-11-15 — ADR-001/002
 - **Q-003** — Not real engineering now; basics are enough. — 2026-11-15 — SAFETY tone

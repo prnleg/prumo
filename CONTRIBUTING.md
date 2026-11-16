@@ -15,6 +15,13 @@ Thanks for your interest! The project is in **early planning**. Read `README.md`
 - No user-facing hard-coded strings: use i18n keys (pt-BR + en).
 - Tests required for domain, geometry, and command code.
 
+## Dev setup
+
+- **Node ≥ 22.12** (`.nvmrc` = 22) and **pnpm 9** (`corepack enable`, or install pnpm 9).
+- `pnpm install` then `pnpm check` (= lint + format check + typecheck + tests). `pnpm format` fixes formatting.
+- Boundary rules are lint errors: `packages/core` can't import Vue, Tauri, or modules.
+- `/spikes` are throwaway experiments with their own lockfiles; they aren't workspace members.
+
 ## Structural / code rules — stricter gate ⚠️
 
 Rules can mislead people about real buildings, so a PR adding or changing a rule needs:

@@ -1,20 +1,21 @@
 # CURRENT STATE
 
 > This file must always be **truthful**. If something is stubbed, faked, or broken, say so here.
-> Last updated: 2026-11-16, session #11 (Spikes A, D, E done locally; Windows not measured yet). Before: session #10 (planning closed, ready to build). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
+> Last updated: 2026-11-16, session #11 (Spikes A, B, D, E done locally; Windows not measured yet). Before: session #10 (planning closed, ready to build). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
 
 ## Summary
 
 | Area | State |
 |---|---|
-| Code | **Spikes only (throwaway, `/spikes`)**: `spikes/stack` (Spike D), `spikes/modules` (Spike E, 28 tests), `spikes/joins` (Spike A, 56 tests + browser viewer). **No production code** (`packages/` doesn't exist). Branch `spikes/d-e` pushed with D + E; Spike A committed locally only. CI workflow `spike-stack` pushed; result not checked. |
+| Code | **Phase 1 slices 1–2 done** (branches `phase1/skeleton` → PR #3, `phase1/commands` on top). pnpm monorepo (Node ≥ 22.12, TS 6.0, Vitest 5, ESLint 10 + boundary rules, Prettier); CI on Linux/Windows/macOS. `packages/core`: model (levels, walls, openings, module elements, namespaced components, generic host); canonical JSON; `.prumo` zip save/open (deterministic bytes, unknown entries kept, newer schema or newer module data → read-only, missing modules → ADR-032 stop, zip-bomb limits); invariants I-1…I-5 **blocked** on edit (Q-072 default); commands (put/update/delete with hosted cascade); **History** (undo/redo by snapshot, gestures = one step, change/commit events for ADR-025); **ModuleHost** (registration checks, disable cascade, namespaced context, component migrations); module footprint/removal (undoable)/export copy; save refuses uninstalled-module data; usage record derived at save. 59 tests. **No app yet** (slice 3). |
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
-| PROPOSED | ADR-018, 021, 022, 024, 025; crash-report mechanics (028). |
+| ACCEPTED (s#11, 2026-11-16) | ADR-003 (2D plan is truth), 005 (Tier 0 first, improves in later versions), 006 (float mm + tolerance, Y up), 010 (build our own; interoperability later), 012 (own geometry math; library when areas need it), 018 (no invented thresholds), 021 (i18n), 022 (namespaced components).; **Phase 1 batch:** 011 (snapshots + commands), 015 (`levels[]` day 1), 024 (generic hosting), 025 (quiet feedback, **2 s** settle), 033 (monorepo/tooling, Node ≥ 22), 034 (`intl-messageformat`), 035 (fflate). |
+| PROPOSED | crash-report mechanics (028). |
 | ACCEPTED (s#8) | ADR-032 (missing modules & export with module selection); ADR-008 snapshots = full copies. |
-| OPEN | ADR-003, 005, 006, 008, 010, 011, 012, 013, 015, 016 (name), 017, 023. |
+| OPEN | ADR-008 (accepted in principle), 013, 016 (name), 017, 023. |
 | Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
-| Phase | Phase 0: decisions & spikes. A, D, E done (D on macOS only); B not started. |
+| Phase | **Phase 1** (started 2026-11-16). Slices 1–2 done; next slice 3 (wall tool + first desktop build). Engineer review + Windows run pending (non-blocking). |
 
 ## Blocked items
 
@@ -40,13 +41,21 @@
 **Spike A — wall joins (`spikes/joins`)**: own ~250 lines of TS, no geometry library. Joins computed from geometry every time (not stored). Handles L / T / X / + / Y at any angle, centre/left/right alignment, different thicknesses, gap healing (< 5 mm), miter limit with a straight bevel, and a "clean outline" (seams, T and X faces hidden) via edge classification instead of a polygon boolean. 56 tests, most with hand-calculated areas/outline lengths; 480 walls → joins + outline in ~52 ms (O(n²), no spatial index).
 Known limits: (1) **different thicknesses meeting at a nearly straight angle** chop a small wedge off the thicker wall (7/30 random cases); (2) a wall **shorter than its own join** at a sharp angle overlaps its neighbour (flagged `corner-past-wall`); (3) X crossings overlap (fine for drawing, wrong for areas/quantities); (4) an end that lands on a corner node *and* another wall's body isn't handled.
 
+**Spike B — one rule end to end (`spikes/rule`)**: hard-coded model (wall 1 marked load-bearing with a window; wall 2 not marked with a door) → rule `R-OPEN-001` ("opening in a load-bearing wall without a lintel", **`UNSOURCED – placeholder`, UNVERIFIED**, severity warning, no numeric threshold) → `Finding` (i18n key + typed params, assumptions, fingerprint) → explanation **card** with all 8 SAFETY items → pt-BR + en text → browser viewer (elevations, badges, findings panel, settle delay per ADR-025, "resolved" diff). 21 tests: rule cases, determinism, fingerprint/diff, exact card text in both languages, plurals, banned-words guard (proved to fail on a planted "safe"), catalogue key/slot parity.
+Lessons: (1) identical cards repeat per opening → grouping needed (Q-135); (2) the most important assumption ("treated as load-bearing because nobody marked it") is hidden in the fold (Q-136); (3) i18n needs plural on a named param **and** gender `select` (pt-BR "a porta"/"o portão") → ICU-style messages (ADR-021 note); (4) ADR-017 kept open with a profile toggle (`assume-bearing` = option D / `skip`).
+Stubbed/faked: `unmarkedWalls` toggle is a spike stand-in for ADR-017; lintel "extends 200 mm each side" is a **drawing default only**, no check reads it (R-OPEN-002 needs E-10); viewer controls are English-only developer chrome.
+
 Stubbed/faked: `FAKE-STRUCT-001` is **not a structural rule** (no source, never to be promoted). Rule-1/2 boundary tests are crude text scans.
+
+## Phase 0 exit checklist (session #11)
+
+All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details in DECISIONS. Q-135/136 defaults accepted.
 
 ## Next immediate step
 
-1. Owner: check the `spike-stack` CI run on GitHub (Actions) and note the Windows installer sizes; later run it on a Windows PC (bench: `PRUMO_SPIKE_BENCH=15`) (Q-130).
-2. Owner: push the local Spike A commit when happy (`git push`).
-3. Spike B (one rule end to end), then decide ADR-012 with the Spike A evidence.
+1. Phase 1 slice 3: `apps/desktop` (Tauri shell from Spike D, platform adapter), `packages/renderer-2d` (SVG), wall tool with snapping (grid/endpoint/orthogonal), joins + clean outline rewritten from Spike A, pan/zoom. First runnable app.
+2. Owner (whenever): merge PR #3 (contains PR #2), then a PR for `phase1/commands`; Windows run (Q-130); engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
+3. Owner's machine: global Node is 20.11; Node 22.23.5 is user-local at `~/.local/node22` (`export PATH="$HOME/.local/node22/bin:$PATH"`).
 
 ## Older next steps
 

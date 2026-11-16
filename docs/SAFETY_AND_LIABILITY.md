@@ -16,6 +16,8 @@ Real structural decisions (removing walls, adding openings to load-bearing walls
 
 **Banned words/phrases in UI strings** (case-insensitive): "safe", "is safe", "approved", "certified", "compliant", "passes code", "structurally sound", "OK to build", "guaranteed", "no risk".
 
+**pt-BR equivalents (proposed, session #11 — Spike B tests already enforce them):** "seguro/segura", "aprovado", "certificado", "em conformidade", "estruturalmente sólido", "pode construir", "garantido", "sem risco". (Plain "conforme" is allowed: it also means "according to".)
+
 **Required phrasing:**
 - No findings → *"No issues detected by the {N} checks implemented. These checks are simplified and don't cover {list}. They don't replace a structural engineer."*
 - Finding → *"Possible issue: …"* / *"This check suggests …"*, never *"This will fail."*

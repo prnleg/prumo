@@ -14,6 +14,8 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 | E-03 | Which current NBR editions/clauses apply (loads: NBR 6120; masonry: NBR 16868; others?). Are there common simplified methods for houses that you'd recommend instead? | ☐ | |
 | E-04 | How should a simple tool decide whether a wall is **load-bearing**? In structural masonry, is "all walls are structural" a reasonable default? (ADR-017) | ☐ | |
 | E-05 | Is our list of simplifications (`STRUCTURAL_ANALYSIS.md` §7) honest? What's missing that could make findings dangerously misleading? | ☐ | |
+| E-06 | Rule R-OPEN-001 says: *"an opening (door or window) in a load-bearing wall needs a lintel (verga)"*. Is that right as a general rule for Brazilian structural masonry? Which NBR clause should we cite? Exceptions (very small openings; an opening that reaches right up to a bond beam (cinta) or slab)? | ☐ | |
+| E-07 | When we only *assume* a wall is load-bearing (nobody marked it), should a finding on it be as severe as one on a wall the user marked? (Q-136) | ☐ | |
 
 ## Batch 2 — thresholds (before each rule ships)
 
@@ -31,7 +33,7 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 |---|---|---|---|
 | E-20 | Typical Brazilian block types to ship in the material pack (ceramic/concrete, structural vs sealing), and unit weights/strengths, with sources. | ☐ | |
 | E-21 | How to treat arching action over openings in a simplified way (Q-033). | ☐ | |
-| E-22 | Review the hand-calculated validation cases VC-001…005. | ☐ | |
+| E-22 | Review the hand-calculated validation cases VC-001…005 (`STRUCTURAL_ANALYSIS.md` §5, drafted 2026-11-16 with given test inputs; also: is "wall's own weight counts at its base" and "load over an opening goes half to each side" fine as the first simplified methods?). | ☐ | |
 | E-23 | Characteristic vs design values: which should the UI show to a beginner? | ☐ | |
 
 ## Batch 4 — product & credit

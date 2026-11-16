@@ -253,3 +253,78 @@ Owner: "start spike A"; then "code through the night, stop at a milestone". Mile
 **Inferences/defaults logged**: `joinTol` 5 mm and `miterLimit` 4 are UNSOURCED spike values (geometry, not structural) → real values go with ADR-006/012. All wall kinds join the same way (Q-133). Viewer is browser-only (`pnpm dev`): joins are pure TS, Tauri adds nothing to this question.
 
 **Next**: Spike B, then decide ADR-012/006.
+
+### Session #11, part 3 — Spike B (one rule end to end), 2026-11-16
+
+Owner: "push it and start spike B". Pushed Spike A (`48c2523`) to `spikes/d-e`. Milestone chosen = Spike B done + docs + local commit (not pushed).
+
+**Done**: `spikes/rule` (plain TS + Vitest, Vue 3 + Vite viewer, same pinned versions as Spike A — no new kind of dependency). Model (2 walls, a window and a door) → `runChecks` (pure, sorted) → rule `R-OPEN-001` → `Finding` (i18n key + typed params, assumption ids, fingerprint) → `explain()` → card with the 8 SAFETY items → plain-text export form + browser panel. Diff new/resolved/unchanged by fingerprint. Viewer: wall elevations with badges, per-wall "load-bearing?" mark, lintel toggle, opening width slider, pt-BR/en switch, findings appear 1.2 s after a commit and never mid-drag (ADR-025, proposed).
+
+**Rule honesty**: R-OPEN-001 has **no threshold** (presence of a lintel only), so nothing numeric was invented (ADR-018). Source `UNSOURCED – placeholder`; card shows NÃO VERIFICADA / UNVERIFIED. I did not cite an NBR clause from memory → E-06. "What this check does not consider" lists lintel size/bearing, bond beam, sill reinforcement, loads.
+
+**Tests**: 21 passing; typecheck clean. Hand checks: the two sample findings and their assumptions; 1200/800/2550 mm → "1.20 m"/"0.80 m"/"2.55 m" and "1,20 m"/…; exact full card text (en) and message + assumption (pt-BR); plurals for 1 vs 2 checks and 1 vs 2 findings; determinism under shuffled input; resize/move keeps fingerprint, adding a lintel resolves exactly one finding. Guards: banned words (en + proposed pt-BR list) over every catalogue string and rendered card — mutation-checked (planting "safe" fails 3 tests); en/pt-BR key + slot parity.
+
+**Lessons (explanation format)**:
+1. Card content works, but **2 near-identical cards** already feel repetitive → Q-135 (group by rule), R-57.
+2. The decisive fact for a beginner — *"treated as load-bearing only because nobody marked it"* — sits behind "details" → Q-136 (show default assumptions up front), E-07.
+3. Putting `source`/`notConsidered` on the rule (not each finding) keeps findings small and lets a review update every card at once.
+4. i18n needs nested plurals and gender select → ICU-style (ADR-021 note, R-56). pt-BR message only agrees because parede/janela/porta are feminine.
+5. Three sentences is the most the message should carry; the third ("ask an engineer…") is the actionable part.
+
+**Inferences/defaults logged**: ADR-017 kept open via a profile toggle (`assume-bearing` = option D, default in the spike; `skip`). pt-BR banned-word list added to SAFETY as *proposed* (translation of the existing rule, inferable from ADR-021 + SAFETY). Lintel drawn "200 mm each side" is a drawing default with a code comment saying it's not a recommendation. Settle delay 1.2 s inside ADR-025's 1–2 s. Bond beam [cinta] added to GLOSSARY. Viewer chrome English-only (developer UI); product text all i18n.
+
+**Next**: owner decides ADR-012 + ADR-006; engineer batch 1 + E-06/E-07; validation cases (Phase 0 #8).
+
+### Session #11, part 4 — push + validation cases, 2026-11-16
+
+Owner (remote): "I can't run git push… if you can, push it; if not, continue". Pushed `8aefbb5`. Found that PR #1 (D + E + A) had already been merged to `main` and the branch deleted; the push re-created `spikes/d-e` with Spike B on top of the merged history (1 commit ahead of `main`). No PR opened (no `gh` here).
+
+**Done**: ROADMAP Phase 0 #8 — VC-001a, VC-001b (lintel M/V/δ), VC-002 (one-way slab tributary), VC-003 (two-storey takedown + base stress), VC-004 (pier with half-each-side redistribution), VC-005 (wall self-weight minus opening; the "forgot to subtract" bug = +15.4 %). All inputs are **given test inputs** (no material values, loads, factors, or code clauses → ADR-018 untouched); arithmetic re-checked with a script. Status draft; engineer review = E-22 (now also asks about the two simplified methods).
+
+Added a **Phase 0 exit checklist** to CURRENT_STATE: every ADR the ROADMAP needs, with spike evidence, lean, confidence, and default, so the owner can answer in one pass. No ADR status changed.
+
+**Inferences/defaults logged**: kept the branch name `spikes/d-e` (cheap, reversible). No calculator code written: calculators are Phase 3 (golden rule 12); cases become tests when a calculator exists.
+
+**Next**: owner answers the exit checklist → Phase 1 plan.
+
+### Session #11, part 5 — Phase 0 exit decisions, Phase 1 plan, 2026-11-16
+
+Owner: "Lean. Most of it is simple right now, like the ADR 005, and later on it will get better (v1.1 or v2, whatever). ADR 010 we might need to add them in the future because people will probably want to implement tools that are present in other projects. The defaults for Q-135/136 are fine."
+
+**Decisions recorded (ACCEPTED 2026-11-16)**: ADR-003, 005, 006, 010, 012, 018, 021, 022 as leaned; owner notes added to 005 (improve in later versions) and 010 (interoperability / familiar tools from other software later, through the module API — not now). Q-135, Q-136 → Resolved with defaults. Phase 0 exit criteria met; engineer review + Windows run pending but not blocking Phase 1.
+
+**Inference logged**: read the ADR-010 caveat as *interoperability later* (import/export, modules re-creating familiar tools), not as "extend an existing tool now".
+
+**Phase 1 plan**: ROADMAP "Build order" (slices 0–9). New PROPOSED ADRs because they add dependencies (golden rule 4): ADR-033 (pnpm monorepo, TS strict, Vitest, ESLint boundary rules, Prettier, Node 22 pinned), ADR-034 (i18n: lean ICU `intl-messageformat` over vue-i18n, since findings are formatted outside Vue), ADR-035 (zip: lean fflate, pure JS in core). Phase 1 code waits on these + ADR-011/015/024/025.
+
+**Next**: owner answers the Phase 1 batch → slice 1 (skeleton).
+
+### Session #11, part 6 — Phase 1 batch accepted, slice 1 (skeleton), 2026-11-16
+
+Owner: "Lean to them. ADR 025 I would extend it to 2s after stop. ADR 034 I agree, also it should be probably attached to the country … (but I don't know about excluding them from other countries). About ADR-033 needs Node 22, let's use then Node 22 or higher".
+
+**Decisions recorded (ACCEPTED)**: ADR-011, 015, 024, 025 (settle **2 s**), 033 (Node ≥ 22), 034 (`intl-messageformat`), 035 (fflate). Owner's language/country idea → **Q-137** with a default (UI language = user's choice; profile suggests the default language for new projects; local terms shown in brackets; nothing excluded) — inferred, reversible, not asked again.
+
+**Setup facts (checked on npm today)**: TypeScript **7.0** exists, but typescript-eslint 8.72 supports `<6.1` → pinned **TS 6.0.3** (R-58). Vitest 5 needs Node ^22.12 → `engines: >=22.12.0`. Node 22.23.5 downloaded from nodejs.org (SHA-256 verified) into `~/.local/node22` — user-local, no system change; owner's global Node is still 20.11. Kept pnpm 9.15.9 (pnpm 12 via corepack failed earlier this session).
+
+**Done — slice 1**: branch `phase1/skeleton` (from `spikes/d-e`). Root workspace (`apps/*`, `packages/*`; spikes excluded), `tsconfig.base.json` (strict + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), ESLint 10 flat config with **boundary rules** (core can't import Vue/Tauri/modules — proven by a planted bad file producing both errors), Prettier, `.nvmrc`, `engine-strict`. `packages/core`: model types, `emptyProject`, `modulesReferenced`, id sources (injected; random UUID in prod, counter in tests), `EPS = 0.01 mm`, canonical JSON (throws on undefined/NaN/class instances), `.prumo` save/open, file validation. CI `ci.yml`.
+
+**Bug caught by the slice-1 exit test**: fflate stores DOS **local** time, so a fixed UTC date became 1979 in Brazil (error) and would have made bytes timezone-dependent. Fixed date now built from local components; a golden SHA-256 test, verified in UTC, Tokyo, São Paulo, and UTC+14, and CI runs tests on Linux/Windows/macOS (R-59).
+
+**Inferences/defaults logged**: default wall height 2700 mm and grid 100 mm are drawing defaults (not structural). `@typescript-eslint/no-non-null-assertion` off in tests only. Printwidth 120. Core exports TS source (no build step) until an app needs otherwise. Thumbnails / `packs.lock.json` are carried as opaque "extra" entries for now.
+
+**Next**: slice 2 — commands + undo (ADR-011), module host, save flow per ADR-032.
+
+### Session #11, part 7 — Phase 1 slice 2 (commands, undo, modules, save rules), 2026-11-16
+
+Owner: "No failure from CI, I believe we can continue". PR #3 (`phase1/skeleton`, opened by the owner) green on all jobs, no review comments. New branch `phase1/commands` on top of it.
+
+**Done** (`packages/core`): `edit.ts` (immutable put/remove, hosted cascade, `changedIds` by reference, invariants I-1…I-5 + sizes + level), `commands.ts` (put/update/delete; delete label counts hosted items), `history.ts` (snapshot undo/redo, gestures, `change`/`commit` events, dirty tracking, optional deep-freeze), `modules.ts` (manifest, host checks, disable cascade, namespaced context, component migrations; newer component → reported), `module-data.ts` (footprint owned vs with-data for Q-132 wording, `stripModules`, undoable `removeModuleCommand`, `snapshotBefore`, `exportCopy` incl. snapshots, required modules refused), persistence: `saveProjectFile(f, host)` refuses uninstalled-module data and derives the usage record; `openWithModules` = open + migrate (newer module data → read-only).
+
+**Tests**: 59 (19 → 59). Hand cases for each invariant (e.g. 3000 + 1200 = 4200 > 4000; 4000.005 within 0.01 mm), gesture semantics, event order, frozen-snapshot mutation throws, property test (60 random ops × 4 seeds, guarded against being vacuous), full ADR-032 end-to-end (engineer → architect without Electrical → stop → snapshot + remove → save → reopen; snapshot keeps the Electrical work per Q-131). Golden save hash unchanged.
+
+**Bug caught**: `modulesReferenced` counted the usage record itself, so stale record entries never dropped and could trigger a "missing module, 0 items" stop. Now references come from data only; the record is derived from them.
+
+**Inferences/defaults logged**: ADR-011 implemented as snapshot-restore undo (commands have only `apply`; EDITING_OPERATIONS' `{do, undo}` wording updated by a note). Q-072 default (block) applied in core; tools may clamp before submitting. Undo history is unlimited and not persisted (EDITING_OPERATIONS defaults). Rules/rule engine wait for Phase 2 (no rule exists to run). Missing-module files are migrated only after the user resolves the stop.
+
+**Next**: slice 3 — desktop app + SVG renderer + wall tool + joins.

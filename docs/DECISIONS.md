@@ -82,7 +82,7 @@ Sub-questions still OPEN:
 ---
 
 ## ADR-003 — 2D-first or 3D-first
-Status: **OPEN** · Reversibility: medium
+Status: **ACCEPTED (2026-11-16, owner: "lean"): A — 2D plan is the source of truth, 3D derived; elevations stored per element.** · Reversibility: medium
 
 - **A) 2D plan is the source of truth; 3D is derived.** (+) Much simpler editing; this is how most architectural tools started. (−) Things like sloped roofs or split-level floors are awkward.
 - **B) 3D model is the truth; plans are views.** (+) More general. (−) Far harder UI and geometry; scope explosion.
@@ -114,7 +114,7 @@ Lean: **A, choosing based on Q-010 (where/what the owner wants to model).** If t
 ---
 
 ## ADR-005 — Analysis depth (tiers)
-Status: **OPEN** · Reversibility: easy to *add* tiers, painful to remove trust once given
+Status: **ACCEPTED (2026-11-16, owner: "lean"; "most of it is simple right now … later on it will get better (v1.1 or v2)"): MVP Tier 0, Phase 3 Tier 1, Tier 2 optional, Tier 3 non-goal.** · Reversibility: easy to *add* tiers, painful to remove trust once given
 
 Tiers are defined in `STRUCTURAL_ANALYSIS.md`:
 - Tier 0: geometric/topological rules.
@@ -127,7 +127,7 @@ Lean: **MVP = Tier 0. Phase 3 = Tier 1. Tier 2 optional. Tier 3 is a non-goal.**
 ---
 
 ## ADR-006 — Units, precision, coordinate system
-Status: **OPEN** · Reversibility: **painful** (affects every saved file)
+Status: **ACCEPTED (2026-11-16, owner: "lean"): float64 mm + explicit tolerance + snapping; X right, Y up; radians inside, degrees in UI; SI.** Tolerance values still to fix in Phase 1 (spike values: join 5 mm, EPS 1e-9 geometry). · Reversibility: **painful** (affects every saved file)
 
 Proposal:
 - Internal length unit: **millimetres**. Options: (a) integers (no float drift, but rotation/mirror on non-axis lines produce non-integers → must round, and rounding can break joins), (b) float64 with a global tolerance `EPS = 0.01 mm` for comparisons.
@@ -179,20 +179,20 @@ Lean: **C as architecture, A as content** (one profile populated, the interface 
 ---
 
 ## ADR-010 — Build from scratch vs extend an existing tool
-Status: **OPEN** · Reversibility: near-impossible after Phase 1
+Status: **ACCEPTED (2026-11-16, owner: "lean"): build our own.** Owner caveat: *"we might need to add them in the future because people will probably want to implement tools that are present in other projects"* → keep the door open for **interoperability** later (import/export such as IFC/DXF, and modules that re-create familiar tools from other software), via the module API (ADR-020) — not now (golden rule 12). · Reversibility: near-impossible after Phase 1
 See `ALTERNATIVES.md`.
 Lean: **build from scratch (web)**, because the core value is the live, explained consequence UX, which is hard to bolt onto existing tools. Confidence: **low-medium.** I haven't validated this. Spike C exists to challenge it.
 
 ---
 
 ## ADR-011 — Undo/redo & state architecture
-Status: **OPEN**
+Status: **ACCEPTED (2026-11-16, owner: "lean"): immutable snapshots + command objects; one user action = one undo step.**
 Lean: **immutable model snapshots + command objects** (`do`, `undo`, `label`). Group multi-step user actions into a single transaction. Analysis is a pure function of the current snapshot, so undo automatically restores findings. Confidence: high.
 
 ---
 
 ## ADR-012 — Geometry library
-Status: **OPEN**
+Status: **ACCEPTED (2026-11-16, owner: "lean"): own 2D math for joins + outline in Phase 1; a polygon-boolean library only when areas/quantities/opening cuts need it, with its own dependency ADR.**
 Needs: segment intersection, polygon offset (wall thickness), polygon boolean (wall-join cleanup, opening cuts), point-in-polygon, snapping.
 Options: write our own minimal 2D geometry (+ full control, − bugs), or use a library for polygon booleans (e.g. a Clipper port or a polygon-clipping library — **verify current maintenance status before choosing**).
 Lean: own small vector math + a battle-tested polygon boolean library. Confidence: low (needs Spike A).
@@ -220,7 +220,7 @@ Consequence: GPL dependencies are not allowed in core (license-check in CI).
 ---
 
 ## ADR-015 — Single storey vs multi-storey
-Status: **OPEN**
+Status: **ACCEPTED (2026-11-16, owner: "lean"): `levels[]` in the model from day 1; UI edits one level until Phase 5.**
 Lean: **support `levels[]` in the data model from day 1, but the UI only edits one level until Phase 5.** Confidence: high. (Cheap now, expensive to retrofit.)
 
 ---
@@ -256,6 +256,7 @@ This is the single most important structural modelling decision. Options:
 - **D) Depends on the construction system:** in structural masonry, *all* walls are treated as bearing/bracing by default; in an RC frame, infill is non-bearing by default.
 
 Lean: **C + D.** Confidence: medium. Needs Q-010 and ADR-004 first.
+Spike B (session #11): modelled as a per-wall mark (`bearing` / `non-bearing` / `unmarked`) plus a profile setting for unmarked walls (`assume-bearing` = option D, or `skip`). Each finding names *why* the wall counts as bearing (assumption A-ROLE-1 "you marked it" / A-ROLE-2 "profile default"). Works for both; decides nothing. Engineer: E-04, E-07.
 
 ---
 
@@ -285,11 +286,12 @@ Confidence: high. Owner: accept?
 
 ## ADR-021 — Internationalization
 **Owner principle (session #7, Q-116/117):** *every locale-dependent default follows the UI language and stays customizable*: number format for display **and** input (no mixed parsing), floor names (Térreo / Ground floor), room-type names, etc.
-Status: **PROPOSED**: i18n from day 1 (no hard-coded UI strings), shipping **pt-BR + en**. Every module ships its own strings. Rule/finding messages are i18n keys with parameters, never concatenated sentences.
+Status: **ACCEPTED (2026-11-16, owner: "lean")**: i18n from day 1 (no hard-coded UI strings), shipping **pt-BR + en**. Every module ships its own strings. Rule/finding messages are i18n keys with parameters, never concatenated sentences.
 Why now: "for everyone" + Brazil + EU, and retrofitting i18n is painful.
+**Spike B evidence (session #11):** keys + typed params (`length` formatted per locale at display time, `element` labels generated, never stored) worked for one rule in both languages. Needed beyond plain `{slots}`: **plural on a named param, nested** ("2 possible issues found by the 1 check") and soon **gender select** (R-56). That's ICU MessageFormat territory → choosing an i18n library (e.g. vue-i18n vs an ICU formatter) needs its own dependency ADR in Phase 1. Tests that paid off: catalogue key + slot parity across locales; banned-words scan over every catalogue string.
 
 ## ADR-022 — Shared model with namespaced module components
-Status: **PROPOSED** (see ARCHITECTURE "Model kernel", MODULES §3).
+Status: **ACCEPTED (2026-11-16, owner: "lean")** (see ARCHITECTURE "Model kernel", MODULES §3).
 Spike E evidence (session #11): `element.components[moduleId] = { v, data }` worked for all 7 MODULES rules, per-module migrations, ADR-032 removal, and export stripping. Limitation: in-process TS can't *enforce* write isolation (a module can build objects by hand); it's convention + the module context + review until ADR-023.
 Alternatives rejected: (a) one separate model per Vision, synced (sync bugs); (b) a giant model where the core knows every discipline (breaks modularity).
 
@@ -299,14 +301,14 @@ Options: only official/bundled modules; unsigned community modules with a big wa
 
 ## ADR-024 — Generic hosting of elements on walls/slabs
 Spike E note (session #11): an Electrical outlet hosted on a core wall needed a generic `host` field **in the core** (the core must know hosting to cascade deletes later). Supports this ADR. Cascade not tested yet.
-Status: **PROPOSED**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
+Status: **ACCEPTED (2026-11-16, owner: "lean")**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
 
 ## ADR-025 — When and how findings appear ("quiet while creating")
-Status: **PROPOSED** (from the owner's Q-054 answer, 2026-11-15)
+Status: **ACCEPTED (2026-11-16, owner: "lean", settle delay **2 s** after the user stops)** (from the owner's Q-054 answer, 2026-11-15)
 Owner's concern: *"I'm still connecting the wall and there's an annoying warning saying I'm creating a structural failure."*
 Proposal:
 1. **No findings during an active gesture** (drawing a wall chain, dragging, typing a value). Evaluate only when the command **commits** (gesture ends).
-2. **Settle delay:** after a commit, wait ~1–2 s of inactivity before *showing* new findings (computing can happen earlier). ❓ value to tune.
+2. **Settle delay:** after a commit, wait **2 s** of inactivity (owner, 2026-11-16) before *showing* new findings (computing can happen earlier). Tunable constant, not per-user yet.
 3. **Incomplete geometry is "draft", not an error.** An open wall chain, a dangling wall end, or a room not closed yet → no structural findings for those elements until they're "settled" (the chain is closed/ended, or N seconds pass). Hard part: defining "settled" (Q-073).
 4. **Inside the Architect Vision:** only **critical** findings from other Visions surface, as a quiet badge/dot on the element + a counter. **No popups, no modals, no sounds**, never stealing focus.
 5. **Inside the Structural Vision:** the full findings panel.
@@ -365,5 +367,38 @@ Status: **ACCEPTED in principle (2026-11-15, owner)**. See `UX_PRINCIPLES.md`.
 - "Grid" (Q-071) = the **drawing/snapping grid**, not a construction system (owner, session #3).
 
 ## ADR-018 — Is the AI allowed to invent structural thresholds?
-Status: **PROPOSED** (by planning session)
+Status: **ACCEPTED (2026-11-16, owner: "lean")**
 Proposal: **No.** Any threshold without a source is stored with `source: "UNSOURCED"` and shown as `UNVERIFIED` in the UI, and it's listed in `STRUCTURAL_ANALYSIS.md` §"Unverified values" until someone verifies it. Owner: please accept or reject.
+
+---
+
+## ADR-033 — Monorepo & tooling for Phase 1
+Status: **ACCEPTED (2026-11-16, owner: "lean"; Node: "Node 22 or higher")**
+Setup notes (2026-11-16, checked on npm): **Node ≥ 22.12** (`engines`; Vitest 5 needs ^22.12), `.nvmrc` = 22. **TypeScript 6.0.x, not 7**: typescript-eslint 8.72 supports `<6.1`; revisit when it supports TS 7 (native compiler). Exact versions pinned in package.json.
+Proposal:
+- **pnpm workspaces** with the ARCHITECTURE layout (`apps/desktop`, `packages/core`, `packages/renderer-2d`, `packages/ui-kit`, `packages/module-architect`; `module-structural` waits for Phase 2).
+- **TypeScript strict** (+ `noUncheckedIndexedAccess`, as in the spikes), **Vitest**, **vue-tsc**; versions pinned exactly (spike set: Vue 3.5, Vite 6, Vitest 3, TS 5.7; Tauri 2.12).
+- **Node pinned** in `.nvmrc` + `engines` + CI. Lean: Node 22 LTS (lets us move to Vite 7 later; R-55). Owner's machine currently has Node 20.11 → would need an upgrade.
+- **Boundary enforcement** (golden rules 11 + 16) by a lint rule, not convention: `core` can't import Vue/modules/Tauri; modules can't import each other's internals; only the platform adapter imports `@tauri-apps/*`. Options: ESLint `no-restricted-imports` per package (no extra dep beyond ESLint) vs `dependency-cruiser`. Lean: ESLint + `no-restricted-imports` (one tool, enough for our rules).
+- **Prettier** for formatting (exempt from debates, rule 3).
+- **CI**: lint + typecheck + test on every push; installers (from `spike-stack.yml`) on tags/manual.
+Dependencies added: pnpm, TypeScript, Vitest, Vite, vue-tsc, ESLint (+ typescript-eslint, eslint-plugin-vue), Prettier. **Verify current maintenance/versions at setup time.**
+Lean: as above. Confidence: high (all already used in spikes or industry default). Reversibility: easy.
+
+## ADR-034 — i18n library
+Status: **ACCEPTED (2026-11-16, owner: "lean"): B — `intl-messageformat` + own Vue glue.** Owner addition: language *"should be probably attached to the country"* (construction vocabulary is local), but unsure about excluding other languages → Q-137 (default: UI language stays the user's choice; the project's country profile suggests the default language for new projects, and its local terms are shown alongside, e.g. "lintel (verga)"; nothing is excluded).
+Need (Spike B): keys + params; **plural on a named param, nested**; **gender `select`** (R-56); formatting must also work **outside Vue** (rules/findings are produced in `core`/modules and rendered for exports and tests).
+Options:
+- A) **vue-i18n** — (+) Vue standard, tooling. (−) its own message syntax (plural via `|` pipes, no ICU `select`); Vue-only, so core/modules need a second formatter.
+- B) **ICU MessageFormat formatter (`intl-messageformat`, FormatJS)** + our own ~30-line Vue glue — (+) full ICU (plural, select, nested), framework-free, same strings in core and UI. (−) less Vue tooling; bundle a bit bigger.
+- C) Keep Spike B's own mini formatter — (+) zero deps. (−) re-implementing ICU badly; translators expect ICU.
+Lean: **B**. Confidence: medium (verify maintenance and bundle size at setup; also check whether the built-in `Intl` APIs cover enough by then).
+
+## ADR-035 — `.prumo` zip container library
+Status: **ACCEPTED (2026-11-16, owner: "lean"): A — fflate.**
+Need: read/write the zip container (`project.json`, snapshots, later thumbnails) **in `core`**, so it's testable in Node and a web build stays possible (no Tauri in core, rule 16). Deterministic output (fixed entry order + timestamps) so saves are byte-stable (rule 10).
+Options:
+- A) **fflate** (pure JS, small, no dependencies) — (+) runs anywhere, fast. (−) another JS dep.
+- B) **JSZip** — (+) very well known. (−) larger, slower, promise-heavy API.
+- C) Rust `zip` crate behind the platform adapter — (+) native. (−) core can't open files in tests/web without Tauri; two code paths.
+Lean: **A**. Confidence: medium (verify maintenance; check deterministic timestamps).
