@@ -1,0 +1,346 @@
+# DECISIONS (Architecture Decision Records)
+
+Statuses:
+- `OPEN` — not decided. **AI must not implement anything that depends on it.**
+- `PROPOSED` — someone recommended an option; waiting for the owner.
+- `ACCEPTED` — the owner explicitly agreed. Record date + who.
+- `SUPERSEDED by ADR-xxx` — replaced. Never delete old ADRs.
+
+Every ADR lists: context, options, my lean, **confidence**, what would change my mind, and consequences.
+
+> Confidence in every "lean" below is the planning session's honest opinion. It's **not** a decision.
+
+---
+
+## ADR-000 — Template
+
+```
+## ADR-XXX — Title
+Status: OPEN | PROPOSED | ACCEPTED (YYYY-MM-DD, by ...) | SUPERSEDED by ADR-YYY
+Blocks: ...
+Context: ...
+Options:
+  A) ... (+) ... (−) ...
+  B) ...
+Lean: ...  Confidence: low|medium|high
+What would change my mind: ...
+Consequences if accepted: ...
+Reversibility: easy | painful | near-impossible
+```
+
+---
+
+## ADR-001 — Platform: web app vs desktop app vs plugin
+Status: **ACCEPTED (2026-11-15, owner): Tauri 2 desktop app with a web front end; a pure web build stays possible.** Owner: "anything that works everywhere"; open to a better framework if Spike D shows one. **v1 targets Windows + macOS; Linux deferred** (ADR-027). · Blocks: everything · Reversibility: **painful**
+
+**Owner input (2026-11-15):** Senior SWE (.NET, Angular/Vue). Comfortable with Rust, C#, Python, WPF, Flutter, Tauri 2. Priority: **easiest install on Windows, macOS, Linux**; "the easiest and better one".
+
+Updated comparison for a cross-platform, modular, 2D→3D editor:
+
+| Option | Install size / ease | Owner fit | 2D/3D ecosystem | Plugins | Web build possible | Main worry |
+|---|---|---|---|---|---|---|
+| **Tauri 2 + Vue/TS** | Small (a few MB, *verify*), native installers for all 3 OS | Vue ✔, Rust ✔ | Excellent (SVG/Canvas/Three.js) | Easy (JS modules) | ✔ | 3 different WebViews; Linux WebKitGTK quirks |
+| Electron + Vue/TS | Large (~100 MB+) | ✔ | Excellent | Easy | ✔ | Size, RAM |
+| Avalonia (.NET) | Medium, all 3 OS | **Best language fit** (C#) | Good 2D (Skia); 3D weaker | Assemblies, natural in .NET | Partial (*verify* browser support maturity) | Smaller 3D/geometry ecosystem; fewer contributors know it |
+| Flutter | Medium, all 3 OS | ✔ | 2D good, 3D weak | Hard (no dynamic code loading) | ✔ | Plugins + 3D |
+| .NET MAUI | — | ✔ | — | — | — | **No official Linux** → rejected |
+| WPF | — | ✔ | — | — | — | **Windows only** → rejected |
+
+Lean: **Tauri 2 + Vue 3 + TypeScript.** Confidence: **medium-high**.
+Why not Avalonia, since C# is the owner's strongest language? Because modules/add-ons, 3D (Three.js), geometry libraries, open-source contributor reach, and a possible web version are all much stronger in the TS world, and the owner already knows Vue.
+What would change my mind: Spike D shows Linux WebKitGTK can't handle the editor smoothly, or the owner strongly prefers C# for long-term enjoyment (enjoyment matters on a hobby project!).
+
+**Spike D (Phase 0):** a Tauri 2 + Vue hello-world with an SVG canvas (500 walls, pan/zoom) and a Three.js scene, built and run on Windows, macOS, and Linux. Measure installer size and smoothness.
+
+Options:
+- **A) Web app (browser), runs locally, no server.** (+) Zero install, easy to share, good 2D/3D libraries (Canvas/SVG/WebGL/Three.js), Claude Code is very fluent in TS/React. (−) Heavy computation must run in Web Workers; file access is clunkier.
+- **B) Desktop (Electron/Tauri wrapping a web app).** (+) Real file system, can ship later from A. (−) Packaging overhead.
+- **C) Native desktop (Python + Qt, C#, etc.).** (+) Python has engineering libraries (numpy, PyNite). (−) UI development is slower; harder to share.
+- **D) Plugin for an existing tool (FreeCAD / Blender+Bonsai / SketchUp).** (+) Geometry, file formats, and 3D come free. (−) You inherit their complexity and UX; "live consequence feedback" may be hard to fit into their workflows. See ADR-010.
+
+Lean: **A (web, local-first), designed so B is possible later.** Confidence: **medium**.
+What would change my mind: the owner already knows Python and not JS (Q-002), or Spike C shows a plugin gets 70% of the value for 10% of the effort.
+
+---
+
+## ADR-002 — Language & core stack
+Status: **ACCEPTED (2026-11-15, owner): TypeScript strict + Vite + Vue 3 + pnpm monorepo + Vitest.** Sub-choices (2D renderer, state lib) remain PROPOSED below. · Depends on ADR-001 · Reversibility: painful
+
+**Update 2026-11-15:** status → **PROPOSED: TypeScript (strict) + Vite + Vue 3 (Composition API) + pnpm workspaces monorepo + Vitest.** Vue rather than React because the owner knows Vue; the AI is fluent in both. Angular is possible too but heavier for a canvas-centric app. Owner: please confirm Vue vs Angular (Q-056).
+State: Pinia for UI state only. **The building model lives in the framework-free core**, not in Pinia.
+
+Original notes (kept for history):
+If web: **TypeScript** (strict mode) + **Vite** + a UI framework (React is the most common, so the AI is most fluent in it) + a 2D renderer (options: SVG, Canvas2D, Konva, PixiJS) + **Three.js** (maybe via react-three-fiber) for 3D later + Vitest for tests.
+
+Sub-questions still OPEN:
+- 2D renderer: **SVG** (simple, crisp, easy hit-testing, slow at thousands of elements) vs **Canvas/WebGL** (fast, more work). Lean: SVG for Phase 1 — a house has hundreds of elements, not millions. Confidence: medium.
+- State management: a hand-rolled immutable store + command pattern vs a library (Zustand/Immer). Lean: Immer + our own command layer. Confidence: low-medium.
+- Numeric work: plain TS is probably enough through Tier 1. A Tier 2 solver needs linear algebra (a JS lib, or WASM, or a Python backend → ADR-013).
+
+---
+
+## ADR-003 — 2D-first or 3D-first
+Status: **OPEN** · Reversibility: medium
+
+- **A) 2D plan is the source of truth; 3D is derived.** (+) Much simpler editing; this is how most architectural tools started. (−) Things like sloped roofs or split-level floors are awkward.
+- **B) 3D model is the truth; plans are views.** (+) More general. (−) Far harder UI and geometry; scope explosion.
+
+Lean: **A**, with elevations stored per element (base elevation, height) so 3D extrusion is possible. Confidence: **high**.
+
+---
+
+## ADR-004 — Which construction system(s) do we model? ⚠️ CRITICAL
+Status: **PARTIALLY ACCEPTED (2026-11-15, owner):** construction systems are **switchable**, and all engineering knowledge (materials, bricks, formulas, resistance) lives in the **Structural module**, not in the core. **Update 2026-11-15 (owner):** first rule pack = **structural masonry**; other systems are welcome as further packs. ~~The owner mentioned "grid", interpreted as a column-grid frame system.~~ **Corrected session #3:** "grid" meant the drawing/snapping grid (ADR-031). The second rule pack is **undecided**; ask the engineer (E-01).
+**Clarified intent (owner):** the split exists because *an architect doesn't want to deal with engineering; that's not their job*. Visions are **role-based**: the Architect Vision must be fully usable with zero engineering knowledge.
+Original status: **Still OPEN:** which system the Structural module implements *first* (Q-055). · Blocks: all structural rules · Reversibility: **near-impossible later** (rules are system-specific)
+
+⚠️ Critic's note on "switchable": switching systems isn't like switching a colour. Each system needs its own rule set, materials, and assumptions (see DOMAIN_PRIMER §5). "Switchable" really means **a "construction system" setting on the project, plus one rule pack per system.** Implementing one pack well beats three packs badly. Proposal: rule packs are data + code inside the Structural module; v1 ships **one** pack.
+
+Why this matters: "put a window in a wall" means **completely different things** depending on the system:
+- **Structural masonry** (walls carry the building): every opening weakens a load-carrying element. Very sensitive.
+- **Reinforced-concrete frame + infill masonry** (very common in Brazil and much of the world): the columns/beams carry loads; infill walls usually *don't* — openings in them are mostly fine structurally (but there are exceptions!).
+- **Light timber frame / light steel frame:** studs + headers; openings need headers and king/jack studs.
+- **Cast-in-place concrete walls.**
+
+Options:
+- A) One system only (pick the one most relevant to the owner).
+- B) Two systems with a shared rule interface.
+- C) "System-agnostic" generic rules only. (−) Generic rules are vague, which defeats the purpose.
+
+Lean: **A, choosing based on Q-010 (where/what the owner wants to model).** If the owner is in Brazil, the realistic candidates are "RC frame + infill" (most common) or "structural masonry" (most interesting structurally, since openings actually matter). Confidence: **low** — I really need the owner's input.
+
+---
+
+## ADR-005 — Analysis depth (tiers)
+Status: **OPEN** · Reversibility: easy to *add* tiers, painful to remove trust once given
+
+Tiers are defined in `STRUCTURAL_ANALYSIS.md`:
+- Tier 0: geometric/topological rules.
+- Tier 1: simplified hand-calc formulas (load takedown, lintel bending, wall stress).
+- Tier 2: 2D frame stiffness analysis.
+- Tier 3: FEA.
+
+Lean: **MVP = Tier 0. Phase 3 = Tier 1. Tier 2 optional. Tier 3 is a non-goal.** Confidence: **high.**
+
+---
+
+## ADR-006 — Units, precision, coordinate system
+Status: **OPEN** · Reversibility: **painful** (affects every saved file)
+
+Proposal:
+- Internal length unit: **millimetres**. Options: (a) integers (no float drift, but rotation/mirror on non-axis lines produce non-integers → must round, and rounding can break joins), (b) float64 with a global tolerance `EPS = 0.01 mm` for comparisons.
+- Lean: **float64 mm + explicit tolerance + snapping**, never compare floats with `===`. Confidence: medium.
+- Forces in **N**, stresses in **MPa (N/mm²)**, loads in **kN/m²** in the UI (converted internally). Consistent SI everywhere.
+- Coordinate system: X right, Y up (math convention) in the model; the renderer flips for screen. *(Screen Y points down — classic source of mirror bugs.)*
+- Angles: radians internally, degrees in the UI.
+- Display units: metric only at first? (Q-012)
+
+---
+
+## ADR-007 — Openings are hosted by walls
+Status: **OPEN** (strong lean) · Reversibility: painful
+
+- **A) Opening has `hostWallId` + `offsetAlongWall`.** It moves with the wall and can't exist without one. (+) Matches reality and every BIM tool. (−) Moving an opening across to another wall requires a "re-host" operation.
+- B) Free-floating openings that cut whatever wall they overlap. (−) Ambiguous, fragile.
+
+Lean: **A.** Confidence: **high.**
+Open sub-question: can a "generic opening" (the owner said doors don't need to be real doors) also exist in slabs (e.g., a stair void)? Lean: yes, later, with `hostSlabId` as a separate type.
+
+---
+
+## ADR-008 — Project file format
+Status: **OPEN**
+Lean: **JSON**, with `schemaVersion` at the root, stable UUIDs for every element, and a migration function for every version bump. Possibly IFC export later, but **not** as the native format (IFC is huge and complex). Confidence: high.
+
+---
+
+## ADR-009 — Country / building code reference
+Status: **ACCEPTED (2026-11-15, owner): two code profiles first: Brazil (ABNT NBR) and Europe (Eurocodes). Pluggable profile architecture (option C).** Still OPEN: which Eurocode National Annex (Q-051). · Blocks: thresholds, default loads, material values
+
+**Update 2026-11-15 (owner):** EU was a reflex, not a requirement. **Brazil is the only profile for v1.** Country rule sets become **installable data packs/plugins** later ("follow the rules by country"). EU is deferred; the profile interface must still not be Brazil-shaped (R-24 stays). Q-051 parked.
+**Principle (owner):** rules must **never stop anyone from creating anything**. They only inform. See ADR-026.
+
+⚠️ Critic's note: **"EU" isn't one rulebook.** Eurocodes leave many safety factors and parameters as *Nationally Determined Parameters*, set by each country's **National Annex** (Portugal, Germany, France… differ). Options: (a) use the EN "recommended values" and label the profile `EU (EN recommended values, no National Annex)`; (b) pick one country's annex. Lean: (a) for v1. Confidence: medium.
+⚠️ Brazil and the Eurocodes use different load-combination formats, partial factors, and material classes (e.g. concrete classes C20/25 in EN vs fck = 20 MPa in NBR 6118). The profile interface must not assume one style. Design it with both in mind from the start; this is a good stress test for the abstraction.
+
+Codes differ by country. Examples (*verify current editions before use*):
+- Brazil: ABNT NBR 6120 (loads), NBR 6123 (wind), NBR 6118 (concrete structures), NBR 16868 (structural masonry), NBR 7190 (timber), NBR 8800 (steel), NBR 15575 (housing performance).
+- USA: IBC/IRC + ASCE 7 (loads) + ACI 318 / TMS 402 / NDS.
+- Europe: Eurocodes EN 1990–1996.
+
+Options: A) one country's codes, B) "code-agnostic" with thresholds marked as illustrative, C) pluggable "code profiles".
+Lean: **C as architecture, A as content** (one profile populated, the interface ready for more). Confidence: medium.
+⚠️ Codes are copyrighted documents (ABNT standards are sold). We can **cite** clause numbers but we shouldn't copy text into the repo. The owner may need to buy or access the standards to verify values (Q-031).
+
+---
+
+## ADR-010 — Build from scratch vs extend an existing tool
+Status: **OPEN** · Reversibility: near-impossible after Phase 1
+See `ALTERNATIVES.md`.
+Lean: **build from scratch (web)**, because the core value is the live, explained consequence UX, which is hard to bolt onto existing tools. Confidence: **low-medium.** I haven't validated this. Spike C exists to challenge it.
+
+---
+
+## ADR-011 — Undo/redo & state architecture
+Status: **OPEN**
+Lean: **immutable model snapshots + command objects** (`do`, `undo`, `label`). Group multi-step user actions into a single transaction. Analysis is a pure function of the current snapshot, so undo automatically restores findings. Confidence: high.
+
+---
+
+## ADR-012 — Geometry library
+Status: **OPEN**
+Needs: segment intersection, polygon offset (wall thickness), polygon boolean (wall-join cleanup, opening cuts), point-in-polygon, snapping.
+Options: write our own minimal 2D geometry (+ full control, − bugs), or use a library for polygon booleans (e.g. a Clipper port or a polygon-clipping library — **verify current maintenance status before choosing**).
+Lean: own small vector math + a battle-tested polygon boolean library. Confidence: low (needs Spike A).
+
+---
+
+## ADR-013 — Where does the structural solver run?
+Status: **OPEN** (not needed until Tier 2)
+Options: TS in a Web Worker / Rust→WASM / a Python backend (e.g. PyNite) / Pyodide (Python in the browser).
+Lean: **TS in a Worker for Tier 0–1** (simple formulas). Decide Tier 2 later. Confidence: medium.
+
+---
+
+## ADR-014 — Licensing / open source / private
+Status: **ACCEPTED (2026-11-15, owner): open source, Apache-2.0, public repository from day 1.** Installers unsigned for now (signing later, R-26 accepted).
+Options:
+- **MIT / Apache-2.0** (permissive): anyone, including companies, can use it and close their forks. Apache-2.0 adds a patent grant. Maximizes adoption and plugin authors.
+- **MPL-2.0** (file-level copyleft): changes to *our* files must stay open; plugins and apps around it can be anything.
+- **GPL-3.0 / AGPL** (strong copyleft): derivatives must be open. Can scare off plugin authors and companies.
+Lean: **Apache-2.0** for core + official modules (permissive + patent clause + a clear "AS IS" warranty disclaimer, which matters for a tool that talks about structures). Confidence: medium.
+Consequence: GPL dependencies are not allowed in core (license-check in CI).
+⚠️ Code profiles: we can't redistribute text or tables copied from ABNT standards or Eurocodes. Profiles hold **values + clause references**, never copied text. Even numeric tables may be sensitive; when in doubt, cite and let the user enter the value. → R-10 upgraded.
+
+---
+
+## ADR-015 — Single storey vs multi-storey
+Status: **OPEN**
+Lean: **support `levels[]` in the data model from day 1, but the UI only edits one level until Phase 5.** Confidence: high. (Cheap now, expensive to retrofit.)
+
+---
+
+## ADR-016 — Project name
+Status: OPEN. Not urgent. Avoid names that imply certification ("SafeBuild", "StructCheck Pro"…).
+
+**Candidates (session #3):**
+- Owner's ideas: **Rustitect**, **Archirust**.
+  - ⚠️ Critique: (1) most of the code will be TypeScript/Vue; Rust is only the Tauri shell, so "Rust" in the name misleads contributors; (2) the persona has never used CAD and "Rust" means nothing to them; (3) the Rust Foundation has a trademark policy about using "Rust" in project names. **Check it before choosing.**
+- Planning session's ideas (Portuguese construction words, short, friendly; **availability unchecked**: GitHub org, domain, trademarks, app stores):
+  - **Prumo** (plumb line: the tool that checks a wall is true; nice metaphor for "checks")
+  - **Esquadro** (builder's square)
+  - **Croqui** (a quick sketch)
+  - **Traço** (stroke, or a concrete mix ratio)
+  - **Planta** (floor plan; ambiguous with "plant" in English)
+- Process: pick 3 → check GitHub/domain/trademark collisions → decide. Use a codename until then.
+
+**Update session #4 (2026-11-15): owner likes "Prumo". Status: Prumo = CODENAME (accepted); final name PENDING the availability check.**
+⚠️ Collision found in a quick web search (2026-11-15): a commercial **"Prumo"** product already exists, a cloud **remodeling estimating** app for residential remodelers (getprumo.com, listed in "Remodeling Estimating Software" directories). It's the **same broad industry** (construction/remodeling), which is the riskiest kind of collision for trademarks and for search/discoverability. There may be other Brazilian companies using "Prumo" too (unverified).
+Options: (a) keep "Prumo" as an open-source project name and accept the confusion; (b) a distinctive variant (e.g. "Prumo Studio", "OpenPrumo", "Prumo3D"; still close); (c) a different name before going public.
+Lean: use **Prumo as the codename**, check the trademark registers (INPI in Brazil; USPTO/EUIPO if international) before the first public release, and decide then. Renaming an early public repo is cheap; renaming after users and packs exist isn't. → Q-109
+
+---
+
+## ADR-017 — How do we know whether a wall is load-bearing? ⚠️ CRITICAL
+Status: **OPEN** · Blocks Phase 2
+
+This is the single most important structural modelling decision. Options:
+- **A) User declares it** per wall. (+) Simple, honest. (−) A non-expert will often get it wrong; garbage in → garbage out.
+- **B) Inferred** from what's above: a slab/roof region with a span direction, and walls perpendicular to the span that support its edges are bearing. (+) Teaches the concept. (−) Needs slabs and span directions modelled; inference can be wrong.
+- **C) Inferred, shown to the user, user can override,** and the override is flagged ("you marked this as non-bearing, but it appears to support the slab above").
+- **D) Depends on the construction system:** in structural masonry, *all* walls are treated as bearing/bracing by default; in an RC frame, infill is non-bearing by default.
+
+Lean: **C + D.** Confidence: medium. Needs Q-010 and ADR-004 first.
+
+---
+
+## ADR-019 — Modular "Visions" architecture
+Status: **ACCEPTED in principle (2026-11-15, owner):** the product is a shared model + installable Visions/modules (Architect, Civil/Structural, Electrical later…). Details (extension points, manifest, naming) are **PROPOSED** in `MODULES.md`.
+Still OPEN: the user-facing name ("Vision", "Mode", "Module", "Add-on"?) → Q-059.
+
+## ADR-020 — When does the plugin API become public?
+Status: **ACCEPTED (2026-11-15, owner liked the approach)**
+Proposal: v1 modules are **bundled at build time** (no runtime install, no marketplace). The module API is internal and may break freely (`apiVersion 0.x`). It becomes a public, stable API only after **three** real modules use it (Architect, Structural, + one more).
+Why: designing a plugin API before you have plugins is the classic way to get it wrong.
+Confidence: high. Owner: accept?
+
+## ADR-021 — Internationalization
+Status: **PROPOSED**: i18n from day 1 (no hard-coded UI strings), shipping **pt-BR + en**. Every module ships its own strings. Rule/finding messages are i18n keys with parameters, never concatenated sentences.
+Why now: "for everyone" + Brazil + EU, and retrofitting i18n is painful.
+
+## ADR-022 — Shared model with namespaced module components
+Status: **PROPOSED** (see ARCHITECTURE "Model kernel", MODULES §3).
+Alternatives rejected: (a) one separate model per Vision, synced (sync bugs); (b) a giant model where the core knows every discipline (breaks modularity).
+
+## ADR-023 — Trust model for third-party add-ons
+Status: **OPEN** (not needed until the API is public — ADR-020)
+Options: only official/bundled modules; unsigned community modules with a big warning; sandboxed modules (iframe/Web Worker/WASM with a message-passing API only). Lean: sandboxed when the public API arrives. Bundled-only until then.
+
+## ADR-024 — Generic hosting of elements on walls/slabs
+Status: **PROPOSED**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
+
+## ADR-025 — When and how findings appear ("quiet while creating")
+Status: **PROPOSED** (from the owner's Q-054 answer, 2026-11-15)
+Owner's concern: *"I'm still connecting the wall and there's an annoying warning saying I'm creating a structural failure."*
+Proposal:
+1. **No findings during an active gesture** (drawing a wall chain, dragging, typing a value). Evaluate only when the command **commits** (gesture ends).
+2. **Settle delay:** after a commit, wait ~1–2 s of inactivity before *showing* new findings (computing can happen earlier). ❓ value to tune.
+3. **Incomplete geometry is "draft", not an error.** An open wall chain, a dangling wall end, or a room not closed yet → no structural findings for those elements until they're "settled" (the chain is closed/ended, or N seconds pass). Hard part: defining "settled" (Q-073).
+4. **Inside the Architect Vision:** only **critical** findings from other Visions surface, as a quiet badge/dot on the element + a counter. **No popups, no modals, no sounds**, never stealing focus.
+5. **Inside the Structural Vision:** the full findings panel.
+6. Per-user setting: "Show critical engineering alerts in Architect Vision: on/off" (default on).
+Reversibility: easy (UX).
+
+## ADR-026 — Rules inform, never block
+Status: **ACCEPTED (2026-11-15, owner):** "That should not stop anyone from creating anything; it should help them know if they're following the rules."
+Consequences:
+- Code/structural rules **never** prevent an edit.
+- ⚠️ Distinction to confirm (Q-027 reworded → Q-072): **geometric impossibilities** (window longer than its wall, zero-length wall) are *model validity*, not rules. Lean: still prevent or auto-clamp those, because the model can't represent them. Owner to confirm.
+- Wording: "following the rules" must be phrased as *"matches the N checks in profile X"*, never "compliant" (SAFETY doc).
+
+## ADR-027 — Supported platforms v1
+Status: **ACCEPTED (2026-11-15, owner): Windows + macOS.** Linux deferred to a later phase.
+Notes: keep the code Linux-friendly (no OS-specific APIs outside the platform adapter); CI *may* build Linux unofficially so regressions are visible. ❓ Q-075.
+
+## ADR-028 — Crash/error reporting
+Status: **ACCEPTED in principle (2026-11-15, owner):** "would be nice to have at least error/crashing" reports. Details **PROPOSED**:
+- **Opt-in** (asked once, off until the user says yes). Brazil's LGPD and the EU's GDPR both make opt-in the safe choice.
+- Reports contain: app version, OS, stack trace, module versions. **Never** project content, file names, or paths (scrubbed).
+- No usage analytics in v1.
+- Provider OPEN: a hosted service with an open-source plan, self-hosted, or plain "copy error details → open a GitHub issue" (zero infrastructure, a fine v1). Lean: **v1 = local crash log + "Report on GitHub" button that pre-fills an issue**; a hosted provider later. Confidence: medium.
+
+## ADR-029 — Architect ↔ Engineer handoff model
+Status: **ACCEPTED in principle (2026-11-15, owner: Q-076 "yes, your case makes a lot of sense")**. Mechanics **PROPOSED**:
+- Different people, same project file, passed back and forth (no real-time collaboration: still a non-goal).
+- Data model gets: `author` (local display name, no accounts — Q-092), `createdBy/modifiedBy` per element, **notes** attached to elements, and **protection markers** set by a Vision ("structural: load-bearing, don't remove").
+- Protection doesn't block (ADR-026). Deleting/moving a protected element is allowed but leaves a **critical marker** (Q-077 ✅ option b).
+- **RESOLVED session #4 (owner, Q-091): no parallel edits.** Owner: *"It's like two devs working on the same issue. It's just a mess."* → **Sequential turns ("baton" model)**:
+  - The project has exactly **one holder** at a time. The holder edits; everyone else opens it **read-only + can add notes**.
+  - Handing off = an explicit action ("Hand to engineer…") that records who, when, and a message, and creates a **named snapshot** ("Sent to engineer #1") for the compare view.
+  - Opening a copy where you're not the holder → read-only banner + a "Take over" button (logged, with a warning). File-based locks can't be enforced (copies exist), so this is **convention + visibility**, not security.
+  - The owner's nuance: *"keep working but not changing things done"* is fine; *changing everything all the time* is not. → Q-102 asks whether the non-holder may keep working on *new, unrelated* parts in v1. Default: no.
+- (Previous text kept for history:) ⚠️ **Biggest open problem: parallel edits.** If the architect keeps working while the engineer reviews a copy, there are two divergent files. Options: (a) **sequential "turns"** — only one side edits at a time, enforced by convention + a "handed off to X" banner; (b) **compare view** (diff two versions visually) but merge manually; (c) automatic merge (element-level three-way merge: hard). Lean: **(a) + (b) for v1.** Merge is a later problem. → Q-091.
+
+## ADR-030 — Two kinds of extensions: data packs vs code modules
+Status: **ACCEPTED (2026-11-15, owner: Q-094 "yes")** (prompted by Q-078: "everyone can implement their plugins: city, state, country")
+Tension: ADR-020 keeps the *code* module API internal until 3 modules exist, but the owner wants anyone to publish country/state/city rule plugins.
+Proposal:
+- **Data packs** (JSON/YAML, no code): thresholds, default loads, material lists, and rule *parameters* for rules that already exist in a module. Example: `br-sp-sao-paulo-architect.json` sets "minimum bedroom area = X m²" for the existing rule `A-ROOM-001`. These are safe (no code execution), easy to review, and can be **public early**.
+- **Code modules**: new tools, element types, *new kinds of rules*. Internal until ADR-020's condition is met.
+- Packs are hierarchical: **country → state → city**, with child packs overriding parent values; every value shows which pack it came from.
+- The core ships **no** code profiles; even Brazil is a pack bundled with the Structural module (owner: "the core might not need all of that").
+Confidence: medium-high. This is how the "plugins for everyone" goal stays compatible with the anti-platform-trap rule.
+
+## ADR-031 — Build mode interaction model ("Sims-like, without the cage")
+Status: **ACCEPTED in principle (2026-11-15, owner)**. See `UX_PRINCIPLES.md`.
+- Room tool + wall tool (both; room tool is the default). Rooms are closed loops; half walls, fences, and railings are allowed and don't need to close (Q-079 ✅).
+- Any angle allowed; snapping is the default (grid + angle steps), with free placement on a modifier key (Q-087 for defaults).
+- Doors/windows snap into walls and cut them.
+- **Snapping defaults ACCEPTED (Q-087):** 10 cm grid, 15° steps, Alt = free. They **must be easy to discover and change**: visible in the status bar (click to change), in Settings, and mentioned in the guided tour.
+- **Half walls can close a room (Q-088, owner):** e.g. a half wall dividing an open kitchen. Fences/railings: open (Q-106). The invisible room separator stays as an option.
+- **Material = finish vs structure split ACCEPTED (Q-090):** see DATA_MODEL "Finishes vs structure".
+- "Grid" (Q-071) = the **drawing/snapping grid**, not a construction system (owner, session #3).
+
+## ADR-018 — Is the AI allowed to invent structural thresholds?
+Status: **PROPOSED** (by planning session)
+Proposal: **No.** Any threshold without a source is stored with `source: "UNSOURCED"` and shown as `UNVERIFIED` in the UI, and it's listed in `STRUCTURAL_ANALYSIS.md` §"Unverified values" until someone verifies it. Owner: please accept or reject.
