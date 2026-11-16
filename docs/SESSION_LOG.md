@@ -253,3 +253,24 @@ Owner: "start spike A"; then "code through the night, stop at a milestone". Mile
 **Inferences/defaults logged**: `joinTol` 5 mm and `miterLimit` 4 are UNSOURCED spike values (geometry, not structural) → real values go with ADR-006/012. All wall kinds join the same way (Q-133). Viewer is browser-only (`pnpm dev`): joins are pure TS, Tauri adds nothing to this question.
 
 **Next**: Spike B, then decide ADR-012/006.
+
+### Session #11, part 3 — Spike B (one rule end to end), 2026-11-16
+
+Owner: "push it and start spike B". Pushed Spike A (`48c2523`) to `spikes/d-e`. Milestone chosen = Spike B done + docs + local commit (not pushed).
+
+**Done**: `spikes/rule` (plain TS + Vitest, Vue 3 + Vite viewer, same pinned versions as Spike A — no new kind of dependency). Model (2 walls, a window and a door) → `runChecks` (pure, sorted) → rule `R-OPEN-001` → `Finding` (i18n key + typed params, assumption ids, fingerprint) → `explain()` → card with the 8 SAFETY items → plain-text export form + browser panel. Diff new/resolved/unchanged by fingerprint. Viewer: wall elevations with badges, per-wall "load-bearing?" mark, lintel toggle, opening width slider, pt-BR/en switch, findings appear 1.2 s after a commit and never mid-drag (ADR-025, proposed).
+
+**Rule honesty**: R-OPEN-001 has **no threshold** (presence of a lintel only), so nothing numeric was invented (ADR-018). Source `UNSOURCED – placeholder`; card shows NÃO VERIFICADA / UNVERIFIED. I did not cite an NBR clause from memory → E-06. "What this check does not consider" lists lintel size/bearing, bond beam, sill reinforcement, loads.
+
+**Tests**: 21 passing; typecheck clean. Hand checks: the two sample findings and their assumptions; 1200/800/2550 mm → "1.20 m"/"0.80 m"/"2.55 m" and "1,20 m"/…; exact full card text (en) and message + assumption (pt-BR); plurals for 1 vs 2 checks and 1 vs 2 findings; determinism under shuffled input; resize/move keeps fingerprint, adding a lintel resolves exactly one finding. Guards: banned words (en + proposed pt-BR list) over every catalogue string and rendered card — mutation-checked (planting "safe" fails 3 tests); en/pt-BR key + slot parity.
+
+**Lessons (explanation format)**:
+1. Card content works, but **2 near-identical cards** already feel repetitive → Q-135 (group by rule), R-57.
+2. The decisive fact for a beginner — *"treated as load-bearing only because nobody marked it"* — sits behind "details" → Q-136 (show default assumptions up front), E-07.
+3. Putting `source`/`notConsidered` on the rule (not each finding) keeps findings small and lets a review update every card at once.
+4. i18n needs nested plurals and gender select → ICU-style (ADR-021 note, R-56). pt-BR message only agrees because parede/janela/porta are feminine.
+5. Three sentences is the most the message should carry; the third ("ask an engineer…") is the actionable part.
+
+**Inferences/defaults logged**: ADR-017 kept open via a profile toggle (`assume-bearing` = option D, default in the spike; `skip`). pt-BR banned-word list added to SAFETY as *proposed* (translation of the existing rule, inferable from ADR-021 + SAFETY). Lintel drawn "200 mm each side" is a drawing default with a code comment saying it's not a recommendation. Settle delay 1.2 s inside ADR-025's 1–2 s. Bond beam [cinta] added to GLOSSARY. Viewer chrome English-only (developer UI); product text all i18n.
+
+**Next**: owner decides ADR-012 + ADR-006; engineer batch 1 + E-06/E-07; validation cases (Phase 0 #8).

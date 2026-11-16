@@ -14,6 +14,8 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 | E-03 | Which current NBR editions/clauses apply (loads: NBR 6120; masonry: NBR 16868; others?). Are there common simplified methods for houses that you'd recommend instead? | ☐ | |
 | E-04 | How should a simple tool decide whether a wall is **load-bearing**? In structural masonry, is "all walls are structural" a reasonable default? (ADR-017) | ☐ | |
 | E-05 | Is our list of simplifications (`STRUCTURAL_ANALYSIS.md` §7) honest? What's missing that could make findings dangerously misleading? | ☐ | |
+| E-06 | Rule R-OPEN-001 says: *"an opening (door or window) in a load-bearing wall needs a lintel (verga)"*. Is that right as a general rule for Brazilian structural masonry? Which NBR clause should we cite? Exceptions (very small openings; an opening that reaches right up to a bond beam (cinta) or slab)? | ☐ | |
+| E-07 | When we only *assume* a wall is load-bearing (nobody marked it), should a finding on it be as severe as one on a wall the user marked? (Q-136) | ☐ | |
 
 ## Batch 2 — thresholds (before each rule ships)
 

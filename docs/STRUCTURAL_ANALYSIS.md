@@ -58,6 +58,8 @@ type Finding = {
 };
 ```
 
+**Spike B adjustments (session #11):** `message` → `messageKey` + typed `params` (ADR-021; lengths formatted per locale at display time, element labels generated); `source`, `notConsidered`, `terms` live on the **rule definition**, not copied into every finding; the UI shows UNVERIFIED unless the rule has a source **and** a recorded engineer review (CLAUDE.md rules 6 + 17). Fingerprint = `ruleId|elementIds` (no params), so moving/resizing an opening keeps the "same" finding; adding a lintel resolves it.
+
 ❓ Doubt: the **fingerprint** decides whether a finding is "the same" across edits. If an element's ID changes on copy/mirror, the diff will show a resolved + new pair instead of "unchanged". Acceptable? (Lean: yes, but IDs must stay stable on *move*.)
 
 ## 2. Tiers
@@ -75,7 +77,7 @@ Thresholds shown as `⟨placeholder⟩` are **not** real values.
 
 | ID | Rule | Applies to | Severity | Notes / doubts |
 |---|---|---|---|---|
-| R-OPEN-001 | Opening in a bearing wall without a lintel defined | masonry, timber | warning | In RC frame + infill a lintel is still needed for the masonry above, but the severity is lower. |
+| R-OPEN-001 | Opening in a bearing wall without a lintel defined | masonry, timber | warning | In RC frame + infill a lintel is still needed for the masonry above, but the severity is lower. **Spike B (s#11): implemented in `spikes/rule`** with source `UNSOURCED – placeholder`, shown UNVERIFIED; no numeric threshold (presence check only). Hand check = the case table in `spikes/rule/test/rule.test.ts`. Source + exceptions → E-06. |
 | R-OPEN-002 | Lintel bearing length each side < ⟨placeholder⟩ | masonry, timber | warning | Commonly cited values exist; **must source**. |
 | R-OPEN-003 | Pier between two openings narrower than ⟨placeholder⟩ (or ⟨ratio⟩ × wall thickness) | structural masonry | warning/critical | Pier stress concentration. |
 | R-OPEN-004 | Opening closer than ⟨placeholder⟩ to a wall end or intersection | structural masonry | warning | |

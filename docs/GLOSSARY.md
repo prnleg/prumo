@@ -7,6 +7,7 @@
 - **ART / RRT** — Brazilian registrations of technical responsibility (engineer: ART/CREA; architect: RRT/CAU).
 - **Arching action** — Masonry above an opening partly carries itself like an arch, reducing the load on the lintel.
 - **Bearing length** — How far a lintel/beam rests on its support at each end.
+- **Bond beam** [cinta] — A continuous reinforced-concrete band along masonry walls that ties them together; it may sit right above some openings.
 - **Bracing / shear wall** — A wall that resists horizontal (wind/earthquake) forces in its own plane.
 - **Buckling** — Sudden sideways failure of a slender element under compression.
 - **Characteristic vs design value** — Real expected value vs value with safety factors applied. Never mix them.

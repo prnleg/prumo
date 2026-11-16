@@ -256,6 +256,7 @@ This is the single most important structural modelling decision. Options:
 - **D) Depends on the construction system:** in structural masonry, *all* walls are treated as bearing/bracing by default; in an RC frame, infill is non-bearing by default.
 
 Lean: **C + D.** Confidence: medium. Needs Q-010 and ADR-004 first.
+Spike B (session #11): modelled as a per-wall mark (`bearing` / `non-bearing` / `unmarked`) plus a profile setting for unmarked walls (`assume-bearing` = option D, or `skip`). Each finding names *why* the wall counts as bearing (assumption A-ROLE-1 "you marked it" / A-ROLE-2 "profile default"). Works for both; decides nothing. Engineer: E-04, E-07.
 
 ---
 
@@ -287,6 +288,7 @@ Confidence: high. Owner: accept?
 **Owner principle (session #7, Q-116/117):** *every locale-dependent default follows the UI language and stays customizable*: number format for display **and** input (no mixed parsing), floor names (Térreo / Ground floor), room-type names, etc.
 Status: **PROPOSED**: i18n from day 1 (no hard-coded UI strings), shipping **pt-BR + en**. Every module ships its own strings. Rule/finding messages are i18n keys with parameters, never concatenated sentences.
 Why now: "for everyone" + Brazil + EU, and retrofitting i18n is painful.
+**Spike B evidence (session #11):** keys + typed params (`length` formatted per locale at display time, `element` labels generated, never stored) worked for one rule in both languages. Needed beyond plain `{slots}`: **plural on a named param, nested** ("2 possible issues found by the 1 check") and soon **gender select** (R-56). That's ICU MessageFormat territory → choosing an i18n library (e.g. vue-i18n vs an ICU formatter) needs its own dependency ADR in Phase 1. Tests that paid off: catalogue key + slot parity across locales; banned-words scan over every catalogue string.
 
 ## ADR-022 — Shared model with namespaced module components
 Status: **PROPOSED** (see ARCHITECTURE "Model kernel", MODULES §3).

@@ -5,7 +5,7 @@
 
 ## 0. Project status (keep this line updated)
 
-**Phase:** Phase 0 (spikes). Spikes D + E done on macOS (`/spikes`, throwaway); **no production code yet**. Repo: https://github.com/prnleg/prumo
+**Phase:** Phase 0 (spikes). Spikes A, B, D, E done on macOS (`/spikes`, throwaway); **no production code yet**. Repo: https://github.com/prnleg/prumo
 **Commit messages:** don't add `Co-Authored-By` trailers (owner's preference).
 **Accepted so far:** Tauri 2 + Vue 3 + TypeScript (ADR-001/002); Windows + macOS first, Linux later (ADR-027); open source, Apache-2.0, public repo from day 1 (ADR-014); modular, role-based Visions (ADR-019) with a bundled, internal module API (ADR-020); Brazil-only profile for v1 (ADR-009); first structural rule pack = structural masonry (ADR-004); rules inform and never block (ADR-026). **Proposed:** quiet-while-creating feedback (ADR-025). **Session #4:** codename **Prumo** (final name pending a trademark check); ADR-030 accepted; handoff = sequential "baton", no parallel edits; half walls close rooms; finishes ≠ structural materials. **Session #3:** Sims-like build mode with room + wall tools and any angle (ADR-031); architect↔engineer handoff (ADR-029); opt-in crash reports (ADR-028); data packs vs code modules (ADR-030, proposed).
 Source of truth for status: `docs/CURRENT_STATE.md`.
