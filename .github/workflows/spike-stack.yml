@@ -1,0 +1,62 @@
+# Spike D (throwaway): build the Tauri 2 + Vue 3 stack spike for Windows and macOS.
+# Unsigned installers (ADR-014). Delete together with /spikes/stack.
+name: spike-stack
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "spikes/stack/**"
+      - ".github/workflows/spike-stack.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: "--bundles nsis,msi"
+            target: ""
+          - os: macos-latest
+            args: "--bundles app,dmg --target universal-apple-darwin"
+            target: "aarch64-apple-darwin,x86_64-apple-darwin"
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: spikes/stack
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: spikes/stack/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/stack/src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tauri build ${{ matrix.args }}
+      - name: Installer sizes
+        shell: bash
+        run: |
+          echo "### Installer sizes (${{ matrix.os }})" >> "$GITHUB_STEP_SUMMARY"
+          find src-tauri/target -path '*/bundle/*' \( -name '*.dmg' -o -name '*.msi' -o -name '*-setup.exe' \) -print0 \
+            | xargs -0 ls -l | awk '{printf "- %s: %.2f MB\n", $NF, $5/1048576}' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spike-stack-${{ matrix.os }}
+          path: |
+            spikes/stack/src-tauri/target/**/bundle/dmg/*.dmg
+            spikes/stack/src-tauri/target/**/bundle/msi/*.msi
+            spikes/stack/src-tauri/target/**/bundle/nsis/*-setup.exe
+          if-no-files-found: error

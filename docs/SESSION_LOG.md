@@ -197,3 +197,38 @@ Owner answers: stages 1+2 OK; the core = the basic building (no colour/furniture
 **Owner feedback:** questions had started re-asking things that were inferable from context ("triple checks"). Action: a new questioning rule in CLAUDE.md §1 (infer → log; cheap to reverse → default; ask only new + consequential + ambiguous). Open questions converted to "defaults on record".
 
 **Planning phase closed. Next: Spikes D and E in Claude Code.**
+
+---
+
+## Session #11 — 2026-11-15/16 — Spikes D and E (Claude Code, local)
+
+**Done**
+- **Spike D** (`spikes/stack`): Tauri 2.12 (wry 0.57) + Vue 3.5 + Vite 6.4 + Three.js 0.170. SVG plan with 500 walls (15×15 grid of 4 m rooms + 20 angled walls; pan, wheel zoom, drag a wall) + a Three.js scene extruding the same walls (one mesh per wall, OrbitControls). Built a release `.app` for macOS arm64. Built-in benchmark (`PRUMO_SPIKE_BENCH=<n>`): auto-pans/zooms, drags a wall, orbits 3D for 3 s each, prints frame stats and exits. Tauri imports live only in `src/platform.ts` (rule 16).
+- **CI**: `.github/workflows/spike-stack.yml` builds Windows (NSIS + MSI) and macOS (universal app + DMG), writes installer sizes to the job summary, uploads artifacts. **Not run yet**: nothing committed/pushed this session.
+- **Spike E** (`spikes/modules`): plain TS + Vitest, 28 tests, `tsc --strict` clean. Core = skeleton (levels, walls, openings, opaque module-owned elements); `ModuleHost` (registration, dependency + API-version checks, namespaced `ModuleContext`, rule engine with declared `reads`); persistence (canonical JSON, open → ok / missing-modules / read-only, per-module migrations, explicit removal with snapshot, export with module selection).
+
+**Results (Spike D, macOS 27, Apple Silicon)**: `.app` 3.1 MiB, DMG 1.7 MiB; startup process→first frame cold 1.56 s, warm 0.52–0.61 s; 60 fps (vsync cap) with p95 ≤ 18 ms in all three scenarios at 500 walls, and still 60 fps at 4,920 walls. Naive Vue `v-for` re-render while dragging is fine at this scale. Details in CURRENT_STATE.
+
+**Lessons (Spike E)**
+1. MODULES rules 1–7 and ADR-032 are implementable as written. The skeleton/Architect split (Q-128) holds: an Electrical-only install builds walls and outlets, and removing Architect data leaves walls intact.
+2. `save()` refuses data from an uninstalled module, so the ADR-032 dialog can't be bypassed by code paths, not only by UI.
+3. "Installed but disabled" (rule 7: no dialog, data kept, no findings) and "not installed" (ADR-032 dialog) are two different states; the real app needs both.
+4. **Snapshots** carry module data too: export must strip excluded modules from snapshots (done) or the copy leaks; the missing-module dialog only counts the live model; snapshot data isn't migrated on open → R-54, Q-131.
+5. Module-owned hosted elements (outlet on a wall) push the generic `host` field into the core (supports ADR-024). Delete cascade not tested.
+6. Write isolation between modules is convention-only in-process → R-53.
+7. Dialog wording for "component-only" modules is misleading ("remove 1 item" when only finishes go) → Q-132.
+
+**Decisions / inferences logged (no question needed)**
+- Spike deps (Vue, Vite, Vitest, TypeScript, Tauri CLI/API, Three.js, @types/*) are covered by ADR-001/002 and the Spike D definition; spikes are throwaway, so no new ADR. Production deps still need ADRs.
+- Vite 6 (not 7+) because local Node is 20.11 (R-55). pnpm 9.15.9 via corepack (the latest pnpm needs a newer Node).
+- Placeholder app icon generated (solid colour); mobile icons deleted.
+- `FAKE-STRUCT-001` is a topological fake for the module test, `severity: info`, `UNSOURCED – placeholder`, never to be promoted; not added to STRUCTURAL_ANALYSIS on purpose.
+- ADR-022/024 stay PROPOSED; spike evidence noted under each.
+
+**Not done / broken**
+- Windows: no build, no measurements (Q-130, R-52).
+- macOS DMG via `tauri build` failed locally (Finder AppleScript timeout, automation permission); measured with a plain `hdiutil` DMG instead. CI should build it normally.
+- Measurements are rAF-based (main thread only) on a 60 Hz display: they show "no dropped frames", not headroom.
+- Linux CI build (Q-075 default) not added; the user asked for Windows + macOS.
+
+**Next step**: push → CI Windows build → measure on a real Windows PC; then Spikes A and B.

@@ -50,6 +50,8 @@ Lean: **Tauri 2 + Vue 3 + TypeScript.** Confidence: **medium-high**.
 Why not Avalonia, since C# is the owner's strongest language? Because modules/add-ons, 3D (Three.js), geometry libraries, open-source contributor reach, and a possible web version are all much stronger in the TS world, and the owner already knows Vue.
 What would change my mind: Spike D shows Linux WebKitGTK can't handle the editor smoothly, or the owner strongly prefers C# for long-term enjoyment (enjoyment matters on a hobby project!).
 
+**Spike D result (session #11, macOS only):** 3.1 MiB app / 1.7 MiB DMG, warm start ~0.55 s, 60 fps at 500 and ~4,900 SVG walls + a Three.js scene. Nothing on macOS argues against the accepted stack. **Windows still unmeasured** (CI written, not run). See CURRENT_STATE.
+
 **Spike D (Phase 0):** a Tauri 2 + Vue hello-world with an SVG canvas (500 walls, pan/zoom) and a Three.js scene, built and run on Windows, macOS, and Linux. Measure installer size and smoothness.
 
 Options:
@@ -287,6 +289,7 @@ Why now: "for everyone" + Brazil + EU, and retrofitting i18n is painful.
 
 ## ADR-022 — Shared model with namespaced module components
 Status: **PROPOSED** (see ARCHITECTURE "Model kernel", MODULES §3).
+Spike E evidence (session #11): `element.components[moduleId] = { v, data }` worked for all 7 MODULES rules, per-module migrations, ADR-032 removal, and export stripping. Limitation: in-process TS can't *enforce* write isolation (a module can build objects by hand); it's convention + the module context + review until ADR-023.
 Alternatives rejected: (a) one separate model per Vision, synced (sync bugs); (b) a giant model where the core knows every discipline (breaks modularity).
 
 ## ADR-023 — Trust model for third-party add-ons
@@ -294,6 +297,7 @@ Status: **OPEN** (not needed until the API is public — ADR-020)
 Options: only official/bundled modules; unsigned community modules with a big warning; sandboxed modules (iframe/Web Worker/WASM with a message-passing API only). Lean: sandboxed when the public API arrives. Bundled-only until then.
 
 ## ADR-024 — Generic hosting of elements on walls/slabs
+Spike E note (session #11): an Electrical outlet hosted on a core wall needed a generic `host` field **in the core** (the core must know hosting to cascade deletes later). Supports this ADR. Cascade not tested yet.
 Status: **PROPOSED**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
 
 ## ADR-025 — When and how findings appear ("quiet while creating")
