@@ -92,3 +92,28 @@ describe("room names (stored tag + seed, matched to detected rooms)", () => {
     expect(r2.status).toBe("invalid");
   });
 });
+
+describe("room data beyond the name", () => {
+  it("a tag carrying module data survives clearing the name; an empty tag is removed", async () => {
+    const { editRoomCommand } = await import("../src");
+    const ids = counterIds("t");
+    let p = twoRooms();
+    const k = keyOf(p, 1000);
+    p = editRoomCommand(
+      p,
+      "l-1",
+      k,
+      { key: "x" },
+      (t) => ({ ...t, components: { "org.prumo.architect": { v: 1, data: { floor: "wood" } } } }),
+      ids,
+    ).apply(p);
+    expect(roomTags(p, "l-1")).toHaveLength(1);
+    p = nameRoomCommand(p, "l-1", k, "Sala", ids).apply(p);
+    p = nameRoomCommand(p, "l-1", k, "", ids).apply(p);
+    expect(roomTags(p, "l-1").map((t) => [t.name, t.components["org.prumo.architect"]?.data])).toEqual([
+      ["", { floor: "wood" }],
+    ]);
+    p = editRoomCommand(p, "l-1", k, { key: "x" }, (t) => ({ ...t, components: {} }), ids).apply(p);
+    expect(roomTags(p, "l-1")).toEqual([]);
+  });
+});

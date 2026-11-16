@@ -1,4 +1,5 @@
 import { CORE_API_VERSION, type ModuleManifest } from "@prumo/core";
+import { mirrorArchitectData } from "./finishes";
 
 export const ARCHITECT = "org.prumo.architect";
 
@@ -9,8 +10,8 @@ export const architectManifest: ModuleManifest = {
   version: "0.1.0",
   apiVersion: CORE_API_VERSION,
   dependsOn: [],
-  // Finishes (Q-090) land here in slice 7; v1 reserved now so files never need a v0 migration.
-  component: { version: 1, migrations: {} },
+  // v1 = { sides?: { left?, right? }, floor? } finish ids (finishes.ts). Mirror swaps the sides.
+  component: { version: 1, migrations: {}, mirror: (d) => mirrorArchitectData(d) },
   elementTypes: [],
   required: true,
 };

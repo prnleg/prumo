@@ -16,7 +16,9 @@ const props = defineProps<{
   /** Grid step, mm. */
   grid?: number;
   /** Detected rooms: floor polygon + a localized label (e.g. area). Drawn under the walls. */
-  rooms?: readonly { key: string; floor: readonly V[]; at: V; label: string; selected?: boolean }[];
+  rooms?: readonly { key: string; floor: readonly V[]; at: V; label: string; selected?: boolean; fill?: string }[];
+  /** Painted wall faces: a strip along `line`, clipped to the wall's drawn shape (clean corners). */
+  faces?: readonly { key: string; wallId: string; line: readonly [V, V]; color: string }[];
   /** Rubber band (model coords); "touching" draws dashed (CAD convention). */
   box?: { minX: number; minY: number; maxX: number; maxY: number; mode: "inside" | "touching" } | null;
 }>();
@@ -160,7 +162,13 @@ function wheel(e: WheelEvent) {
       <line v-for="(l, k) in gridLines" :key="k" v-bind="l" :class="{ major: l.major }" />
     </g>
     <g class="rooms">
-      <polygon v-for="r in rooms ?? []" :key="r.key" :points="pts(r.floor)" :class="{ selected: r.selected }" />
+      <polygon
+        v-for="r in rooms ?? []"
+        :key="r.key"
+        :points="pts(r.floor)"
+        :class="{ selected: r.selected }"
+        :style="r.fill && !r.selected ? { fill: r.fill } : undefined"
+      />
       <text v-for="r in rooms ?? []" :key="r.key + 't'" :x="S(r.at).x" :y="S(r.at).y">{{ r.label }}</text>
     </g>
     <g class="walls">
@@ -169,6 +177,23 @@ function wheel(e: WheelEvent) {
         :key="g.id"
         :points="pts(g.polygon)"
         :class="['wall', kindOf.get(g.id), { selected: selected.has(g.id) }]"
+      />
+    </g>
+    <defs>
+      <clipPath v-for="g in geometry.walls" :id="`clip-${g.id}`" :key="g.id">
+        <polygon :points="pts(g.polygon)" />
+      </clipPath>
+    </defs>
+    <g class="faces">
+      <line
+        v-for="f in faces ?? []"
+        :key="f.key"
+        :x1="S(f.line[0]).x"
+        :y1="S(f.line[0]).y"
+        :x2="S(f.line[1]).x"
+        :y2="S(f.line[1]).y"
+        :stroke="f.color"
+        :clip-path="`url(#clip-${f.wallId})`"
       />
     </g>
     <g class="outline">
@@ -263,6 +288,10 @@ function wheel(e: WheelEvent) {
 }
 .wall.selected {
   fill: var(--accent-soft);
+}
+.faces line {
+  stroke-width: 5;
+  stroke-linecap: butt;
 }
 .outline line {
   stroke: var(--ink);

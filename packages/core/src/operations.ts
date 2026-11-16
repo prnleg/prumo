@@ -230,9 +230,15 @@ export function rotateCommand(ids: readonly Id[], pivot: V, deg: number, opts: P
  * stored relative to the wall start, the hinge is already in the mirrored place; the leaf side flips,
  * so `swing` in ↔ out. That IS the real-world "handing flips" of Q-021.
  */
-function mirrorWall(w: Wall, f: (q: V) => V): Wall {
+/** How a module's component data changes when its element is mirrored (MODULES rule 1: core doesn't know). */
+export type MirrorComponent = (moduleId: string, data: unknown) => unknown;
+
+function mirrorWall(w: Wall, f: (q: V) => V, mc?: MirrorComponent): Wall {
   const flip = { left: "right", right: "left", center: "center" } as const;
-  return { ...w, start: f(w.start), end: f(w.end), alignment: flip[w.alignment] };
+  const components = mc
+    ? Object.fromEntries(Object.entries(w.components).map(([m, c]) => [m, { ...c, data: mc(m, c.data) }]))
+    : w.components;
+  return { ...w, start: f(w.start), end: f(w.end), alignment: flip[w.alignment], components };
 }
 function mirrorOpening(o: Opening): Opening {
   return o.kind === "door" ? { ...o, swing: (o.swing ?? "in") === "in" ? "out" : "in" } : o;
@@ -252,7 +258,7 @@ export function mirrorCommand(
   ids: readonly Id[],
   axis: MirrorAxis,
   through: V,
-  mode: { copy: boolean; newId: IdSource; stretch?: boolean; joinTol?: number },
+  mode: { copy: boolean; newId: IdSource; stretch?: boolean; joinTol?: number; mirrorComponent?: MirrorComponent },
 ): MirrorResult {
   const f = reflector(axis, through);
   const walls = [...new Set(ids)]
@@ -277,7 +283,7 @@ export function mirrorCommand(
       command: {
         label,
         apply: (q) => {
-          const after = new Map(walls.map((w) => [w.id, mirrorWall(w, f)]));
+          const after = new Map(walls.map((w) => [w.id, mirrorWall(w, f, mode.mirrorComponent)]));
           const out: Element[] = [...after.values()];
           for (const w of walls) out.push(...hostedOn(w.id).map(mirrorOpening));
           if (mode.stretch ?? true)
@@ -298,7 +304,7 @@ export function mirrorCommand(
     if (skipped.includes(w.id)) continue;
     const id = mode.newId();
     newIds.push(id);
-    copies.push({ ...mirrorWall(structuredClone(w), f), id });
+    copies.push({ ...mirrorWall(structuredClone(w), f, mode.mirrorComponent), id });
     for (const o of hostedOn(w.id))
       copies.push({ ...mirrorOpening(structuredClone(o)), id: mode.newId(), host: { ...o.host, elementId: id } });
   }
@@ -312,24 +318,44 @@ export function mirrorCommand(
  * Name (or rename) a detected room. Empty name = remove the tag. A new tag's seed is the room's
  * label point (inside the floor, away from walls) so small wall edits don't push it out.
  */
-export function nameRoomCommand(p: Project, levelId: Id, roomKey: string, name: string, newId: IdSource): Command {
+/**
+ * Edit the user data of a detected room (name, module components such as a floor finish). Creates the
+ * tag on first use (seed = the room's label point); a tag left with no name and no data is removed.
+ */
+export function editRoomCommand(
+  p: Project,
+  levelId: Id,
+  roomKey: string,
+  label: Label,
+  change: (t: RoomTag) => RoomTag,
+  newId: IdSource,
+): Command {
   const room = detectRooms(p, levelId).find((r) => r.key === roomKey);
-  const tag = room ? matchRoomTags([room], roomTags(p, levelId)).get(room.key) : undefined;
-  const clean = name.trim();
-  const label: Label = { key: "cmd.nameRoom" };
   if (!room) return { label, apply: (q) => q };
-  if (tag && !clean)
-    return {
-      label,
-      apply: (q) => ({
-        ...q,
-        elements: Object.fromEntries(Object.entries(q.elements).filter(([id]) => id !== tag.id)),
-      }),
-    };
-  if (tag) return { label, apply: (q) => putElements(q, [{ ...tag, name: clean }]) };
-  if (!clean) return { label, apply: (q) => q };
-  const t: RoomTag = { id: newId(), type: "room", levelId, seed: room.labelAt, name: clean, components: {} };
-  return { label, apply: (q) => putElements(q, [t]) };
+  const existing = matchRoomTags([room], roomTags(p, levelId)).get(room.key);
+  const base: RoomTag = existing ?? {
+    id: newId(),
+    type: "room",
+    levelId,
+    seed: room.labelAt,
+    name: "",
+    components: {},
+  };
+  const next = change(base);
+  const empty = !next.name && Object.keys(next.components).length === 0;
+  return {
+    label,
+    apply: (q) => {
+      if (!empty) return putElements(q, [next]);
+      if (!existing) return q;
+      return { ...q, elements: Object.fromEntries(Object.entries(q.elements).filter(([id]) => id !== existing.id)) };
+    },
+  };
+}
+
+/** Name (or rename) a detected room. Empty name = no name (the tag goes if nothing else is on it). */
+export function nameRoomCommand(p: Project, levelId: Id, roomKey: string, name: string, newId: IdSource): Command {
+  return editRoomCommand(p, levelId, roomKey, { key: "cmd.nameRoom" }, (t) => ({ ...t, name: name.trim() }), newId);
 }
 
 /**

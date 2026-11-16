@@ -10,7 +10,7 @@ import {
   type Project,
   type Wall,
 } from "@prumo/core";
-import { ROOM_PREFIX } from "@prumo/module-architect";
+import { FINISHES, ROOM_PREFIX, architectData } from "@prumo/module-architect";
 import { computed, ref } from "vue";
 import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 
@@ -19,7 +19,9 @@ const props = defineProps<{
   selection: readonly string[];
   locale: Locale;
   /** Detected rooms with their current name (for a selected room). */
-  rooms: readonly { key: string; name: string; area: number }[];
+  rooms: readonly { key: string; name: string; area: number; floor: string }[];
+  /** What each side of the selected wall faces ("Sala", "outside"). */
+  wallSides?: { left: string; right: string } | null;
 }>();
 const emit = defineEmits<{
   apply: [cmd: Command];
@@ -28,7 +30,12 @@ const emit = defineEmits<{
   rotate: [deg: number];
   mirror: [axis: "vertical" | "horizontal"];
   name: [roomKey: string, name: string];
+  paintSide: [wallId: string, side: "left" | "right", finishId: string];
+  paintFloor: [roomKey: string, finishId: string];
 }>();
+const wallFinishes = FINISHES.filter((f) => f.use === "wall");
+const floorFinishes = FINISHES.filter((f) => f.use === "floor");
+const SIDES = ["left", "right"] as const;
 const room = computed(() => {
   const id = props.selection.length === 1 ? (props.selection[0] ?? "") : "";
   return id.startsWith(ROOM_PREFIX) ? (props.rooms.find((r) => r.key === id.slice(ROOM_PREFIX.length)) ?? null) : null;
@@ -82,6 +89,13 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
           @change="emit('name', room.key, ($event.target as HTMLInputElement).value)"
         />
       </label>
+      <label>
+        {{ t("finish.floor") }}
+        <select :value="room.floor" @change="emit('paintFloor', room.key, ($event.target as HTMLSelectElement).value)">
+          <option value="">{{ t("finish.none") }}</option>
+          <option v-for="f in floorFinishes" :key="f.id" :value="f.id">{{ t(`finish.${f.id}`) }}</option>
+        </select>
+      </label>
     </template>
 
     <template v-else-if="wall">
@@ -129,6 +143,18 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
           </option>
         </select>
       </label>
+      <template v-if="wallSides">
+        <label v-for="side in SIDES" :key="side" class="stack">
+          {{ t("finish.side", { room: wallSides[side] }) }}
+          <select
+            :value="architectData(wall).sides?.[side] ?? ''"
+            @change="emit('paintSide', wall.id, side, ($event.target as HTMLSelectElement).value)"
+          >
+            <option value="">{{ t("finish.none") }}</option>
+            <option v-for="f in wallFinishes" :key="f.id" :value="f.id">{{ t(`finish.${f.id}`) }}</option>
+          </select>
+        </label>
+      </template>
     </template>
 
     <template v-else-if="opening">
