@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// App shell for Phase 1 slice 3: one level, wall tool, undo/redo, pan/zoom. No file I/O yet.
+// App shell (Phase 1): one level, wall + door/window tools, undo/redo, pan/zoom. No file I/O yet.
 import {
   DEFAULT_SNAP,
   History,
@@ -12,7 +12,7 @@ import {
   type Label,
   type Project,
 } from "@prumo/core";
-import { WallTool, architectManifest } from "@prumo/module-architect";
+import { DEFAULT_OPENING_SIZES, OpeningTool, WallTool, architectManifest } from "@prumo/module-architect";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { detectLocale, formatLength, formatSmall, translate, type Params } from "./i18n";
@@ -54,10 +54,20 @@ const wallTool = new WallTool(history, {
   snap: DEFAULT_SNAP,
 });
 
-type ToolName = "select" | "wall";
+const openingTool = new OpeningTool(history, {
+  ids: randomIds,
+  levelId,
+  kind: "door",
+  sizes: DEFAULT_OPENING_SIZES,
+  grid: DEFAULT_SNAP.grid,
+  magnetPx: DEFAULT_SNAP.endpointRadiusPx,
+});
+
+type ToolName = "select" | "wall" | "door" | "window";
 const tool = ref<ToolName>("wall");
 const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
+const tooShort = ref(false);
 
 const geometry = computed(() => planGeometry(project.value, levelId));
 const walls = computed(() => wallsOnLevel(project.value, levelId));
@@ -67,7 +77,8 @@ let fitted = false;
 function onResize(w: number, h: number) {
   if (fitted) return;
   fitted = true;
-  view.value = fit({ minX: -1000, minY: -1000, maxX: 9000, maxY: 7000 }, w, h, 0);
+  if (walls.value.length) fitAll();
+  else view.value = fit({ minX: -1000, minY: -1000, maxX: 9000, maxY: 7000 }, w, h, 0);
 }
 function fitAll() {
   const pts = walls.value.flatMap((w) => [w.start, w.end]);
@@ -87,13 +98,26 @@ function fitAll() {
 }
 
 function sync() {
-  hover.value = wallTool.hover ? { ...wallTool.hover } : null;
-  blocked.value = [...new Set(wallTool.blocked.map((p) => p.code))];
+  hover.value = tool.value === "wall" && wallTool.hover ? { ...wallTool.hover } : null;
+  const probs = tool.value === "wall" ? wallTool.blocked : openingTool.blocked;
+  blocked.value = [...new Set(probs.map((p) => p.code))];
+  tooShort.value = tool.value !== "wall" && openingTool.tooShort;
+}
+
+function endTools() {
+  if (wallTool.active) wallTool.finish();
+  openingTool.finish();
 }
 
 function onPointer(e: PlanPointer) {
-  if (tool.value !== "wall") return;
   const info = { at: e.at, scale: e.scale, free: e.free };
+  if (tool.value === "door" || tool.value === "window") {
+    if (e.type === "move") openingTool.move(info);
+    else if (e.type === "down" && e.button === 0) openingTool.click(info);
+    sync();
+    return;
+  }
+  if (tool.value !== "wall") return;
   if (e.type === "move") wallTool.move(info);
   else if (e.type === "dblclick") wallTool.finish();
   else if (e.type === "down" && e.button === 0) wallTool.click(info);
@@ -110,19 +134,24 @@ const labels = computed(() => {
 });
 
 function undo() {
-  if (wallTool.active) wallTool.finish();
+  endTools();
   history.undo();
   sync();
 }
 function redo() {
-  if (wallTool.active) wallTool.finish();
+  endTools();
   history.redo();
   sync();
 }
 function setTool(n: ToolName) {
-  if (wallTool.active) wallTool.finish();
+  endTools();
   tool.value = n;
-  hover.value = null;
+  if (n === "door" || n === "window") openingTool.options = { ...openingTool.options, kind: n };
+  sync();
+}
+function onLeave() {
+  if (tool.value === "door" || tool.value === "window") openingTool.finish();
+  sync();
 }
 
 const undoTip = computed(
@@ -138,6 +167,8 @@ const hint = computed(() => {
   void tick.value;
   void hover.value;
   if (tool.value === "select") return t("hint.select");
+  if (tool.value === "door" || tool.value === "window")
+    return tooShort.value ? t("hint.opening.tooShort", { kind: tool.value }) : t("hint.opening", { kind: tool.value });
   return wallTool.active ? t("hint.wall.active") : t("hint.wall.idle");
 });
 
@@ -154,9 +185,12 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key === "Escape" || e.key === "Enter") {
     if (wallTool.active) wallTool.finish();
     else if (e.key === "Escape") setTool("select");
+    openingTool.finish();
     sync();
   } else if (!mod && e.key.toLowerCase() === "w") setTool("wall");
   else if (!mod && e.key.toLowerCase() === "v") setTool("select");
+  else if (!mod && e.key.toLowerCase() === "d") setTool("door");
+  else if (!mod && e.key.toLowerCase() === "j") setTool("window");
 }
 onMounted(() => window.addEventListener("keydown", onKey));
 
@@ -173,9 +207,21 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).get("demo") === 
   ] as const;
   for (const [x, y] of pts) wallTool.click({ at: { x, y }, scale: 0.1, free: false });
   wallTool.click({ at: { x: 3000, y: 0 }, scale: 0.1, free: false });
-  wallTool.move({ at: { x: 3000, y: 2400 }, scale: 0.1, free: false });
+  wallTool.click({ at: { x: 3000, y: 2400 }, scale: 0.1, free: false });
+  wallTool.finish();
+  for (const [kind, x, y] of [
+    ["window", 1500, 0],
+    ["window", 4500, 0],
+    ["door", 3000, 1500],
+    ["door", 1500, 5000],
+    ["window", 6000, 1500],
+  ] as const) {
+    setTool(kind);
+    openingTool.click({ at: { x, y }, scale: 0.1, free: false });
+  }
+  setTool("window");
+  openingTool.move({ at: { x: 0, y: 2500 }, scale: 0.1, free: false });
   sync();
-  onMounted(() => setTimeout(fitAll, 50));
 }
 onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 </script>
@@ -190,6 +236,12 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </button>
         <button :class="{ on: tool === 'wall' }" :title="t('tool.wall.tip')" @click="setTool('wall')">
           {{ t("tool.wall") }}
+        </button>
+        <button :class="{ on: tool === 'door' }" :title="t('tool.door.tip')" @click="setTool('door')">
+          {{ t("tool.door") }}
+        </button>
+        <button :class="{ on: tool === 'window' }" :title="t('tool.window.tip')" @click="setTool('window')">
+          {{ t("tool.window") }}
         </button>
       </div>
       <div class="group">
@@ -214,6 +266,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :grid="DEFAULT_SNAP.grid"
         @pointer="onPointer"
         @resize="onResize"
+        @leave="onLeave"
       />
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
     </main>

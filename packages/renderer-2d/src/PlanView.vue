@@ -153,6 +153,32 @@ function wheel(e: WheelEvent) {
     <g class="outline">
       <line v-for="(s, k) in geometry.outline" :key="k" :x1="S(s.a).x" :y1="S(s.a).y" :x2="S(s.b).x" :y2="S(s.b).y" />
     </g>
+    <g class="openings">
+      <g v-for="o in geometry.openings" :key="o.id">
+        <polygon class="cover" :points="pts(o.cover)" />
+        <line
+          v-for="(j, k) in o.jambs"
+          :key="'j' + k"
+          :x1="S(j[0]).x"
+          :y1="S(j[0]).y"
+          :x2="S(j[1]).x"
+          :y2="S(j[1]).y"
+        />
+        <line
+          v-for="(g, k) in o.glass"
+          :key="'g' + k"
+          class="glass"
+          :x1="S(g[0]).x"
+          :y1="S(g[0]).y"
+          :x2="S(g[1]).x"
+          :y2="S(g[1]).y"
+        />
+        <template v-if="o.leaf">
+          <line class="leaf" :x1="S(o.leaf[0]).x" :y1="S(o.leaf[0]).y" :x2="S(o.leaf[1]).x" :y2="S(o.leaf[1]).y" />
+          <polyline class="arc" :points="pts(o.arc)" />
+        </template>
+      </g>
+    </g>
     <g v-if="hover" class="cursor" :class="hover.kind">
       <circle :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
     </g>
@@ -196,6 +222,25 @@ function wheel(e: WheelEvent) {
   stroke: var(--ink);
   stroke-width: 1.5;
   stroke-linecap: round;
+}
+/* The cover hides the wall fill AND the face outline strokes inside the opening (thick same-colour stroke). */
+.openings .cover {
+  fill: var(--plan-bg);
+  stroke: var(--plan-bg);
+  stroke-width: 3;
+}
+.openings line,
+.openings polyline {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  fill: none;
+}
+.openings .glass {
+  stroke-width: 1;
+}
+.openings .arc {
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
 }
 .cursor circle {
   fill: none;

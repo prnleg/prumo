@@ -9,7 +9,7 @@ describe("UI i18n (ADR-021/034)", () => {
       expect(Object.keys(CATALOGUES[l]).sort()).toEqual(keys);
       for (const k of keys)
         expect(() =>
-          translate(l, k, { count: 2, hosted: 1, label: "x", grid: "10 cm", angle: 15, module: "m" }),
+          translate(l, k, { count: 2, hosted: 1, label: "x", grid: "10 cm", angle: 15, module: "m", kind: "door" }),
         ).not.toThrow();
     }
   });

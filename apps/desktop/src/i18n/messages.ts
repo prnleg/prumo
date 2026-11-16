@@ -11,6 +11,10 @@ export const en = {
   "tool.wall": "Wall",
   "tool.wall.tip": "Draw walls (W)",
   "tool.select.tip": "Select (V)",
+  "tool.door": "Door",
+  "tool.door.tip": "Place doors (D)",
+  "tool.window": "Window",
+  "tool.window.tip": "Place windows (J)",
 
   "action.undo": "Undo",
   "action.redo": "Redo",
@@ -20,6 +24,9 @@ export const en = {
   "action.fit": "Fit to screen",
 
   "cmd.addWall": "add wall",
+  "cmd.addDoor": "add door",
+  "cmd.addWindow": "add window",
+  "cmd.addOpening": "add door or window",
   "cmd.move": "move",
   "cmd.delete": "{count, plural, one {delete # item} other {delete # items}}",
   "cmd.deleteWithHosted":
@@ -28,6 +35,9 @@ export const en = {
 
   "hint.wall.idle": "Click to start a wall.",
   "hint.wall.active": "Click to place the end. Click the first point to close a room. Esc or double-click to stop.",
+  "hint.opening":
+    "Move over a wall and click to place a {kind, select, door {door} other {window}}. It snaps to the middle, the ends, and next to other openings. Hold Alt to place freely.",
+  "hint.opening.tooShort": "This wall is too short for this {kind, select, door {door} other {window}}.",
   "hint.select": "Selecting comes in a later version. Press W to draw walls.",
   "hint.pan": "Scroll or middle-drag to move around · pinch or Ctrl+wheel to zoom",
 
@@ -58,6 +68,10 @@ export const ptBR: Record<MessageKey, string> = {
   "tool.wall": "Parede",
   "tool.wall.tip": "Desenhar paredes (W)",
   "tool.select.tip": "Selecionar (V)",
+  "tool.door": "Porta",
+  "tool.door.tip": "Colocar portas (D)",
+  "tool.window": "Janela",
+  "tool.window.tip": "Colocar janelas (J)",
 
   "action.undo": "Desfazer",
   "action.redo": "Refazer",
@@ -67,6 +81,9 @@ export const ptBR: Record<MessageKey, string> = {
   "action.fit": "Ajustar à tela",
 
   "cmd.addWall": "adicionar parede",
+  "cmd.addDoor": "adicionar porta",
+  "cmd.addWindow": "adicionar janela",
+  "cmd.addOpening": "adicionar porta ou janela",
   "cmd.move": "mover",
   "cmd.delete": "{count, plural, one {apagar # item} other {apagar # itens}}",
   "cmd.deleteWithHosted":
@@ -76,6 +93,9 @@ export const ptBR: Record<MessageKey, string> = {
   "hint.wall.idle": "Clique para começar uma parede.",
   "hint.wall.active":
     "Clique para marcar o fim. Clique no primeiro ponto para fechar um cômodo. Esc ou clique duplo para parar.",
+  "hint.opening":
+    "Passe sobre uma parede e clique para colocar uma {kind, select, door {porta} other {janela}}. Ela se encaixa no meio, nas pontas e ao lado de outras aberturas. Mantenha Alt apertado para posicionar livremente.",
+  "hint.opening.tooShort": "Esta parede é curta demais para esta {kind, select, door {porta} other {janela}}.",
   "hint.select": "A seleção chega numa próxima versão. Aperte W para desenhar paredes.",
   "hint.pan": "Role ou arraste com o botão do meio para mover · pinça ou Ctrl+roda para zoom",
 

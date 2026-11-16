@@ -347,3 +347,19 @@ Owner: "continue". Branch `phase1/walls` on top of `phase1/commands` (CI green o
 **Inferences/defaults logged**: wall default thickness 140 mm and height = level default (2700) are drawing defaults, editable later. Wall tool is the default tool until the room tool exists (ADR-031 says room tool default). Right-click also ends a chain. `no-non-null-assertion` off in `core/src/geometry` (ported index math) and tests. `no-undef` off for TS/Vue (TS checks it). Status bar shows snap settings (ADR-031 discoverability; click-to-change comes with Settings). No file dialogs yet: they need Tauri plugins (new deps → ADR).
 
 **Next**: slice 4 (openings), slice 5 (selection + operations).
+
+### Session #11, part 9 — Phase 1 slice 4 (doors and windows), 2026-11-16
+
+Owner: "Merged" (PRs #2–#5 → `main`). Branch `phase1/openings` from `main`.
+
+**Done**: `core/geometry/openings.ts` (`openingPlan`: cover, jambs, window glass lines, door leaf + swing arc; hand-checked points incl. a rotated left-aligned wall), `planGeometry` now returns opening symbols. `module-architect/OpeningTool` (hover → lazy gesture preview → click commits; magnets: wall middle, both ends, next to other openings on that wall, within 12 px; otherwise 10 cm steps; clamped to fit — Q-072 "clamp in the tool"; overlap still refused by core; `tooShort` when the wall is shorter than the opening; `pickWall` = inside the body ± 12 px, closest centre line, ties by id). Renderer draws symbols (cover = background fill + 3 px same-colour stroke hides the wall outline inside the opening). App: Door (D) / Window (J) tools, hints with ICU `select`, undo/redo/tool switch end any preview first.
+
+**Verified**: 147 tests; screenshots (pt-BR + en) of the demo: windows and doors on horizontal, vertical, and T walls with correct swing sides.
+
+**Bug caught**: initial "fit to screen" raced the first resize → the first resize now fits the drawing when there is one.
+
+**Conventions logged (DATA_MODEL)**: handing "left" = hinge at the opening's start side; swing "in" = opens to the wall's left side (start → end). Defaults: door 800 × 2100, sill 0, handing left, swing in; window 1200 × 1200, sill 1000 — drawing defaults only, editable later. Window shortcut J (*janela*) because W is taken by walls.
+
+**Not done**: moving/resizing/flipping openings (needs selection → slice 5); Q-134 unequal-thickness step.
+
+**Next**: slice 5 — selection + operations.
