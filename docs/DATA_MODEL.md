@@ -75,6 +75,8 @@ Wall.kind: "full" | "half" | "fence" | "railing"
 RoomSeparator { id, type:"room-separator", levelId, start, end }   // invisible room boundary
 
 // Rooms: DERIVED from closed loops of full walls + separators (not stored),
+// Implemented s#11 (core/geometry/rooms.ts): full + half walls (Q-088), fences/railings open; floor area to inner faces;
+// separators not modelled yet; island loops inside a room are not subtracted from its area (known limit).
 // but room-level user data (name, floor finish) needs a stable anchor → ❓ store Room{ id, seedPoint, name, floorFinishId }
 // and re-match it to the detected loop after edits. (Hard: what if an edit splits a room in two?)
 

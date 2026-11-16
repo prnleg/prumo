@@ -398,3 +398,15 @@ Owner: "continue" (PR #7 already merged). Branch `phase1/transform` from `main`.
 **Bug caught**: ⟲/⟳ glyphs missing in the system font → ↺/↻.
 
 **Next**: slice 6 — rooms.
+
+### Session #11, part 12 — Phase 1 slice 6 (rooms), 2026-11-16
+
+Owner: "continue". Branch `phase1/rooms` on top of `phase1/transform` (not merged yet; CI green).
+
+**Done**: `core/geometry/rooms.ts` — `detectRooms` (centre-line planar graph: splits at T ends and X crossings, 5 mm node merging, dangling edges pruned, half-edge face tracing; floor polygon from the room-side wall faces, alignment-aware; label point = centroid or farthest-inside sample for L/U shapes; slivers < 0.01 m² dropped) and `uncoveredPieces` (collinear coverage subtraction). `module-architect/RoomTool` (2 clicks, grid/endpoint snap, Alt free, CCW walls, shared sides reused, ids stable while dragging, min side 50 cm against mis-clicks). Renderer draws room floors + labels under the walls. App: Room tool is the default (ADR-031), key Q, live "w × h" label, area labels "11,04 m²".
+
+**Tests**: 192. Hand: 4 × 3 m, t 140 → 3860 × 2860 = 11.04 m²; clockwise drawing same; T split → 2 × 1860 × 2860; + → 4 × 1860²; L room 5860 × 2860 + 2860 × 2000; half wall closes, fence doesn't; open loop / stub; left-aligned (bodies inside) 3720 × 2720, right-aligned 4000 × 3000; order-independent; 4 mm gap closes. Room tool: 2 adjacent rooms = 7 walls (shared side not doubled). Screenshot areas re-checked by hand (11.04, 8.18, 13.90, preview 3.83).
+
+**Inferences/defaults logged**: rooms stay derived (no stored entity) until something attaches user data (names/finishes, slice 7) — then `Room { id, seedPoint, … }` re-matched per DATA_MODEL's lean. Room tool key Q (R = rotate). Rectangle only; polygon rooms later. Room separators later. Island loops not subtracted (known limit).
+
+**Next**: slice 7 (dimensions, finishes, room names + identity), slice 8 (save/open etc.).

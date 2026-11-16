@@ -8,6 +8,8 @@ export const en = {
   "module.architect.name": "Architect",
 
   "tool.select": "Select",
+  "tool.room": "Room",
+  "tool.room.tip": "Draw rooms (Q)",
   "tool.wall": "Wall",
   "tool.wall.tip": "Draw walls (W)",
   "tool.select.tip": "Select (V)",
@@ -23,6 +25,7 @@ export const en = {
   "action.nothing": "nothing to undo",
   "action.fit": "Fit to screen",
 
+  "cmd.addRoom": "add room",
   "cmd.addWall": "add wall",
   "cmd.addDoor": "add door",
   "cmd.addWindow": "add window",
@@ -70,6 +73,8 @@ export const en = {
   "props.flipSwing": "Flip opening side",
   "props.selected": "{count, plural, one {# item selected} other {# items selected}}",
   "props.badNumber": "Type a number like {example}.",
+  "hint.room.idle": "Click one corner of the room. Sides it shares with existing walls are reused.",
+  "hint.room.active": "Click the opposite corner. Esc to cancel.",
   "hint.wall.idle": "Click to start a wall.",
   "hint.wall.active": "Click to place the end. Click the first point to close a room. Esc or double-click to stop.",
   "hint.opening":
@@ -103,6 +108,8 @@ export const ptBR: Record<MessageKey, string> = {
   "module.architect.name": "Arquitetura",
 
   "tool.select": "Selecionar",
+  "tool.room": "Cômodo",
+  "tool.room.tip": "Desenhar cômodos (Q)",
   "tool.wall": "Parede",
   "tool.wall.tip": "Desenhar paredes (W)",
   "tool.select.tip": "Selecionar (V)",
@@ -118,6 +125,7 @@ export const ptBR: Record<MessageKey, string> = {
   "action.nothing": "nada para desfazer",
   "action.fit": "Ajustar à tela",
 
+  "cmd.addRoom": "adicionar cômodo",
   "cmd.addWall": "adicionar parede",
   "cmd.addDoor": "adicionar porta",
   "cmd.addWindow": "adicionar janela",
@@ -165,6 +173,8 @@ export const ptBR: Record<MessageKey, string> = {
   "props.flipSwing": "Inverter lado de abertura",
   "props.selected": "{count, plural, one {# item selecionado} other {# itens selecionados}}",
   "props.badNumber": "Digite um número como {example}.",
+  "hint.room.idle": "Clique num canto do cômodo. Lados que coincidem com paredes existentes são reaproveitados.",
+  "hint.room.active": "Clique no canto oposto. Esc para cancelar.",
   "hint.wall.idle": "Clique para começar uma parede.",
   "hint.wall.active":
     "Clique para marcar o fim. Clique no primeiro ponto para fechar um cômodo. Esc ou clique duplo para parar.",
