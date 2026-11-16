@@ -2,3 +2,6 @@ spikes/
 docs/
 pnpm-lock.yaml
 *.md
+**/dist/
+**/src-tauri/target/
+**/src-tauri/gen/

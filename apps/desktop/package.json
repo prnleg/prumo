@@ -1,0 +1,27 @@
+{
+  "name": "@prumo/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -p . && vite build",
+    "typecheck": "vue-tsc -p .",
+    "test": "vitest run",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@prumo/core": "workspace:*",
+    "@prumo/module-architect": "workspace:*",
+    "@prumo/renderer-2d": "workspace:*",
+    "intl-messageformat": "12.1.5",
+    "vue": "3.5.45"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.5",
+    "@vitejs/plugin-vue": "6.0.11",
+    "vite": "8.3.8",
+    "vue-tsc": "3.3.14"
+  }
+}

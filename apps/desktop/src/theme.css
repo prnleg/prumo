@@ -1,0 +1,53 @@
+/* Light/dark follow the OS (Q-120). Plan colours are tokens so the renderer stays theme-agnostic. */
+:root {
+  color-scheme: light dark;
+  --bg: #f4f2ee;
+  --panel: #ffffff;
+  --ink: #23211e;
+  --muted: #6b6760;
+  --line: #d9d4ca;
+  --accent: #2a6fdb;
+  --accent-soft: #c9dbf7;
+  --plan-bg: #faf9f6;
+  --grid-minor: #ece8e0;
+  --grid-major: #ddd7cb;
+  --wall-full: #c9c3b6;
+  --wall-half: #e0d9c9;
+  --wall-light: #d4e1cc;
+  --warn: #9a5b00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --panel: #262628;
+    --ink: #ecebe8;
+    --muted: #a3a09a;
+    --line: #3a3a3d;
+    --accent: #6fa3ff;
+    --accent-soft: #2c4a7a;
+    --plan-bg: #202022;
+    --grid-minor: #29292c;
+    --grid-major: #333337;
+    --wall-full: #6e6a62;
+    --wall-half: #57544e;
+    --wall-light: #4c5a46;
+    --warn: #f0b45a;
+  }
+}
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    13px/1.4 system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+button {
+  font: inherit;
+  color: inherit;
+}

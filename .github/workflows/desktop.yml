@@ -1,0 +1,61 @@
+# Unsigned desktop installers (ADR-014, ADR-027: Windows + macOS). Download them from the run's
+# "Artifacts" section. Manual, or on pushes that touch the app or its packages.
+name: desktop
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/desktop/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/desktop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: "--bundles nsis,msi"
+            target: ""
+          - os: macos-latest
+            args: "--bundles app,dmg --target universal-apple-darwin"
+            target: "aarch64-apple-darwin,x86_64-apple-darwin"
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tauri build ${{ matrix.args }}
+      - name: Installer sizes
+        shell: bash
+        run: |
+          echo "### Installer sizes (${{ matrix.os }})" >> "$GITHUB_STEP_SUMMARY"
+          find src-tauri/target -path '*/bundle/*' \( -name '*.dmg' -o -name '*.msi' -o -name '*-setup.exe' \) -print0 \
+            | xargs -0 ls -l | awk '{printf "- %s: %.2f MB\n", $NF, $5/1048576}' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prumo-${{ matrix.os }}
+          path: |
+            apps/desktop/src-tauri/target/**/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/**/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/**/bundle/nsis/*-setup.exe
+          if-no-files-found: error
