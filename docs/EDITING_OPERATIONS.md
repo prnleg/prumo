@@ -71,6 +71,8 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 
 ## Undo / Redo
 
+> **Implemented (slice 2):** commands are pure `project → project`; undo restores the previous immutable snapshot (no hand-written inverses, so they can't drift). A gesture (drag) previews from its base and commits once = one undo step; cancel = no step. Blocked edits (invariants) never enter history. Property test: 60 random ops × 4 seeds → undo all = original object; redo all = final.
+
 - Unlimited within a session (memory permitting); not persisted across reloads ❓ (default: not persisted).
 - Property test: N random operations → undo N times → model deep-equals the original.
 - Undo also restores selection (nice-to-have).

@@ -6,6 +6,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
 import { canonicalJson } from "./canonical";
 import { PROJECT_FORMAT, SCHEMA_VERSION, modulesReferenced, type ModuleId, type Project } from "./model";
+import type { ModuleHost } from "./modules";
 import { validateProject } from "./validate";
 
 export interface Snapshot {
@@ -36,8 +37,28 @@ const LEVEL = 6;
 /** Limits for files from untrusted sources (zip bombs). Generous for a house, tiny for an attacker. */
 export const LIMITS = { maxEntries: 10_000, maxEntryBytes: 256 * 1024 * 1024, maxTotalBytes: 1024 * 1024 * 1024 };
 
-export function saveProjectFile(f: ProjectFile): Uint8Array {
-  const entries: [string, Uint8Array][] = [[PROJECT_ENTRY, strToU8(canonicalJson(f.project))]];
+export class SaveError extends Error {}
+
+/**
+ * The usage record (`project.modules`) is derived at save time: exactly the modules the live model
+ * references, with the installed module's version. Saving data of a module that isn't installed is
+ * refused: the open flow (ADR-032) must have resolved it first (CLAUDE.md rule 13).
+ */
+export function withUsageRecord(p: Project, host: Pick<ModuleHost, "manifest">): Project {
+  const modules: Project["modules"] = {};
+  const missing: ModuleId[] = [];
+  for (const id of modulesReferenced(p)) {
+    const m = host.manifest(id);
+    if (m) modules[id] = { version: m.version };
+    else missing.push(id);
+  }
+  if (missing.length) throw new SaveError(`data from modules that aren't installed: ${missing.join(", ")}`);
+  return { ...p, modules };
+}
+
+export function saveProjectFile(f: ProjectFile, host: Pick<ModuleHost, "manifest">): Uint8Array {
+  const project = withUsageRecord(f.project, host);
+  const entries: [string, Uint8Array][] = [[PROJECT_ENTRY, strToU8(canonicalJson(project))]];
   for (const s of f.snapshots) entries.push([`snapshots/${s.id}.json`, strToU8(canonicalJson(s))]);
   for (const [name, bytes] of Object.entries(f.extra)) entries.push([name, bytes]);
   entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
@@ -55,6 +76,13 @@ export type OpenResult =
   | { status: "ok"; file: ProjectFile }
   /** Written by a newer app version: show it, never save over it. */
   | { status: "read-only"; reason: "newer-schema"; schemaVersion: number; file: ProjectFile }
+  /** A module's data is newer than the installed module: "Update <module> to edit". */
+  | {
+      status: "read-only";
+      reason: "newer-module-data";
+      modules: { moduleId: ModuleId; v: number }[];
+      file: ProjectFile;
+    }
   /** ADR-032: stop and offer install / remove-items. Data is intact in `file`. */
   | { status: "missing-modules"; modules: ModuleId[]; file: ProjectFile }
   | { status: "invalid"; errors: string[] };
@@ -146,4 +174,16 @@ function parseJson(bytes: Uint8Array, name: string): { ok: true; value: unknown 
   } catch {
     return { ok: false, error: `${name} is not valid JSON` };
   }
+}
+
+/**
+ * The app's open path: file checks (above), then component migrations of installed modules (rule 6).
+ * Missing modules are returned unmigrated: migrate after the user resolves the ADR-032 stop.
+ */
+export function openWithModules(bytes: Uint8Array, host: ModuleHost): OpenResult {
+  const r = openProjectFile(bytes, { installedModules: host.installedIds() });
+  if (r.status !== "ok") return r;
+  const m = host.migrateComponents(r.file.project);
+  if (m.newer.length) return { status: "read-only", reason: "newer-module-data", modules: m.newer, file: r.file };
+  return { status: "ok", file: { ...r.file, project: m.project } };
 }

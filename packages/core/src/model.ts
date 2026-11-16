@@ -131,9 +131,13 @@ export function emptyProject(a: NewProjectArgs): Project {
   };
 }
 
-/** Every module id the project references (usage record, components, owned element types). Sorted. */
+/**
+ * Every module whose DATA is in the project (components + owned element types). Sorted.
+ * The usage record (`modules`) is derived from this at save time, never an input to it, so a stale
+ * record entry can't trigger a "missing module, 0 items" stop.
+ */
 export function modulesReferenced(p: Project): ModuleId[] {
-  const s = new Set(Object.keys(p.modules));
+  const s = new Set<ModuleId>();
   for (const e of Object.values(p.elements)) {
     for (const m of Object.keys(e.components)) s.add(m);
     if (isModuleElement(e)) s.add(e.ownerModule);

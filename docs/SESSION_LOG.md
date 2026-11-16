@@ -314,3 +314,17 @@ Owner: "Lean to them. ADR 025 I would extend it to 2s after stop. ADR 034 I agre
 **Inferences/defaults logged**: default wall height 2700 mm and grid 100 mm are drawing defaults (not structural). `@typescript-eslint/no-non-null-assertion` off in tests only. Printwidth 120. Core exports TS source (no build step) until an app needs otherwise. Thumbnails / `packs.lock.json` are carried as opaque "extra" entries for now.
 
 **Next**: slice 2 — commands + undo (ADR-011), module host, save flow per ADR-032.
+
+### Session #11, part 7 — Phase 1 slice 2 (commands, undo, modules, save rules), 2026-11-16
+
+Owner: "No failure from CI, I believe we can continue". PR #3 (`phase1/skeleton`, opened by the owner) green on all jobs, no review comments. New branch `phase1/commands` on top of it.
+
+**Done** (`packages/core`): `edit.ts` (immutable put/remove, hosted cascade, `changedIds` by reference, invariants I-1…I-5 + sizes + level), `commands.ts` (put/update/delete; delete label counts hosted items), `history.ts` (snapshot undo/redo, gestures, `change`/`commit` events, dirty tracking, optional deep-freeze), `modules.ts` (manifest, host checks, disable cascade, namespaced context, component migrations; newer component → reported), `module-data.ts` (footprint owned vs with-data for Q-132 wording, `stripModules`, undoable `removeModuleCommand`, `snapshotBefore`, `exportCopy` incl. snapshots, required modules refused), persistence: `saveProjectFile(f, host)` refuses uninstalled-module data and derives the usage record; `openWithModules` = open + migrate (newer module data → read-only).
+
+**Tests**: 59 (19 → 59). Hand cases for each invariant (e.g. 3000 + 1200 = 4200 > 4000; 4000.005 within 0.01 mm), gesture semantics, event order, frozen-snapshot mutation throws, property test (60 random ops × 4 seeds, guarded against being vacuous), full ADR-032 end-to-end (engineer → architect without Electrical → stop → snapshot + remove → save → reopen; snapshot keeps the Electrical work per Q-131). Golden save hash unchanged.
+
+**Bug caught**: `modulesReferenced` counted the usage record itself, so stale record entries never dropped and could trigger a "missing module, 0 items" stop. Now references come from data only; the record is derived from them.
+
+**Inferences/defaults logged**: ADR-011 implemented as snapshot-restore undo (commands have only `apply`; EDITING_OPERATIONS' `{do, undo}` wording updated by a note). Q-072 default (block) applied in core; tools may clamp before submitting. Undo history is unlimited and not persisted (EDITING_OPERATIONS defaults). Rules/rule engine wait for Phase 2 (no rule exists to run). Missing-module files are migrated only after the user resolves the stop.
+
+**Next**: slice 3 — desktop app + SVG renderer + wall tool + joins.

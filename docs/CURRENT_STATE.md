@@ -7,7 +7,7 @@
 
 | Area | State |
 |---|---|
-| Code | **Phase 1 slice 1 (skeleton) done** on branch `phase1/skeleton`: pnpm monorepo (Node ≥ 22.12, TS 6.0, Vitest 5, ESLint 10 + boundary rules, Prettier), `packages/core` (model types: levels, walls, openings, module elements, namespaced components, generic host; canonical JSON; `.prumo` zip save/open with fflate: deterministic bytes, unknown entries kept, newer schema → read-only, missing modules → ADR-032 stop, zip-bomb limits; file validation), CI `ci.yml` (lint/format/typecheck on Linux; tests on Linux, Windows, macOS). 19 tests. **No app yet** (`apps/desktop` comes in slice 3). Spikes in `/spikes` (throwaway). |
+| Code | **Phase 1 slices 1–2 done** (branches `phase1/skeleton` → PR #3, `phase1/commands` on top). pnpm monorepo (Node ≥ 22.12, TS 6.0, Vitest 5, ESLint 10 + boundary rules, Prettier); CI on Linux/Windows/macOS. `packages/core`: model (levels, walls, openings, module elements, namespaced components, generic host); canonical JSON; `.prumo` zip save/open (deterministic bytes, unknown entries kept, newer schema or newer module data → read-only, missing modules → ADR-032 stop, zip-bomb limits); invariants I-1…I-5 **blocked** on edit (Q-072 default); commands (put/update/delete with hosted cascade); **History** (undo/redo by snapshot, gestures = one step, change/commit events for ADR-025); **ModuleHost** (registration checks, disable cascade, namespaced context, component migrations); module footprint/removal (undoable)/export copy; save refuses uninstalled-module data; usage record derived at save. 59 tests. **No app yet** (slice 3). |
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
 | ACCEPTED (s#11, 2026-11-16) | ADR-003 (2D plan is truth), 005 (Tier 0 first, improves in later versions), 006 (float mm + tolerance, Y up), 010 (build our own; interoperability later), 012 (own geometry math; library when areas need it), 018 (no invented thresholds), 021 (i18n), 022 (namespaced components).; **Phase 1 batch:** 011 (snapshots + commands), 015 (`levels[]` day 1), 024 (generic hosting), 025 (quiet feedback, **2 s** settle), 033 (monorepo/tooling, Node ≥ 22), 034 (`intl-messageformat`), 035 (fflate). |
 | PROPOSED | crash-report mechanics (028). |
@@ -15,7 +15,7 @@
 | OPEN | ADR-008 (accepted in principle), 013, 016 (name), 017, 023. |
 | Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
-| Phase | **Phase 1 started** (2026-11-16). Phase 0 exit met; engineer review + Windows run pending (non-blocking). Slice 1 done; next slice 2 (commands + undo + module host + save flow). |
+| Phase | **Phase 1** (started 2026-11-16). Slices 1–2 done; next slice 3 (wall tool + first desktop build). Engineer review + Windows run pending (non-blocking). |
 
 ## Blocked items
 
@@ -53,9 +53,9 @@ All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details 
 
 ## Next immediate step
 
-1. Phase 1 slice 2: commands + undo/redo (ADR-011), module host (port Spike E ideas, rewritten), save refuses data of uninstalled modules, missing-module remove flow. Then slice 3 (wall tool + first desktop build).
-2. Owner (whenever): merge `spikes/d-e` and `phase1/skeleton` PRs; Windows run (Q-130); engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
-3. Owner's machine: global Node is 20.11; this session installed Node 22.23.5 user-locally at `~/.local/node22` (use `export PATH="$HOME/.local/node22/bin:$PATH"`, or install Node 22 your usual way).
+1. Phase 1 slice 3: `apps/desktop` (Tauri shell from Spike D, platform adapter), `packages/renderer-2d` (SVG), wall tool with snapping (grid/endpoint/orthogonal), joins + clean outline rewritten from Spike A, pan/zoom. First runnable app.
+2. Owner (whenever): merge PR #3 (contains PR #2), then a PR for `phase1/commands`; Windows run (Q-130); engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
+3. Owner's machine: global Node is 20.11; Node 22.23.5 is user-local at `~/.local/node22` (`export PATH="$HOME/.local/node22/bin:$PATH"`).
 
 ## Older next steps
 
