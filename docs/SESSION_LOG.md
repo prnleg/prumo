@@ -232,3 +232,24 @@ Owner answers: stages 1+2 OK; the core = the basic building (no colour/furniture
 - Linux CI build (Q-075 default) not added; the user asked for Windows + macOS.
 
 **Next step**: push → CI Windows build → measure on a real Windows PC; then Spikes A and B.
+
+### Session #11, part 2 — Spike A (wall joins), 2026-11-16
+
+Owner: "start spike A"; then "code through the night, stop at a milestone". Milestone chosen = Spike A done + docs + local commit.
+
+**Done**: `spikes/joins` (Vue 3 + Vite viewer, Vitest). Own 2D math (`geom.ts`), computed joins (`joins.ts`), clean outline (`outline.ts`), 18 presets, browser viewer (drag wall ends, 10 cm snap + Alt = free, edit thickness/alignment/kind, tweak tolerances, issues list), opt-in PNG render for visual review.
+
+**Algorithm**: endpoints within `joinTol` (5 mm) cluster into a node (gap healing). At a node, arms are sorted by angle; each arm's left face line meets the next arm's right face line → shared corner (miter). 3+ arms route caps through the node so they tile. A lone end on another wall's body = T, cut at the host's facing side. Miter limit (4 × thickness) trims only the outer spike, replacing it with a straight bevel through the midpoint of the two square ends. The clean outline splits each polygon edge where it crosses other walls and hides pieces whose outside lies inside another wall (seams, T, X), so **no polygon boolean library** is needed for drawing.
+
+**Bugs found and fixed during the spike** (useful for Phase 1):
+1. The reflex (outside) side of an L must still be mitered: an early "gap ≥ 180° → square" rule removed every outer corner.
+2. Face lines must come from each wall's **own** drawn line, not from the healed node; otherwise healing a 3 mm gap shifts the faces 1.5 mm.
+3. The miter limit must not trim the **inner** corner of a sharp angle (that's where the bodies really overlap); trimming it caused overlaps.
+
+**Tests**: 56 passing. Hand-calculated: L, T, X, +, straight continuation, room, left-aligned room, 3×3 grid (area + outline length), thick/thin T and L corners, 30° miter length = 100 / sin 15°. Properties: 30 random equal-thickness junctions → no overlap and no gaps (sampling); rotation by 37° preserves area and outline length; shuffled input → byte-identical output.
+
+**Findings / evidence**: ADR-012 → own math is enough for joins + drawing; boolean library only when areas, quantities, or opening cuts need it. DATA_MODEL doubt 2 → computed joins are fine. Known limits in CURRENT_STATE. Perf: 480 walls ≈ 52 ms per full recompute (O(n²) pairs, no spatial index) — OK for a house, would need incremental/indexed recompute for drag at 60 fps on large plans.
+
+**Inferences/defaults logged**: `joinTol` 5 mm and `miterLimit` 4 are UNSOURCED spike values (geometry, not structural) → real values go with ADR-006/012. All wall kinds join the same way (Q-133). Viewer is browser-only (`pnpm dev`): joins are pure TS, Tauri adds nothing to this question.
+
+**Next**: Spike B, then decide ADR-012/006.

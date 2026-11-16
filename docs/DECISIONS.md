@@ -196,6 +196,7 @@ Status: **OPEN**
 Needs: segment intersection, polygon offset (wall thickness), polygon boolean (wall-join cleanup, opening cuts), point-in-polygon, snapping.
 Options: write our own minimal 2D geometry (+ full control, − bugs), or use a library for polygon booleans (e.g. a Clipper port or a polygon-clipping library — **verify current maintenance status before choosing**).
 Lean: own small vector math + a battle-tested polygon boolean library. Confidence: low (needs Spike A).
+**Spike A evidence (session #11):** our own math (~250 lines) handles every join type needed for drawing, *including* the clean outline, with no library. The places where it falls short are all **area/union** problems: unequal-thickness near-straight joins, X-crossing overlap (double-counted area), and short walls at sharp angles. Those are exactly what a polygon-union library solves, and Phase 1 doesn't need quantities. Updated lean: **own math for joins + outline in Phase 1; add a boolean library only when areas/quantities or opening cuts need it** (its own ADR then). Confidence: medium.
 
 ---
 

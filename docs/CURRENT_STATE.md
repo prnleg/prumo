@@ -1,20 +1,20 @@
 # CURRENT STATE
 
 > This file must always be **truthful**. If something is stubbed, faked, or broken, say so here.
-> Last updated: 2026-11-15, session #11 (Spikes D + E done locally; Windows CI build not run yet). Before: session #10 (planning closed, ready to build). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
+> Last updated: 2026-11-16, session #11 (Spikes A, D, E done locally; Windows not measured yet). Before: session #10 (planning closed, ready to build). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
 
 ## Summary
 
 | Area | State |
 |---|---|
-| Code | **Spikes only (throwaway, `/spikes`)**: `spikes/stack` (Spike D, Tauri 2 + Vue 3 + SVG + Three.js) and `spikes/modules` (Spike E, plain TS + Vitest, 28 tests passing). **No production code** (`packages/` doesn't exist). CI workflow `.github/workflows/spike-stack.yml` written but **never run** (not committed/pushed yet). |
+| Code | **Spikes only (throwaway, `/spikes`)**: `spikes/stack` (Spike D), `spikes/modules` (Spike E, 28 tests), `spikes/joins` (Spike A, 56 tests + browser viewer). **No production code** (`packages/` doesn't exist). Branch `spikes/d-e` pushed with D + E; Spike A committed locally only. CI workflow `spike-stack` pushed; result not checked. |
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
 | PROPOSED | ADR-018, 021, 022, 024, 025; crash-report mechanics (028). |
 | ACCEPTED (s#8) | ADR-032 (missing modules & export with module selection); ADR-008 snapshots = full copies. |
 | OPEN | ADR-003, 005, 006, 008, 010, 011, 012, 013, 015, 016 (name), 017, 023. |
 | Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
-| Phase | Phase 0: decisions & spikes. D + E done on macOS; A + B not started. |
+| Phase | Phase 0: decisions & spikes. A, D, E done (D on macOS only); B not started. |
 
 ## Blocked items
 
@@ -37,13 +37,16 @@
 
 **Spike E — modules (`spikes/modules`)**: core skeleton (levels, walls, openings) + fake Architect (finishes), Structural (component + fake rule `FAKE-STRUCT-001`), Electrical (outlet element type). 28 Vitest tests prove MODULES §3 rules 1–7, ADR-032 (missing-module stop / install / remove with snapshot), MODULES §8 export with module selection, the Electrical-only install (§9), and deterministic save output. Lessons in SESSION_LOG #11.
 
+**Spike A — wall joins (`spikes/joins`)**: own ~250 lines of TS, no geometry library. Joins computed from geometry every time (not stored). Handles L / T / X / + / Y at any angle, centre/left/right alignment, different thicknesses, gap healing (< 5 mm), miter limit with a straight bevel, and a "clean outline" (seams, T and X faces hidden) via edge classification instead of a polygon boolean. 56 tests, most with hand-calculated areas/outline lengths; 480 walls → joins + outline in ~52 ms (O(n²), no spatial index).
+Known limits: (1) **different thicknesses meeting at a nearly straight angle** chop a small wedge off the thicker wall (7/30 random cases); (2) a wall **shorter than its own join** at a sharp angle overlaps its neighbour (flagged `corner-past-wall`); (3) X crossings overlap (fine for drawing, wrong for areas/quantities); (4) an end that lands on a corner node *and* another wall's body isn't handled.
+
 Stubbed/faked: `FAKE-STRUCT-001` is **not a structural rule** (no source, never to be promoted). Rule-1/2 boundary tests are crude text scans.
 
 ## Next immediate step
 
-1. Owner: commit + push (or allow me to) so `spike-stack` CI builds the Windows installers; record sizes from the job summary.
-2. Someone runs the Windows installer on a real PC and records startup + smoothness (bench: `PRUMO_SPIKE_BENCH=15`).
-3. Spikes A (wall joins) and B (one rule end to end).
+1. Owner: check the `spike-stack` CI run on GitHub (Actions) and note the Windows installer sizes; later run it on a Windows PC (bench: `PRUMO_SPIKE_BENCH=15`) (Q-130).
+2. Owner: push the local Spike A commit when happy (`git push`).
+3. Spike B (one rule end to end), then decide ADR-012 with the Spike A evidence.
 
 ## Older next steps
 
