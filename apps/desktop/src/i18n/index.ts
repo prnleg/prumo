@@ -32,6 +32,10 @@ export function detectLocale(langs: readonly string[]): Locale {
 export const formatLength = (mm: number, locale: Locale) =>
   `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(mm / 1000)} m`;
 
+/** mm² → "11,04 m²". */
+export const formatArea = (mm2: number, locale: Locale) =>
+  `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(mm2 / 1e6)} m²`;
+
 /** mm → "10 cm" for small settings like the grid. */
 export const formatSmall = (mm: number, locale: Locale) =>
   mm < 1000 ? `${new Intl.NumberFormat(locale).format(mm / 10)} cm` : formatLength(mm, locale);

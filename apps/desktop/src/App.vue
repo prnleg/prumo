@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// App shell (Phase 1): one level, wall + door/window tools, undo/redo, pan/zoom. No file I/O yet.
+// App shell (Phase 1): one level, room/wall/door/window/select tools, undo/redo, pan/zoom. No file I/O yet.
 import {
   DEFAULT_SNAP,
   History,
@@ -10,6 +10,7 @@ import {
   randomIds,
   wallsOnLevel,
   deleteCommand,
+  detectRooms,
   duplicateCommand,
   mirrorCommand,
   rotateCommand,
@@ -20,11 +21,18 @@ import {
   type Label,
   type Project,
 } from "@prumo/core";
-import { DEFAULT_OPENING_SIZES, OpeningTool, SelectTool, WallTool, architectManifest } from "@prumo/module-architect";
+import {
+  DEFAULT_OPENING_SIZES,
+  OpeningTool,
+  RoomTool,
+  SelectTool,
+  WallTool,
+  architectManifest,
+} from "@prumo/module-architect";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
-import { detectLocale, formatLength, formatSmall, translate, type Params } from "./i18n";
+import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
 
 const locale = ref(detectLocale(navigator.languages));
 const t = (key: string, params?: Params) => translate(locale.value, key, params);
@@ -82,14 +90,34 @@ const selectTool = new SelectTool(history, { levelId, grid: DEFAULT_SNAP.grid, d
 const selection = ref<string[]>([]);
 const box = shallowRef(selectTool.box);
 
-type ToolName = "select" | "wall" | "door" | "window";
-const tool = ref<ToolName>("wall");
+const roomTool = new RoomTool(history, {
+  ids: randomIds,
+  levelId,
+  thickness: 140,
+  height: history.current.levels[0]?.defaultWallHeight ?? 2700,
+  alignment: "center",
+  kind: "full",
+  snap: DEFAULT_SNAP,
+  minSide: 500, // smaller = probably a mis-click; drawing value, not a rule
+});
+const roomHover = shallowRef(roomTool.hover);
+
+type ToolName = "select" | "room" | "wall" | "door" | "window";
+const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
 const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
 const tooShort = ref(false);
 
 const geometry = computed(() => planGeometry(project.value, levelId));
 const walls = computed(() => wallsOnLevel(project.value, levelId));
+const rooms = computed(() =>
+  detectRooms(project.value, levelId).map((r) => ({
+    key: r.key,
+    floor: r.floor,
+    at: r.labelAt,
+    label: formatArea(r.floorArea, locale.value),
+  })),
+);
 const view = ref<ViewState>({ x: -2000, y: 6000, scale: 0.1 });
 let fitted = false;
 
@@ -117,17 +145,30 @@ function fitAll() {
 }
 
 function sync() {
-  hover.value = tool.value === "wall" && wallTool.hover ? { ...wallTool.hover } : null;
+  hover.value =
+    tool.value === "wall" && wallTool.hover
+      ? { ...wallTool.hover }
+      : tool.value === "room" && roomTool.hover
+        ? { point: roomTool.hover, kind: "grid" as const }
+        : null;
+  roomHover.value = roomTool.hover;
   selection.value = [...selectTool.selection];
   box.value = selectTool.box ? { ...selectTool.box } : null;
   const probs =
-    tool.value === "wall" ? wallTool.blocked : tool.value === "select" ? selectTool.blocked : openingTool.blocked;
+    tool.value === "wall"
+      ? wallTool.blocked
+      : tool.value === "select"
+        ? selectTool.blocked
+        : tool.value === "room"
+          ? roomTool.blocked
+          : openingTool.blocked;
   blocked.value = [...new Set(probs.map((p) => p.code))];
   tooShort.value = tool.value !== "wall" && openingTool.tooShort;
 }
 
 function endTools() {
   if (wallTool.active) wallTool.finish();
+  roomTool.finish();
   openingTool.finish();
   selectTool.cancel();
 }
@@ -194,6 +235,13 @@ function onPointer(e: PlanPointer) {
     sync();
     return;
   }
+  if (tool.value === "room") {
+    if (e.type === "move") roomTool.move(info);
+    else if (e.type === "down" && e.button === 0) roomTool.click(info);
+    else if (e.type === "down" && e.button === 2) roomTool.finish();
+    sync();
+    return;
+  }
   if (tool.value !== "wall") return;
   if (e.type === "move") wallTool.move(info);
   else if (e.type === "dblclick") wallTool.finish();
@@ -206,6 +254,16 @@ const labels = computed(() => {
   const a = wallTool.anchor;
   const h = hover.value;
   void project.value; // re-evaluate on model change
+  if (tool.value === "room") {
+    const r = roomHover.value;
+    if (!roomTool.size || !r) return [];
+    return [
+      {
+        at: r,
+        text: `${formatLength(roomTool.size.w, locale.value)} × ${formatLength(roomTool.size.h, locale.value)}`,
+      },
+    ];
+  }
   if (!a || !h) return [];
   return [{ at: h.point, text: formatLength(dist(a, h.point), locale.value) }];
 });
@@ -244,6 +302,7 @@ const hint = computed(() => {
   void tick.value;
   void hover.value;
   if (tool.value === "select") return t("hint.select");
+  if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
   if (tool.value === "door" || tool.value === "window")
     return tooShort.value ? t("hint.opening.tooShort", { kind: tool.value }) : t("hint.opening", { kind: tool.value });
   return wallTool.active ? t("hint.wall.active") : t("hint.wall.idle");
@@ -278,10 +337,12 @@ function onKey(e: KeyboardEvent) {
     sync();
   } else if (e.key === "Escape" || e.key === "Enter") {
     if (wallTool.active) wallTool.finish();
+    else if (roomTool.active) roomTool.finish();
     else if (e.key === "Escape") setTool("select");
     openingTool.finish();
     sync();
   } else if (!mod && e.key.toLowerCase() === "w") setTool("wall");
+  else if (!mod && e.key.toLowerCase() === "q") setTool("room");
   else if (!mod && e.key.toLowerCase() === "v") setTool("select");
   else if (!mod && e.key.toLowerCase() === "d") setTool("door");
   else if (!mod && e.key.toLowerCase() === "j") setTool("window");
@@ -290,6 +351,21 @@ onMounted(() => window.addEventListener("keydown", onKey));
 
 // Dev-only smoke path (?demo=room): draws an L-shaped room through the real wall tool, for screenshots.
 const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
+if (demo === "rooms") {
+  const c = (x: number, y: number) => roomTool.click({ at: { x, y }, scale: 0.1, free: false });
+  c(0, 0);
+  c(4000, 3000);
+  c(4000, 0);
+  c(7000, 3000);
+  c(0, 3000);
+  c(5000, 6000);
+  setTool("door");
+  openingTool.click({ at: { x: 4000, y: 1500 }, scale: 0.1, free: false });
+  setTool("room");
+  roomTool.click({ at: { x: 5000, y: 3000 }, scale: 0.1, free: false });
+  roomTool.move({ at: { x: 7000, y: 5200 }, scale: 0.1, free: false });
+  sync();
+}
 if (demo === "room" || demo === "select" || demo === "mirror") {
   const pts = [
     [0, 0],
@@ -340,6 +416,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button :class="{ on: tool === 'select' }" :title="t('tool.select.tip')" @click="setTool('select')">
           {{ t("tool.select") }}
         </button>
+        <button :class="{ on: tool === 'room' }" :title="t('tool.room.tip')" @click="setTool('room')">
+          {{ t("tool.room") }}
+        </button>
         <button :class="{ on: tool === 'wall' }" :title="t('tool.wall.tip')" @click="setTool('wall')">
           {{ t("tool.wall") }}
         </button>
@@ -367,7 +446,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         v-model:view="view"
         :geometry="geometry"
         :walls="walls"
-        :hover="tool === 'wall' ? hover : null"
+        :hover="tool === 'wall' || tool === 'room' ? hover : null"
+        :rooms="rooms"
         :selected-ids="selection"
         :box="box"
         :labels="labels"
