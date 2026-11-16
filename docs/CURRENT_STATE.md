@@ -7,7 +7,7 @@
 
 | Area | State |
 |---|---|
-| Code | **Phase 1 slices 1–2 done** (branches `phase1/skeleton` → PR #3, `phase1/commands` on top). pnpm monorepo (Node ≥ 22.12, TS 6.0, Vitest 5, ESLint 10 + boundary rules, Prettier); CI on Linux/Windows/macOS. `packages/core`: model (levels, walls, openings, module elements, namespaced components, generic host); canonical JSON; `.prumo` zip save/open (deterministic bytes, unknown entries kept, newer schema or newer module data → read-only, missing modules → ADR-032 stop, zip-bomb limits); invariants I-1…I-5 **blocked** on edit (Q-072 default); commands (put/update/delete with hosted cascade); **History** (undo/redo by snapshot, gestures = one step, change/commit events for ADR-025); **ModuleHost** (registration checks, disable cascade, namespaced context, component migrations); module footprint/removal (undoable)/export copy; save refuses uninstalled-module data; usage record derived at save. 59 tests. **No app yet** (slice 3). |
+| Code | **Phase 1 slices 1–3 done** (branches `phase1/skeleton` → PR #3, `phase1/commands`, `phase1/walls`, stacked). **First runnable app** (`apps/desktop`, Tauri 2 + Vue): draw walls (chainable, 10 cm grid / 15° / endpoint snap, Alt = free, click first point closes a room, Esc/double-click/right-click stops), mitred joins + clean outline, live length label, undo/redo (buttons + Ctrl/⌘+Z, Shift+⌘+Z, Ctrl+Y), pan (scroll / middle-drag / Space-drag) + zoom (wheel / pinch), fit, pt-BR/en (ICU), light/dark, disclaimer footer. **Not yet:** select/move/delete in the UI, openings, rooms, properties, save/open dialogs (core supports save/open; UI needs the Tauri dialog/fs plugins → dependency ADR). Packages: `core` (model, persistence, history, modules, geometry: joins/outline/snap), `module-architect` (manifest, wall tool), `renderer-2d` (SVG plan). 132 tests. CI: lint/format/typecheck + tests on 3 OS; `desktop` workflow builds Windows (NSIS/MSI) + macOS (universal) installers as artifacts. macOS `.app` 3.0 MiB locally. |
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
 | ACCEPTED (s#11, 2026-11-16) | ADR-003 (2D plan is truth), 005 (Tier 0 first, improves in later versions), 006 (float mm + tolerance, Y up), 010 (build our own; interoperability later), 012 (own geometry math; library when areas need it), 018 (no invented thresholds), 021 (i18n), 022 (namespaced components).; **Phase 1 batch:** 011 (snapshots + commands), 015 (`levels[]` day 1), 024 (generic hosting), 025 (quiet feedback, **2 s** settle), 033 (monorepo/tooling, Node ≥ 22), 034 (`intl-messageformat`), 035 (fflate). |
 | PROPOSED | crash-report mechanics (028). |
@@ -15,7 +15,7 @@
 | OPEN | ADR-008 (accepted in principle), 013, 016 (name), 017, 023. |
 | Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
-| Phase | **Phase 1** (started 2026-11-16). Slices 1–2 done; next slice 3 (wall tool + first desktop build). Engineer review + Windows run pending (non-blocking). |
+| Phase | **Phase 1** (started 2026-11-16). Slices 1–3 done; next slice 4 (openings) and 5 (selection + operations). Engineer review + Windows run pending (non-blocking). |
 
 ## Blocked items
 
@@ -53,9 +53,10 @@ All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details 
 
 ## Next immediate step
 
-1. Phase 1 slice 3: `apps/desktop` (Tauri shell from Spike D, platform adapter), `packages/renderer-2d` (SVG), wall tool with snapping (grid/endpoint/orthogonal), joins + clean outline rewritten from Spike A, pan/zoom. First runnable app.
-2. Owner (whenever): merge PR #3 (contains PR #2), then a PR for `phase1/commands`; Windows run (Q-130); engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
-3. Owner's machine: global Node is 20.11; Node 22.23.5 is user-local at `~/.local/node22` (`export PATH="$HOME/.local/node22/bin:$PATH"`).
+1. Owner: try the app — `pnpm install && pnpm --filter @prumo/desktop dev` (browser) or `cd apps/desktop && pnpm tauri dev`; on Windows, download the `prumo-windows-latest` artifact from the `desktop` workflow run (Q-130). Tell me what feels wrong (G-1 usability, early).
+2. Phase 1 slice 4: openings (doors/windows hosted on walls, slide, resize; Q-134 step) and slice 5: selection + operations (EDITING_OPERATIONS).
+3. Decide (product): save/open dialogs need Tauri's dialog + fs plugins → small dependency ADR when we get there (slice 8 or earlier if you want saving sooner).
+4. Owner (whenever): merge PRs in order (#3 → commands → walls); engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
 
 ## Older next steps
 

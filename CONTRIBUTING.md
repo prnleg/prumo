@@ -19,6 +19,7 @@ Thanks for your interest! The project is in **early planning**. Read `README.md`
 
 - **Node ≥ 22.12** (`.nvmrc` = 22) and **pnpm 9** (`corepack enable`, or install pnpm 9).
 - `pnpm install` then `pnpm check` (= lint + format check + typecheck + tests). `pnpm format` fixes formatting.
+- **Run the app:** `pnpm --filter @prumo/desktop dev` (browser, fastest) or `cd apps/desktop && pnpm tauri dev` (native window; needs Rust, `~/.cargo/bin` on PATH). Installers: `pnpm tauri build`, or the `desktop` GitHub workflow (artifacts).
 - Boundary rules are lint errors: `packages/core` can't import Vue, Tauri, or modules.
 - `/spikes` are throwaway experiments with their own lockfiles; they aren't workspace members.
 

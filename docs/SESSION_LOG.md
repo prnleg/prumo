@@ -328,3 +328,22 @@ Owner: "No failure from CI, I believe we can continue". PR #3 (`phase1/skeleton`
 **Inferences/defaults logged**: ADR-011 implemented as snapshot-restore undo (commands have only `apply`; EDITING_OPERATIONS' `{do, undo}` wording updated by a note). Q-072 default (block) applied in core; tools may clamp before submitting. Undo history is unlimited and not persisted (EDITING_OPERATIONS defaults). Rules/rule engine wait for Phase 2 (no rule exists to run). Missing-module files are migrated only after the user resolves the stop.
 
 **Next**: slice 3 — desktop app + SVG renderer + wall tool + joins.
+
+### Session #11, part 8 — Phase 1 slice 3 (first runnable app), 2026-11-16
+
+Owner: "continue". Branch `phase1/walls` on top of `phase1/commands` (CI green on both).
+
+**Done**:
+- `core/geometry`: Spike A joins + clean outline ported (with the 3 fixes) + its 56 tests; `snap()` (Q-087: 10 cm grid, 15° steps, endpoint 12 px, Alt free; deterministic tie-break); `planGeometry(project, level)`.
+- `module-architect`: manifest (required, component v1 reserved for finishes) + `WallTool` state machine (framework-free; each segment = one gesture = one undo step; `active` covers the whole chain for ADR-025).
+- `renderer-2d`: `PlanView.vue` (SVG; the only Y-flip; grid; wall fill by kind; clean outline; snap cursor; labels; pan/zoom with trackpad-vs-wheel heuristic).
+- `apps/desktop`: Vue shell, i18n glue over `intl-messageformat` (ICU plurals; tests for key parity, parsing, plurals, banned words), theme tokens light/dark, Tauri 2 shell (`org.prumo.desktop`, CSP set), `desktop.yml` installer workflow.
+- ESLint now lints `.vue` (eslint-plugin-vue, in ADR-033's list); app may import Tauri only under `src/platform/`.
+
+**Verified**: 132 tests; production web build 128 kB JS (46 kB gzip); `pnpm tauri build --bundles app` → `Prumo.app` 3.0 MiB in 76 s; headless screenshots in en and pt-BR of a dev-only `?demo=room` that draws an L-shaped room + T wall through the real tool (mitres, T, label "2,40 m" all correct).
+
+**Bugs caught**: (1) snap produced `-0` and `3000.0000000000005` (cos/sin noise at 90°/180°) → results quantized to 1 nm, `-0` → 0; tests now exact. (2) Undo button disabled mid-chain (open gesture) → based on the undo stack; Undo ends the chain first. (3) Banned-word guard flagged pt "**segur**e Alt" (stem of "seguro") → reworded to "mantenha Alt apertado" rather than weakening the guard.
+
+**Inferences/defaults logged**: wall default thickness 140 mm and height = level default (2700) are drawing defaults, editable later. Wall tool is the default tool until the room tool exists (ADR-031 says room tool default). Right-click also ends a chain. `no-non-null-assertion` off in `core/src/geometry` (ported index math) and tests. `no-undef` off for TS/Vue (TS checks it). Status bar shows snap settings (ADR-031 discoverability; click-to-change comes with Settings). No file dialogs yet: they need Tauri plugins (new deps → ADR).
+
+**Next**: slice 4 (openings), slice 5 (selection + operations).
