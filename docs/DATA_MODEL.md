@@ -40,7 +40,8 @@ Opening {
   offset                         // distance from wall.start to the opening's near edge, along the wall, mm
   width, height, sillHeight
   kind: "door" | "window" | "void" | "passage" | "custom"
-  handing?: "left" | "right"     // doors
+  handing?: "left" | "right"     // doors. Implemented: "left" = hinge at the opening's start side (nearer wall.start)
+  //   swing "in" = leaf opens to the wall's LEFT side (looking start → end); "out" = right side (s#11 convention)
   swing?: "in" | "out"
   lintel?: { materialId, depth, bearingLeft, bearingRight } | "auto" | "none"
 }
