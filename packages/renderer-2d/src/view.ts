@@ -2,11 +2,15 @@
 import type { V } from "@prumo/core";
 
 export interface PlanPointer {
-  type: "move" | "down" | "dblclick";
+  type: "move" | "down" | "up" | "dblclick";
   at: V;
   scale: number;
   /** Alt held → no snapping (Q-087). */
   free: boolean;
+  /** Shift held. */
+  shift: boolean;
+  /** Ctrl (Windows) or ⌘ (macOS) held. */
+  mod: boolean;
   button: number;
 }
 

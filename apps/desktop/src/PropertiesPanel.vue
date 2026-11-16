@@ -1,0 +1,221 @@
+<script setup lang="ts">
+// Properties of the selection (ROADMAP Phase 1 "Properties panel"). Every change is ONE command
+// (one undo step), applied when the field is committed (Enter / leaving it), never per keystroke.
+import {
+  updateCommand,
+  wallLength,
+  type Command,
+  type Element,
+  type Opening,
+  type Project,
+  type Wall,
+} from "@prumo/core";
+import { computed, ref } from "vue";
+import { formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
+
+const props = defineProps<{ project: Project; selection: readonly string[]; locale: Locale }>();
+const emit = defineEmits<{ apply: [cmd: Command]; delete: []; duplicate: [] }>();
+const t = (k: string, p?: Params) => translate(props.locale, k, p);
+
+const one = computed<Element | null>(() =>
+  props.selection.length === 1 ? (props.project.elements[props.selection[0] ?? ""] ?? null) : null,
+);
+const wall = computed(() => (one.value?.type === "wall" ? (one.value as Wall) : null));
+const opening = computed(() => (one.value?.type === "opening" ? (one.value as Opening) : null));
+const bad = ref<string | null>(null);
+const rev = ref(0); // bump to re-render fields (reverts refused text)
+
+function edit<T extends Element>(el: T, change: (e: T) => T) {
+  emit(
+    "apply",
+    updateCommand({ key: "cmd.edit" }, [el.id], (e) => change(e as T)),
+  );
+}
+
+/** A length field in cm. Invalid text is refused (field reverts) — never guessed (ADR-021). */
+function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T, mm: number) => T) {
+  const v = parseNumber((ev.target as HTMLInputElement).value, props.locale);
+  if (v === null) {
+    bad.value = field;
+    rev.value++;
+    return;
+  }
+  bad.value = null;
+  edit(el, (e) => set(e, v * 10));
+}
+</script>
+
+<template>
+  <aside v-if="selection.length" class="panel">
+    <template v-if="wall">
+      <h3>{{ t("props.wall") }}</h3>
+      <p class="ro">{{ t("props.length") }}: {{ formatLength(wallLength(wall), locale) }}</p>
+      <label :class="{ bad: bad === 'thickness' }">
+        {{ t("props.thickness") }}
+        <span class="field">
+          <input
+            :key="wall.id + wall.thickness + '/' + rev"
+            :value="formatCm(wall.thickness, locale)"
+            @change="commitCm(wall, 'thickness', $event, (e, mm) => ({ ...e, thickness: mm }))"
+          />cm
+        </span>
+      </label>
+      <label :class="{ bad: bad === 'height' }">
+        {{ t("props.height") }}
+        <span class="field">
+          <input
+            :key="wall.id + wall.height + '/' + rev"
+            :value="formatCm(wall.height, locale)"
+            @change="commitCm(wall, 'height', $event, (e, mm) => ({ ...e, height: mm }))"
+          />cm
+        </span>
+      </label>
+      <label>
+        {{ t("props.alignment") }}
+        <select
+          :value="wall.alignment"
+          @change="
+            edit(wall, (e) => ({ ...e, alignment: ($event.target as HTMLSelectElement).value as Wall['alignment'] }))
+          "
+        >
+          <option v-for="a in ['center', 'left', 'right']" :key="a" :value="a">{{ t(`align.${a}`) }}</option>
+        </select>
+      </label>
+      <label>
+        {{ t("props.kind") }}
+        <select
+          :value="wall.kind"
+          @change="edit(wall, (e) => ({ ...e, kind: ($event.target as HTMLSelectElement).value as Wall['kind'] }))"
+        >
+          <option v-for="k in ['full', 'half', 'fence', 'railing']" :key="k" :value="k">
+            {{ t(`wallKind.${k}`) }}
+          </option>
+        </select>
+      </label>
+    </template>
+
+    <template v-else-if="opening">
+      <h3>{{ t(`openingKind.${opening.kind}`) }}</h3>
+      <label :class="{ bad: bad === 'width' }">
+        {{ t("props.width") }}
+        <span class="field">
+          <input
+            :key="opening.id + opening.width + '/' + rev"
+            :value="formatCm(opening.width, locale)"
+            @change="commitCm(opening, 'width', $event, (e, mm) => ({ ...e, width: mm }))"
+          />cm
+        </span>
+      </label>
+      <label :class="{ bad: bad === 'oheight' }">
+        {{ t("props.height") }}
+        <span class="field">
+          <input
+            :key="opening.id + opening.height + '/' + rev"
+            :value="formatCm(opening.height, locale)"
+            @change="commitCm(opening, 'oheight', $event, (e, mm) => ({ ...e, height: mm }))"
+          />cm
+        </span>
+      </label>
+      <label :class="{ bad: bad === 'sill' }">
+        {{ t("props.sill") }}
+        <span class="field">
+          <input
+            :key="opening.id + opening.sillHeight + '/' + rev"
+            :value="formatCm(opening.sillHeight, locale)"
+            @change="commitCm(opening, 'sill', $event, (e, mm) => ({ ...e, sillHeight: mm }))"
+          />cm
+        </span>
+      </label>
+      <div v-if="opening.kind === 'door'" class="row">
+        <button @click="edit(opening, (e) => ({ ...e, handing: e.handing === 'right' ? 'left' : 'right' }))">
+          ⇋ {{ t("props.flipHanding") }}
+        </button>
+        <button @click="edit(opening, (e) => ({ ...e, swing: e.swing === 'out' ? 'in' : 'out' }))">
+          ⇅ {{ t("props.flipSwing") }}
+        </button>
+      </div>
+    </template>
+
+    <template v-else>
+      <h3>{{ t("props.selected", { count: selection.length }) }}</h3>
+    </template>
+
+    <p v-if="bad" class="warn">{{ t("props.badNumber", { example: formatCm(145, locale) }) }}</p>
+    <div class="row">
+      <button @click="emit('duplicate')">{{ t("action.duplicate") }}</button>
+      <button class="danger" @click="emit('delete')">{{ t("action.delete") }}</button>
+    </div>
+  </aside>
+</template>
+
+<style scoped>
+.panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 230px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
+}
+h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+input {
+  width: 64px;
+  text-align: right;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+select {
+  font: inherit;
+  max-width: 130px;
+}
+label.bad input {
+  border-color: var(--warn);
+}
+.ro {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+.row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+button {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  cursor: pointer;
+}
+.danger {
+  color: var(--warn);
+}
+.warn {
+  color: var(--warn);
+  margin: 6px 0 0;
+}
+</style>

@@ -15,6 +15,8 @@ const props = defineProps<{
   labels?: readonly { at: V; text: string }[];
   /** Grid step, mm. */
   grid?: number;
+  /** Rubber band (model coords); "touching" draws dashed (CAD convention). */
+  box?: { minX: number; minY: number; maxX: number; maxY: number; mode: "inside" | "touching" } | null;
 }>();
 
 const emit = defineEmits<{
@@ -90,7 +92,15 @@ function local(e: MouseEvent) {
 }
 function report(type: PlanPointer["type"], e: MouseEvent) {
   const { sx, sy } = local(e);
-  emit("pointer", { type, at: toModel(props.view, sx, sy), scale: props.view.scale, free: e.altKey, button: e.button });
+  emit("pointer", {
+    type,
+    at: toModel(props.view, sx, sy),
+    scale: props.view.scale,
+    free: e.altKey,
+    shift: e.shiftKey,
+    mod: e.ctrlKey || e.metaKey,
+    button: e.button,
+  });
 }
 function down(e: PointerEvent) {
   if (e.button === 1 || (e.button === 0 && spaceDown)) {
@@ -99,6 +109,7 @@ function down(e: PointerEvent) {
     e.preventDefault();
     return;
   }
+  svg.value?.setPointerCapture(e.pointerId); // keep receiving moves/up while dragging outside
   report("down", e);
 }
 function move(e: PointerEvent) {
@@ -110,8 +121,12 @@ function move(e: PointerEvent) {
   }
   report("move", e);
 }
-function up() {
-  pan = null;
+function up(e: PointerEvent) {
+  if (pan) {
+    pan = null;
+    return;
+  }
+  report("up", e);
 }
 function wheel(e: WheelEvent) {
   e.preventDefault();
@@ -155,7 +170,7 @@ function wheel(e: WheelEvent) {
     </g>
     <g class="openings">
       <g v-for="o in geometry.openings" :key="o.id">
-        <polygon class="cover" :points="pts(o.cover)" />
+        <polygon class="cover" :class="{ selected: selected.has(o.id) }" :points="pts(o.cover)" />
         <line
           v-for="(j, k) in o.jambs"
           :key="'j' + k"
@@ -179,6 +194,15 @@ function wheel(e: WheelEvent) {
         </template>
       </g>
     </g>
+    <rect
+      v-if="box"
+      class="box"
+      :class="box.mode"
+      :x="S({ x: box.minX, y: box.maxY }).x"
+      :y="S({ x: box.minX, y: box.maxY }).y"
+      :width="(box.maxX - box.minX) * view.scale"
+      :height="(box.maxY - box.minY) * view.scale"
+    />
     <g v-if="hover" class="cursor" :class="hover.kind">
       <circle :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
     </g>
@@ -228,6 +252,19 @@ function wheel(e: WheelEvent) {
   fill: var(--plan-bg);
   stroke: var(--plan-bg);
   stroke-width: 3;
+}
+.openings .cover.selected {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft);
+}
+.box {
+  fill: var(--accent-soft);
+  fill-opacity: 0.35; /* not color-mix(): WKWebView on macOS 12 (Safari 15) lacks it */
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.box.touching {
+  stroke-dasharray: 5 3;
 }
 .openings line,
 .openings polyline {

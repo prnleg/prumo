@@ -363,3 +363,24 @@ Owner: "Merged" (PRs #2–#5 → `main`). Branch `phase1/openings` from `main`.
 **Not done**: moving/resizing/flipping openings (needs selection → slice 5); Q-134 unequal-thickness step.
 
 **Next**: slice 5 — selection + operations.
+
+### Session #11, part 10 — Phase 1 slice 5 (select, move, delete, duplicate, properties), 2026-11-16
+
+Owner: "continue" (PR #6 already merged). Branch `phase1/edit` from `main`.
+
+**Done**:
+- `core/operations.ts`: `translate` (selected walls move with their openings; a lone opening slides along its host by the delta's projection, clamped; Q-022 stretch of joined ends within 5 mm; a T stem keeps its direction and re-meets the moved wall; openings on a stretched wall keep their distance from the end that didn't move; wall + its own opening never double-moved), `moveCommand`, `duplicateCommand` (walls + their openings, new ids drawn up front so redo is identical; a lone opening is skipped).
+- `core/geometry/pick.ts`: `hitTest` on the drawn shapes (openings first), `boxSelect` (inside vs touching).
+- `module-architect/SelectTool`: click / Shift-toggle / clear, drag threshold 4 px, drag = one gesture (10 cm steps, Alt free, Ctrl/⌘ = detach), box select, `prune`, `selectAll`.
+- App: Select tool wired, Delete/Backspace, Ctrl/⌘+D, Ctrl/⌘+A, Esc clears; `PropertiesPanel.vue` (one command per committed field); refused edits show the reason (core invariants).
+- i18n: `parseNumber` / `formatCm`.
+
+**Tests**: 168 (137 core, 25 architect, 6 app). Hand cases: right wall +1 m → top/bottom walls stretch, room stays closed (4 nodes), door positions unchanged in world coordinates; lone door slides 700 (projection of (700, 300)) and clamps at 3200; T stem follows; a squeeze that would push a door off its wall is blocked; box select inside vs touching.
+
+**Bugs caught**: (1) `parseNumber("14.5", "pt-BR")` returned **145** (dot = thousands separator in pt-BR) → group separators now only accepted in real groups of three; "14.5" in pt-BR is refused, not misread. (2) The properties panel rendered off-screen and "fit" was off-centre: the no-wrap status bar widened the grid column past the window (this, not a resize race, was the earlier "fit" glitch) → `grid-template-columns: minmax(0, 1fr)`. (3) A vacuous test assertion (compared an object with itself) replaced with a real one.
+
+**Inferences/defaults logged**: box select direction = CAD convention (EDITING_OPERATIONS default). Duplicate offset 50 cm right/down (fixed, "last-used offset" not implemented). Detach modifier = Ctrl/⌘ (Alt is already "free"). Properties edit in cm (beginner-friendly for thickness/door sizes). Alignment wording "Wall sits: centred on / left of / right of the line". Wall kind labels pt: Parede inteira, Meia parede, Cerca, Guarda-corpo.
+
+**Not done**: mirror, rotate (slice 5b), copy/paste with cursor, re-hosting an opening onto another wall, multi-select property edits.
+
+**Next**: slice 5b — mirror + rotate.
