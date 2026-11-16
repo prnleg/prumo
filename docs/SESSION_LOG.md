@@ -410,3 +410,9 @@ Owner: "continue". Branch `phase1/rooms` on top of `phase1/transform` (not merge
 **Inferences/defaults logged**: rooms stay derived (no stored entity) until something attaches user data (names/finishes, slice 7) — then `Room { id, seedPoint, … }` re-matched per DATA_MODEL's lean. Room tool key Q (R = rotate). Rectangle only; polygon rooms later. Room separators later. Island loops not subtracted (known limit).
 
 **Next**: slice 7 (dimensions, finishes, room names + identity), slice 8 (save/open etc.).
+
+### Session #11, part 13 — CI trimmed (owner request), 2026-11-16
+
+Owner: "Is there a real necessity to run all those CIs every time I open a PR? It takes too long … might even overload my free tier."
+Facts: public repo → GitHub-hosted Actions minutes are free and unlimited, so no quota risk; the cost was waiting time and duplicate runs (every branch push AND its PR ran `ci`, plus a ~10 min installer build).
+**Changed** (reversible): `ci` runs on PRs (Linux only, ~1 min) and on pushes to `main` (Linux + Windows + macOS, keeps the cross-OS golden save hash); `concurrency` cancels superseded runs; docs/spikes/markdown-only changes skip CI. `desktop` installers: manual (Actions → Run workflow) or `v*` tags. `spike-stack`: manual only.

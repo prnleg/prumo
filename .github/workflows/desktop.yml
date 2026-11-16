@@ -1,15 +1,12 @@
 # Unsigned desktop installers (ADR-014, ADR-027: Windows + macOS). Download them from the run's
-# "Artifacts" section. Manual, or on pushes that touch the app or its packages.
+# "Artifacts" section.
 name: desktop
 
 on:
+  # On demand only (Actions tab → desktop → Run workflow), or a version tag. Installers take ~10 min.
   workflow_dispatch:
   push:
-    paths:
-      - "apps/desktop/**"
-      - "packages/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/desktop.yml"
+    tags: ["v*"]
 
 permissions:
   contents: read

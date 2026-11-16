@@ -3,11 +3,7 @@
 name: spike-stack
 
 on:
-  workflow_dispatch:
-  push:
-    paths:
-      - "spikes/stack/**"
-      - ".github/workflows/spike-stack.yml"
+  workflow_dispatch: # spike only; run by hand if ever needed
 
 permissions:
   contents: read

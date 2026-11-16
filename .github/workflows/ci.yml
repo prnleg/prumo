@@ -3,13 +3,24 @@
 name: ci
 
 on:
-  push:
+  # PRs get the fast check; pushes to main get the full 3-OS run. (Before: every branch push AND its PR
+  # ran everything twice.) Public repo → Actions minutes are free; this is about waiting time.
+  pull_request:
     paths-ignore:
       - "spikes/**"
       - "docs/**"
       - "**/*.md"
-  pull_request:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "spikes/**"
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -33,7 +44,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # PRs: Linux only (~1 min). main: Linux + Windows + macOS (golden save hash across OSes).
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-latest","macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
