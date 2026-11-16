@@ -1,0 +1,4 @@
+# Spikes are NOT workspace members (throwaway, own lockfiles).
+packages:
+  - "apps/*"
+  - "packages/*"

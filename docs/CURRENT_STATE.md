@@ -7,15 +7,15 @@
 
 | Area | State |
 |---|---|
-| Code | **Spikes only (throwaway, `/spikes`)**: `spikes/stack` (Spike D), `spikes/modules` (Spike E, 28 tests), `spikes/joins` (Spike A, 56 tests + browser viewer), `spikes/rule` (Spike B, 21 tests + browser viewer). **No production code** (`packages/` doesn't exist). D + E + A merged to `main` (PR #1); Spike B + validation cases pushed on `spikes/d-e`, no PR yet. CI workflow `spike-stack` pushed; result not checked. |
+| Code | **Phase 1 slice 1 (skeleton) done** on branch `phase1/skeleton`: pnpm monorepo (Node ≥ 22.12, TS 6.0, Vitest 5, ESLint 10 + boundary rules, Prettier), `packages/core` (model types: levels, walls, openings, module elements, namespaced components, generic host; canonical JSON; `.prumo` zip save/open with fflate: deterministic bytes, unknown entries kept, newer schema → read-only, missing modules → ADR-032 stop, zip-bomb limits; file validation), CI `ci.yml` (lint/format/typecheck on Linux; tests on Linux, Windows, macOS). 19 tests. **No app yet** (`apps/desktop` comes in slice 3). Spikes in `/spikes` (throwaway). |
 | ACCEPTED | ADR-001/002 (Tauri 2 + Vue 3 + TS), 004 (first pack: structural masonry; 2nd pack TBD), 009 (Brazil only for v1), 014 (Apache-2.0, public, unsigned), 019 (role-based Visions), 020 (bundled internal module API), 026 (rules never block), 027 (Win + macOS), 028 (crash reports, in principle), 029 (handoff = sequential "baton", no parallel edits), 030 (data packs vs code modules), 031 (Sims-like build mode; snapping defaults; half walls close rooms; finish ≠ structure). |
-| ACCEPTED (s#11, 2026-11-16) | ADR-003 (2D plan is truth), 005 (Tier 0 first, improves in later versions), 006 (float mm + tolerance, Y up), 010 (build our own; interoperability later), 012 (own geometry math; library when areas need it), 018 (no invented thresholds), 021 (i18n), 022 (namespaced components). |
-| PROPOSED | ADR-024, 025, 033 (monorepo/tooling), 034 (i18n library), 035 (zip library); crash-report mechanics (028). |
+| ACCEPTED (s#11, 2026-11-16) | ADR-003 (2D plan is truth), 005 (Tier 0 first, improves in later versions), 006 (float mm + tolerance, Y up), 010 (build our own; interoperability later), 012 (own geometry math; library when areas need it), 018 (no invented thresholds), 021 (i18n), 022 (namespaced components).; **Phase 1 batch:** 011 (snapshots + commands), 015 (`levels[]` day 1), 024 (generic hosting), 025 (quiet feedback, **2 s** settle), 033 (monorepo/tooling, Node ≥ 22), 034 (`intl-messageformat`), 035 (fflate). |
+| PROPOSED | crash-report mechanics (028). |
 | ACCEPTED (s#8) | ADR-032 (missing modules & export with module selection); ADR-008 snapshots = full copies. |
-| OPEN | ADR-008 (accepted in principle), 011, 013, 015, 016 (name), 017, 023. |
+| OPEN | ADR-008 (accepted in principle), 013, 016 (name), 017, 023. |
 | Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
-| Phase | **Phase 0 exit criteria met** (2026-11-16): spikes A, B, D, E done (D on macOS only), required ADRs accepted, VC-001…005 drafted. Engineer review + Windows run still pending (don't block Phase 1). **Phase 1 not started**: waits on ADR-011/015/024/025/033/034/035. |
+| Phase | **Phase 1 started** (2026-11-16). Phase 0 exit met; engineer review + Windows run pending (non-blocking). Slice 1 done; next slice 2 (commands + undo + module host + save flow). |
 
 ## Blocked items
 
@@ -53,9 +53,9 @@ All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details 
 
 ## Next immediate step
 
-1. Owner: decide the Phase 1 batch — ADR-011 (undo), 015 (levels), 024 (hosting), 025 (quiet feedback), 033 (monorepo/tooling), 034 (i18n library), 035 (zip library). Leans in DECISIONS.
-2. Owner: open a PR for `spikes/d-e` (Spike B + docs) when convenient; Windows run (Q-130); forward engineer batch 1 + E-06/E-07/E-22.
-3. Then: Phase 1 slice 1 (skeleton) per ROADMAP "Build order".
+1. Phase 1 slice 2: commands + undo/redo (ADR-011), module host (port Spike E ideas, rewritten), save refuses data of uninstalled modules, missing-module remove flow. Then slice 3 (wall tool + first desktop build).
+2. Owner (whenever): merge `spikes/d-e` and `phase1/skeleton` PRs; Windows run (Q-130); engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
+3. Owner's machine: global Node is 20.11; this session installed Node 22.23.5 user-locally at `~/.local/node22` (use `export PATH="$HOME/.local/node22/bin:$PATH"`, or install Node 22 your usual way).
 
 ## Older next steps
 

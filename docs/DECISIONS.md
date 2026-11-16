@@ -186,7 +186,7 @@ Lean: **build from scratch (web)**, because the core value is the live, explaine
 ---
 
 ## ADR-011 — Undo/redo & state architecture
-Status: **OPEN**
+Status: **ACCEPTED (2026-11-16, owner: "lean"): immutable snapshots + command objects; one user action = one undo step.**
 Lean: **immutable model snapshots + command objects** (`do`, `undo`, `label`). Group multi-step user actions into a single transaction. Analysis is a pure function of the current snapshot, so undo automatically restores findings. Confidence: high.
 
 ---
@@ -220,7 +220,7 @@ Consequence: GPL dependencies are not allowed in core (license-check in CI).
 ---
 
 ## ADR-015 — Single storey vs multi-storey
-Status: **OPEN**
+Status: **ACCEPTED (2026-11-16, owner: "lean"): `levels[]` in the model from day 1; UI edits one level until Phase 5.**
 Lean: **support `levels[]` in the data model from day 1, but the UI only edits one level until Phase 5.** Confidence: high. (Cheap now, expensive to retrofit.)
 
 ---
@@ -301,14 +301,14 @@ Options: only official/bundled modules; unsigned community modules with a big wa
 
 ## ADR-024 — Generic hosting of elements on walls/slabs
 Spike E note (session #11): an Electrical outlet hosted on a core wall needed a generic `host` field **in the core** (the core must know hosting to cascade deletes later). Supports this ADR. Cascade not tested yet.
-Status: **PROPOSED**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
+Status: **ACCEPTED (2026-11-16, owner: "lean")**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
 
 ## ADR-025 — When and how findings appear ("quiet while creating")
-Status: **PROPOSED** (from the owner's Q-054 answer, 2026-11-15)
+Status: **ACCEPTED (2026-11-16, owner: "lean", settle delay **2 s** after the user stops)** (from the owner's Q-054 answer, 2026-11-15)
 Owner's concern: *"I'm still connecting the wall and there's an annoying warning saying I'm creating a structural failure."*
 Proposal:
 1. **No findings during an active gesture** (drawing a wall chain, dragging, typing a value). Evaluate only when the command **commits** (gesture ends).
-2. **Settle delay:** after a commit, wait ~1–2 s of inactivity before *showing* new findings (computing can happen earlier). ❓ value to tune.
+2. **Settle delay:** after a commit, wait **2 s** of inactivity (owner, 2026-11-16) before *showing* new findings (computing can happen earlier). Tunable constant, not per-user yet.
 3. **Incomplete geometry is "draft", not an error.** An open wall chain, a dangling wall end, or a room not closed yet → no structural findings for those elements until they're "settled" (the chain is closed/ended, or N seconds pass). Hard part: defining "settled" (Q-073).
 4. **Inside the Architect Vision:** only **critical** findings from other Visions surface, as a quiet badge/dot on the element + a counter. **No popups, no modals, no sounds**, never stealing focus.
 5. **Inside the Structural Vision:** the full findings panel.
@@ -373,7 +373,8 @@ Proposal: **No.** Any threshold without a source is stored with `source: "UNSOUR
 ---
 
 ## ADR-033 — Monorepo & tooling for Phase 1
-Status: **PROPOSED** (session #11, 2026-11-16)
+Status: **ACCEPTED (2026-11-16, owner: "lean"; Node: "Node 22 or higher")**
+Setup notes (2026-11-16, checked on npm): **Node ≥ 22.12** (`engines`; Vitest 5 needs ^22.12), `.nvmrc` = 22. **TypeScript 6.0.x, not 7**: typescript-eslint 8.72 supports `<6.1`; revisit when it supports TS 7 (native compiler). Exact versions pinned in package.json.
 Proposal:
 - **pnpm workspaces** with the ARCHITECTURE layout (`apps/desktop`, `packages/core`, `packages/renderer-2d`, `packages/ui-kit`, `packages/module-architect`; `module-structural` waits for Phase 2).
 - **TypeScript strict** (+ `noUncheckedIndexedAccess`, as in the spikes), **Vitest**, **vue-tsc**; versions pinned exactly (spike set: Vue 3.5, Vite 6, Vitest 3, TS 5.7; Tauri 2.12).
@@ -385,7 +386,7 @@ Dependencies added: pnpm, TypeScript, Vitest, Vite, vue-tsc, ESLint (+ typescrip
 Lean: as above. Confidence: high (all already used in spikes or industry default). Reversibility: easy.
 
 ## ADR-034 — i18n library
-Status: **PROPOSED** (session #11; follows ADR-021 + Spike B)
+Status: **ACCEPTED (2026-11-16, owner: "lean"): B — `intl-messageformat` + own Vue glue.** Owner addition: language *"should be probably attached to the country"* (construction vocabulary is local), but unsure about excluding other languages → Q-137 (default: UI language stays the user's choice; the project's country profile suggests the default language for new projects, and its local terms are shown alongside, e.g. "lintel (verga)"; nothing is excluded).
 Need (Spike B): keys + params; **plural on a named param, nested**; **gender `select`** (R-56); formatting must also work **outside Vue** (rules/findings are produced in `core`/modules and rendered for exports and tests).
 Options:
 - A) **vue-i18n** — (+) Vue standard, tooling. (−) its own message syntax (plural via `|` pipes, no ICU `select`); Vue-only, so core/modules need a second formatter.
@@ -394,7 +395,7 @@ Options:
 Lean: **B**. Confidence: medium (verify maintenance and bundle size at setup; also check whether the built-in `Intl` APIs cover enough by then).
 
 ## ADR-035 — `.prumo` zip container library
-Status: **PROPOSED** (session #11; implements ADR-008)
+Status: **ACCEPTED (2026-11-16, owner: "lean"): A — fflate.**
 Need: read/write the zip container (`project.json`, snapshots, later thumbnails) **in `core`**, so it's testable in Node and a web build stays possible (no Tauri in core, rule 16). Deterministic output (fixed entry order + timestamps) so saves are byte-stable (rule 10).
 Options:
 - A) **fflate** (pure JS, small, no dependencies) — (+) runs anywhere, fast. (−) another JS dep.

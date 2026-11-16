@@ -298,3 +298,19 @@ Owner: "Lean. Most of it is simple right now, like the ADR 005, and later on it 
 **Phase 1 plan**: ROADMAP "Build order" (slices 0–9). New PROPOSED ADRs because they add dependencies (golden rule 4): ADR-033 (pnpm monorepo, TS strict, Vitest, ESLint boundary rules, Prettier, Node 22 pinned), ADR-034 (i18n: lean ICU `intl-messageformat` over vue-i18n, since findings are formatted outside Vue), ADR-035 (zip: lean fflate, pure JS in core). Phase 1 code waits on these + ADR-011/015/024/025.
 
 **Next**: owner answers the Phase 1 batch → slice 1 (skeleton).
+
+### Session #11, part 6 — Phase 1 batch accepted, slice 1 (skeleton), 2026-11-16
+
+Owner: "Lean to them. ADR 025 I would extend it to 2s after stop. ADR 034 I agree, also it should be probably attached to the country … (but I don't know about excluding them from other countries). About ADR-033 needs Node 22, let's use then Node 22 or higher".
+
+**Decisions recorded (ACCEPTED)**: ADR-011, 015, 024, 025 (settle **2 s**), 033 (Node ≥ 22), 034 (`intl-messageformat`), 035 (fflate). Owner's language/country idea → **Q-137** with a default (UI language = user's choice; profile suggests the default language for new projects; local terms shown in brackets; nothing excluded) — inferred, reversible, not asked again.
+
+**Setup facts (checked on npm today)**: TypeScript **7.0** exists, but typescript-eslint 8.72 supports `<6.1` → pinned **TS 6.0.3** (R-58). Vitest 5 needs Node ^22.12 → `engines: >=22.12.0`. Node 22.23.5 downloaded from nodejs.org (SHA-256 verified) into `~/.local/node22` — user-local, no system change; owner's global Node is still 20.11. Kept pnpm 9.15.9 (pnpm 12 via corepack failed earlier this session).
+
+**Done — slice 1**: branch `phase1/skeleton` (from `spikes/d-e`). Root workspace (`apps/*`, `packages/*`; spikes excluded), `tsconfig.base.json` (strict + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), ESLint 10 flat config with **boundary rules** (core can't import Vue/Tauri/modules — proven by a planted bad file producing both errors), Prettier, `.nvmrc`, `engine-strict`. `packages/core`: model types, `emptyProject`, `modulesReferenced`, id sources (injected; random UUID in prod, counter in tests), `EPS = 0.01 mm`, canonical JSON (throws on undefined/NaN/class instances), `.prumo` save/open, file validation. CI `ci.yml`.
+
+**Bug caught by the slice-1 exit test**: fflate stores DOS **local** time, so a fixed UTC date became 1979 in Brazil (error) and would have made bytes timezone-dependent. Fixed date now built from local components; a golden SHA-256 test, verified in UTC, Tokyo, São Paulo, and UTC+14, and CI runs tests on Linux/Windows/macOS (R-59).
+
+**Inferences/defaults logged**: default wall height 2700 mm and grid 100 mm are drawing defaults (not structural). `@typescript-eslint/no-non-null-assertion` off in tests only. Printwidth 120. Core exports TS source (no build step) until an app needs otherwise. Thumbnails / `packs.lock.json` are carried as opaque "extra" entries for now.
+
+**Next**: slice 2 — commands + undo (ADR-011), module host, save flow per ADR-032.
