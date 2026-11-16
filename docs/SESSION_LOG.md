@@ -440,3 +440,17 @@ Owner: "I already merged. You can continue" (PR #10). No answer on ADR-036 yet �
 **Inferences/defaults logged**: finishes have no thickness in Phase 1 (paint ≈ 0; plaster/tile thickness changing wall geometry is later, DATA_MODEL "Total wall thickness = core + finishes"); built-in list until data packs (ADR-030); sides are named by the room they face, never "A/B" (beginner wording, CLAUDE.md rule 20); copies keep finishes (they're part of the wall), room names still aren't copied.
 
 **Next**: ADR-036 answer → slice 8.
+
+### Session #11, part 16 — ADR-036 accepted; Phase 1 slice 8a (New / Open / Save), 2026-11-16
+
+Owner: "Then let's go with Option A. I already merged, you can continue" (PR #11). ADR-036 → ACCEPTED (A). Branch `phase1/files` from `main`.
+
+**Done**: Rust `tauri-plugin-dialog` 2.8.4 + `tauri-plugin-fs` 2.7.1 (pinned, match the JS packages); capability = dialog open/save/ask/message + fs read/write **without any fs scope** — verified in the plugin source (commands.rs) that both the open and the save dialog add the picked path to the fs scope, so only user-picked files are reachable. `apps/desktop/src/platform/` (the only Tauri imports; `tauri.ts` + `web.ts` fallback for the browser dev build). `session.ts` (framework-free: New/Open/Save/Save as, unsaved-changes guard, title with •, invalid/newer-schema/newer-module/missing-module outcomes). Core `History.load()` (replace document, clear undo, not dirty). App: buttons + Ctrl/⌘+N/O/S (+Shift), close guard, read-only banner, level follows the opened project (tools re-pointed).
+
+**Tests**: 209. Session with a scripted fake platform: first save asks, later saves don't; cancel = nothing changes; save → open round trip in a fresh session; unsaved-changes "no" keeps everything; broken file refused, current document kept; ADR-032 flow: "no" cancels, "remove" = snapshot in the saved file + ONE undoable, unsaved step. Native build OK (`Prumo.app` 3.5 MiB, +0.5 MiB for the plugins).
+
+**Bug caught (own review)**: in the missing-module path I first migrated *after* the removal using `History.load`, which would have erased the undoable removal and marked the file saved → now migrate first, then remove as a normal edit.
+
+**Inferences/defaults logged**: a file from a *newer app version* is refused with "update Prumo" instead of opening read-only (MODULES §7 default) — today's code can't safely display an unknown future schema; newer *module data* (valid schema) does open read-only. The browser dev build saves by download and has no close guard. Native dialogs not click-tested (no GUI access here) → owner check.
+
+**Next**: 8b start screen + examples + settings; 8c autosave/recovery + crash log.

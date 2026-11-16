@@ -404,7 +404,7 @@ Options:
 Lean: **A**. Confidence: medium (verify maintenance; check deterministic timestamps).
 
 ## ADR-036 — Save/open dialogs and file access (desktop)
-Status: **PROPOSED** (session #11, 2026-11-16) — blocks Phase 1 slice 8 (save/open)
+Status: **ACCEPTED (2026-11-16, owner: "let's go with Option A")**: official Tauri plugins `tauri-plugin-dialog` + `tauri-plugin-fs`, 2.x.
 Context: `core` already writes/reads `.prumo` bytes (ADR-008/035). The desktop app needs native "Save as…" / "Open…" dialogs and to read/write the chosen file. Today Tauri has no permission to touch files (capability `core:default` only).
 Options:
 - **A) Official Tauri plugins `tauri-plugin-dialog` + `tauri-plugin-fs`** (JS `@tauri-apps/plugin-dialog` 2.8 / `plugin-fs` 2.7, Rust crates 2.x; maintained by the Tauri team, updated Oct 2026). Permissions scoped in the capability file (only the files the user picked). (+) standard, small, both OSes, least own code. (−) two new deps (JS + Rust each).
