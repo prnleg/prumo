@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectLocale, formatLength, formatSmall, translate } from "../src/i18n";
+import { detectLocale, formatCm, formatLength, formatSmall, parseNumber, translate } from "../src/i18n";
 import { CATALOGUES, LOCALES } from "../src/i18n/messages";
 
 describe("UI i18n (ADR-021/034)", () => {
@@ -9,7 +9,16 @@ describe("UI i18n (ADR-021/034)", () => {
       expect(Object.keys(CATALOGUES[l]).sort()).toEqual(keys);
       for (const k of keys)
         expect(() =>
-          translate(l, k, { count: 2, hosted: 1, label: "x", grid: "10 cm", angle: 15, module: "m", kind: "door" }),
+          translate(l, k, {
+            count: 2,
+            hosted: 1,
+            label: "x",
+            grid: "10 cm",
+            angle: 15,
+            module: "m",
+            kind: "door",
+            example: "14,5",
+          }),
         ).not.toThrow();
     }
   });
@@ -58,5 +67,21 @@ describe("UI i18n (ADR-021/034)", () => {
 
   it("unknown key renders the key instead of crashing", () => {
     expect(translate("en", "nope.key")).toBe("nope.key");
+  });
+
+  it("numbers are parsed in the UI language only (ADR-021: no mixed parsing)", () => {
+    expect(parseNumber("14,5", "pt-BR")).toBe(14.5);
+    expect(parseNumber("1.200", "pt-BR")).toBe(1200);
+    expect(parseNumber("1.200,5", "pt-BR")).toBe(1200.5);
+    expect(parseNumber("14.5", "en")).toBe(14.5);
+    expect(parseNumber("1,200", "en")).toBe(1200);
+    expect(parseNumber(" 80 ", "en")).toBe(80);
+    for (const bad of ["", "abc", "1,2,3x", "12cm", "1,20"]) expect(parseNumber(bad, "en")).toBeNull();
+    // the dangerous one: a dot typed in pt-BR must be refused, never read as a thousands separator → 145
+    expect(parseNumber("14.5", "pt-BR")).toBeNull();
+    expect(parseNumber("14,5", "en")).toBeNull();
+    expect(formatCm(140, "pt-BR")).toBe("14");
+    expect(formatCm(145, "pt-BR")).toBe("14,5");
+    expect(formatCm(12000, "en")).toBe("1200");
   });
 });

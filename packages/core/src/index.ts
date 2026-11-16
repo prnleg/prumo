@@ -6,6 +6,7 @@ export * from "./validate";
 export * from "./edit";
 export * from "./history";
 export * from "./commands";
+export * from "./operations";
 export * from "./modules";
 export * from "./module-data";
 export * from "./persistence";

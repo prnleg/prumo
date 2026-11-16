@@ -9,12 +9,16 @@ import {
   planGeometry,
   randomIds,
   wallsOnLevel,
+  deleteCommand,
+  duplicateCommand,
+  type Command,
   type Label,
   type Project,
 } from "@prumo/core";
-import { DEFAULT_OPENING_SIZES, OpeningTool, WallTool, architectManifest } from "@prumo/module-architect";
+import { DEFAULT_OPENING_SIZES, OpeningTool, SelectTool, WallTool, architectManifest } from "@prumo/module-architect";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import PropertiesPanel from "./PropertiesPanel.vue";
 import { detectLocale, formatLength, formatSmall, translate, type Params } from "./i18n";
 
 const locale = ref(detectLocale(navigator.languages));
@@ -43,6 +47,12 @@ history.subscribe((e) => {
   project.value = e.project;
   tick.value++;
 });
+history.subscribe((e) => {
+  if (e.type === "commit") {
+    selectTool.prune();
+    selection.value = [...selectTool.selection];
+  }
+});
 
 const wallTool = new WallTool(history, {
   ids: randomIds,
@@ -62,6 +72,10 @@ const openingTool = new OpeningTool(history, {
   grid: DEFAULT_SNAP.grid,
   magnetPx: DEFAULT_SNAP.endpointRadiusPx,
 });
+
+const selectTool = new SelectTool(history, { levelId, grid: DEFAULT_SNAP.grid, dragPx: 4, pickPx: 6 });
+const selection = ref<string[]>([]);
+const box = shallowRef(selectTool.box);
 
 type ToolName = "select" | "wall" | "door" | "window";
 const tool = ref<ToolName>("wall");
@@ -99,7 +113,10 @@ function fitAll() {
 
 function sync() {
   hover.value = tool.value === "wall" && wallTool.hover ? { ...wallTool.hover } : null;
-  const probs = tool.value === "wall" ? wallTool.blocked : openingTool.blocked;
+  selection.value = [...selectTool.selection];
+  box.value = selectTool.box ? { ...selectTool.box } : null;
+  const probs =
+    tool.value === "wall" ? wallTool.blocked : tool.value === "select" ? selectTool.blocked : openingTool.blocked;
   blocked.value = [...new Set(probs.map((p) => p.code))];
   tooShort.value = tool.value !== "wall" && openingTool.tooShort;
 }
@@ -107,6 +124,28 @@ function sync() {
 function endTools() {
   if (wallTool.active) wallTool.finish();
   openingTool.finish();
+  selectTool.cancel();
+}
+
+/** Run a command from the panel/keyboard; show why if the core refuses it (Q-072: blocked). */
+function run(cmd: Command) {
+  endTools();
+  const r = history.execute(cmd);
+  blocked.value = r.ok ? [] : [...new Set(r.problems.map((p) => p.code))];
+  selectTool.prune();
+  selection.value = [...selectTool.selection];
+}
+function deleteSelection() {
+  if (!selectTool.selection.length) return;
+  run(deleteCommand(history.current, selectTool.selection));
+}
+function duplicateSelection() {
+  if (!selectTool.selection.length) return;
+  const g = DEFAULT_SNAP.grid * 5; // 50 cm down-right (EDITING_OPERATIONS "fixed offset" default)
+  const d = duplicateCommand(history.current, selectTool.selection, { x: g, y: -g }, randomIds);
+  run(d.command);
+  if (d.newIds.length) selectTool.selection = d.newIds;
+  sync();
 }
 
 function onPointer(e: PlanPointer) {
@@ -114,6 +153,15 @@ function onPointer(e: PlanPointer) {
   if (tool.value === "door" || tool.value === "window") {
     if (e.type === "move") openingTool.move(info);
     else if (e.type === "down" && e.button === 0) openingTool.click(info);
+    sync();
+    return;
+  }
+  if (tool.value === "select") {
+    if (e.button !== 0 && e.type !== "move") return;
+    const sp = { ...info, additive: e.shift, detach: e.mod };
+    if (e.type === "down") selectTool.down(sp);
+    else if (e.type === "move") selectTool.move(sp);
+    else if (e.type === "up") selectTool.up(sp);
     sync();
     return;
   }
@@ -182,6 +230,21 @@ function onKey(e: KeyboardEvent) {
   } else if (mod && e.key.toLowerCase() === "y") {
     e.preventDefault();
     redo();
+  } else if (mod && e.key.toLowerCase() === "d") {
+    e.preventDefault();
+    duplicateSelection();
+  } else if (mod && e.key.toLowerCase() === "a") {
+    e.preventDefault();
+    setTool("select");
+    selectTool.selectAll();
+    sync();
+  } else if ((e.key === "Delete" || e.key === "Backspace") && tool.value === "select") {
+    e.preventDefault();
+    deleteSelection();
+  } else if (e.key === "Escape" && tool.value === "select") {
+    selectTool.cancel();
+    selectTool.selection = [];
+    sync();
   } else if (e.key === "Escape" || e.key === "Enter") {
     if (wallTool.active) wallTool.finish();
     else if (e.key === "Escape") setTool("select");
@@ -195,7 +258,8 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => window.addEventListener("keydown", onKey));
 
 // Dev-only smoke path (?demo=room): draws an L-shaped room through the real wall tool, for screenshots.
-if (import.meta.env.DEV && new URLSearchParams(location.search).get("demo") === "room") {
+const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
+if (demo === "room" || demo === "select") {
   const pts = [
     [0, 0],
     [6000, 0],
@@ -221,6 +285,12 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).get("demo") === 
   }
   setTool("window");
   openingTool.move({ at: { x: 0, y: 2500 }, scale: 0.1, free: false });
+  if (demo === "select") {
+    setTool("select");
+    const p = { at: { x: 3000, y: 1500 }, scale: 0.1, free: false, additive: false };
+    selectTool.down(p);
+    selectTool.up(p);
+  }
   sync();
 }
 onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
@@ -262,17 +332,28 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :geometry="geometry"
         :walls="walls"
         :hover="tool === 'wall' ? hover : null"
+        :selected-ids="selection"
+        :box="box"
         :labels="labels"
         :grid="DEFAULT_SNAP.grid"
         @pointer="onPointer"
         @resize="onResize"
         @leave="onLeave"
       />
+      <PropertiesPanel
+        v-if="tool === 'select'"
+        :project="project"
+        :selection="selection"
+        :locale="locale"
+        @apply="run"
+        @delete="deleteSelection"
+        @duplicate="duplicateSelection"
+      />
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
     </main>
 
     <footer class="status">
-      <span>{{ hint }}</span>
+      <span :title="hint">{{ hint }}</span>
       <span class="spacer" />
       <span class="muted">{{ t("hint.pan") }}</span>
       <span>{{
@@ -288,6 +369,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 .shell {
   display: grid;
   grid-template-rows: auto 1fr auto auto;
+  /* minmax(0, …): long no-wrap status text must not widen the canvas past the window */
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 .toolbar,
@@ -304,6 +387,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   border-bottom: none;
   font-size: 12px;
   white-space: nowrap;
+  overflow: hidden;
 }
 .status > span {
   overflow: hidden;

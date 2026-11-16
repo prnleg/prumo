@@ -35,3 +35,36 @@ export const formatLength = (mm: number, locale: Locale) =>
 /** mm → "10 cm" for small settings like the grid. */
 export const formatSmall = (mm: number, locale: Locale) =>
   mm < 1000 ? `${new Intl.NumberFormat(locale).format(mm / 10)} cm` : formatLength(mm, locale);
+
+function separators(locale: Locale) {
+  const parts = new Intl.NumberFormat(locale).formatToParts(12345.6);
+  return {
+    group: parts.find((p) => p.type === "group")?.value ?? "",
+    decimal: parts.find((p) => p.type === "decimal")?.value ?? ".",
+  };
+}
+
+/**
+ * Parse a number typed in the UI language (ADR-021: no mixed parsing). pt-BR: "14,5" = 14.5 and
+ * "1.200" = 1200; en: "14.5" = 14.5 and "1,200" = 1200. Returns null for anything else.
+ */
+export function parseNumber(text: string, locale: Locale): number | null {
+  const { group, decimal } = separators(locale);
+  const s = text.trim().replace(/[\s\u00a0\u202f]/g, "");
+  const esc = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const G = esc(group || "\u0000");
+  const D = esc(decimal);
+  // Group separators only in real groups of three ("1.200", never "14.5" in pt-BR → refused, not 145).
+  const ok = new RegExp(`^-?(\\d+|\\d{1,3}(${G}\\d{3})+)(${D}\\d+)?$`);
+  if (!ok.test(s)) return null;
+  return Number(
+    s
+      .split(group || "\u0000")
+      .join("")
+      .replace(decimal, "."),
+  );
+}
+
+/** mm → "14" / "14,5" (centimetres, up to one decimal) for edit fields. */
+export const formatCm = (mm: number, locale: Locale) =>
+  new Intl.NumberFormat(locale, { maximumFractionDigits: 1, useGrouping: false }).format(mm / 10);
