@@ -402,3 +402,12 @@ Options:
 - B) **JSZip** — (+) very well known. (−) larger, slower, promise-heavy API.
 - C) Rust `zip` crate behind the platform adapter — (+) native. (−) core can't open files in tests/web without Tauri; two code paths.
 Lean: **A**. Confidence: medium (verify maintenance; check deterministic timestamps).
+
+## ADR-036 — Save/open dialogs and file access (desktop)
+Status: **PROPOSED** (session #11, 2026-11-16) — blocks Phase 1 slice 8 (save/open)
+Context: `core` already writes/reads `.prumo` bytes (ADR-008/035). The desktop app needs native "Save as…" / "Open…" dialogs and to read/write the chosen file. Today Tauri has no permission to touch files (capability `core:default` only).
+Options:
+- **A) Official Tauri plugins `tauri-plugin-dialog` + `tauri-plugin-fs`** (JS `@tauri-apps/plugin-dialog` 2.8 / `plugin-fs` 2.7, Rust crates 2.x; maintained by the Tauri team, updated Oct 2026). Permissions scoped in the capability file (only the files the user picked). (+) standard, small, both OSes, least own code. (−) two new deps (JS + Rust each).
+- **B) Own Rust commands** (`save_file`, `open_file`) using the `rfd` crate for native dialogs + `std::fs`. (+) one Rust dep, no JS dep, full control. (−) more own code to maintain and secure.
+- **C) Browser-style** (download link + `<input type="file">`): no new deps. (−) no "save in place" (always a new file in Downloads), poor UX for a desktop app.
+Lean: **A**. Confidence: high (Tauri's documented way; plugin 2.x matches Tauri 2.12; v3 is alpha — stay on 2.x). Imports stay in `apps/desktop/src/platform/` (rule 16). Autosave/recovery (Q-111) later reuses the same fs plugin with the app-data directory.
