@@ -10,19 +10,33 @@ import {
   type Project,
   type Wall,
 } from "@prumo/core";
+import { ROOM_PREFIX } from "@prumo/module-architect";
 import { computed, ref } from "vue";
-import { formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
+import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 
-const props = defineProps<{ project: Project; selection: readonly string[]; locale: Locale }>();
+const props = defineProps<{
+  project: Project;
+  selection: readonly string[];
+  locale: Locale;
+  /** Detected rooms with their current name (for a selected room). */
+  rooms: readonly { key: string; name: string; area: number }[];
+}>();
 const emit = defineEmits<{
   apply: [cmd: Command];
   delete: [];
   duplicate: [];
   rotate: [deg: number];
   mirror: [axis: "vertical" | "horizontal"];
+  name: [roomKey: string, name: string];
 }>();
+const room = computed(() => {
+  const id = props.selection.length === 1 ? (props.selection[0] ?? "") : "";
+  return id.startsWith(ROOM_PREFIX) ? (props.rooms.find((r) => r.key === id.slice(ROOM_PREFIX.length)) ?? null) : null;
+});
 const keepOriginal = defineModel<boolean>("keepOriginal", { default: true });
-const hasWalls = computed(() => props.selection.some((id) => props.project.elements[id]?.type === "wall"));
+const hasWalls = computed(() =>
+  props.selection.some((id) => id.startsWith(ROOM_PREFIX) || props.project.elements[id]?.type === "wall"),
+);
 const t = (k: string, p?: Params) => translate(props.locale, k, p);
 
 const one = computed<Element | null>(() =>
@@ -55,7 +69,22 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
 
 <template>
   <aside v-if="selection.length" class="panel">
-    <template v-if="wall">
+    <template v-if="room">
+      <h3>{{ t("props.room") }}</h3>
+      <p class="ro">{{ t("props.area") }}: {{ formatArea(room.area, locale) }}</p>
+      <label class="stack">
+        {{ t("props.name") }}
+        <input
+          :key="room.key + room.name"
+          class="text"
+          :value="room.name"
+          :placeholder="t('props.namePlaceholder')"
+          @change="emit('name', room.key, ($event.target as HTMLInputElement).value)"
+        />
+      </label>
+    </template>
+
+    <template v-else-if="wall">
       <h3>{{ t("props.wall") }}</h3>
       <p class="ro">{{ t("props.length") }}: {{ formatLength(wallLength(wall), locale) }}</p>
       <label :class="{ bad: bad === 'thickness' }">
@@ -225,6 +254,14 @@ button {
   border-radius: 6px;
   background: var(--panel);
   cursor: pointer;
+}
+.stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+input.text {
+  width: auto;
+  text-align: left;
 }
 .check {
   justify-content: flex-start;

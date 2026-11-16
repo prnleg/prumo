@@ -4,7 +4,8 @@ import { DEFAULTS } from "./geometry/joins";
 import { add, dist, dot, lineLine, norm, sub, type V } from "./geometry/vec";
 import type { Command } from "./history";
 import type { IdSource } from "./ids";
-import type { Element, Id, Opening, Project, Wall } from "./model";
+import type { Element, Id, Opening, Project, RoomTag, Wall } from "./model";
+import { detectRooms, matchRoomTags, roomTags } from "./geometry/rooms";
 
 export interface MoveOptions {
   /** Q-022 default: walls joined to a moved wall stretch to keep the junction. Off = detach (modifier key). */
@@ -51,6 +52,7 @@ export function translate(p: Project, ids: readonly Id[], delta: V, opts: Partia
     const after = new Map(moved.map((w) => [w.id, { ...w, start: add(w.start, delta), end: add(w.end, delta) }]));
     out.push(...stretchNeighbours(p, sel, moved, after, (q) => add(q, delta), o.joinTol));
   }
+  if (moved.length) out.push(...tagsTravelling(p, movedIds, (q) => add(q, delta)));
   return putElements(p, out);
 }
 
@@ -216,6 +218,7 @@ export function rotateCommand(ids: readonly Id[], pivot: V, deg: number, opts: P
       const after = new Map(moved.map((w) => [w.id, { ...w, start: f(w.start), end: f(w.end) }]));
       const out: Element[] = [...after.values()];
       if (o.stretch) out.push(...stretchNeighbours(p, sel, moved, after, f, o.joinTol));
+      out.push(...tagsTravelling(p, new Set(moved.map((w) => w.id)), f));
       return putElements(p, out);
     },
   };
@@ -279,6 +282,7 @@ export function mirrorCommand(
           for (const w of walls) out.push(...hostedOn(w.id).map(mirrorOpening));
           if (mode.stretch ?? true)
             out.push(...stretchNeighbours(q, sel, walls, after, f, mode.joinTol ?? DEFAULTS.joinTol));
+          out.push(...tagsTravelling(q, sel, f));
           return putElements(q, out);
         },
       },
@@ -300,4 +304,49 @@ export function mirrorCommand(
   }
   const label: Label = { key: "cmd.mirrorCopy", params: { count: newIds.length } };
   return { command: { label, apply: (q) => putElements(q, copies) }, newIds, skipped };
+}
+
+// --- room names --------------------------------------------------------------------------------
+
+/**
+ * Name (or rename) a detected room. Empty name = remove the tag. A new tag's seed is the room's
+ * label point (inside the floor, away from walls) so small wall edits don't push it out.
+ */
+export function nameRoomCommand(p: Project, levelId: Id, roomKey: string, name: string, newId: IdSource): Command {
+  const room = detectRooms(p, levelId).find((r) => r.key === roomKey);
+  const tag = room ? matchRoomTags([room], roomTags(p, levelId)).get(room.key) : undefined;
+  const clean = name.trim();
+  const label: Label = { key: "cmd.nameRoom" };
+  if (!room) return { label, apply: (q) => q };
+  if (tag && !clean)
+    return {
+      label,
+      apply: (q) => ({
+        ...q,
+        elements: Object.fromEntries(Object.entries(q.elements).filter(([id]) => id !== tag.id)),
+      }),
+    };
+  if (tag) return { label, apply: (q) => putElements(q, [{ ...tag, name: clean }]) };
+  if (!clean) return { label, apply: (q) => q };
+  const t: RoomTag = { id: newId(), type: "room", levelId, seed: room.labelAt, name: clean, components: {} };
+  return { label, apply: (q) => putElements(q, [t]) };
+}
+
+/**
+ * Tags of rooms whose walls are ALL in the selection travel with it (move/rotate/mirror), so a moved
+ * room keeps its name. Rooms only partly selected keep their tag where it is.
+ */
+function tagsTravelling(p: Project, sel: ReadonlySet<Id>, f: (q: V) => V): Element[] {
+  const levels = new Set(
+    [...sel]
+      .map((id) => p.elements[id])
+      .filter(isWall)
+      .map((w) => w.levelId),
+  );
+  const out: Element[] = [];
+  for (const level of [...levels].sort()) {
+    const rooms = detectRooms(p, level).filter((r) => r.wallIds.every((id) => sel.has(id)));
+    for (const [, tag] of matchRoomTags(rooms, roomTags(p, level))) out.push({ ...tag, seed: f(tag.seed) });
+  }
+  return out;
 }

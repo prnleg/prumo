@@ -65,7 +65,7 @@ describe("select tool", () => {
     expect(tool.selection).toEqual(["w1", "w2"]);
     click(2000, 10, { additive: true });
     expect(tool.selection).toEqual(["w2"]);
-    click(2000, 1500);
+    click(2000, -1500); // outside the room (inside it would select the room)
     expect(tool.selection).toEqual([]);
   });
 
@@ -129,5 +129,24 @@ describe("select tool", () => {
     const { tool } = setup();
     tool.selectAll();
     expect(tool.selection).toEqual(["o1", "w1", "w2", "w3", "w4"]);
+  });
+});
+
+describe("selecting rooms", () => {
+  it("clicking the floor selects the room; dragging it moves all its walls (one step)", async () => {
+    const { detectRooms } = await import("@prumo/core");
+    const { h, tool, click, drag } = setup();
+    click(2000, 1500);
+    expect(tool.selection).toEqual(["room:w1,w2,w3,w4"]);
+    expect(tool.elementIds()).toEqual(["w1", "w2", "w3", "w4"]);
+    expect(tool.realIds()).toEqual([]);
+    drag([2000, 1500], [3000, 1500]);
+    expect((h.current.elements["w1"] as Wall).start).toEqual({ x: 1000, y: 0 });
+    expect(detectRooms(h.current, "l-1")).toHaveLength(1);
+    expect(h.canUndo).toBe(true);
+    h.undo();
+    expect(h.canUndo).toBe(false);
+    tool.prune();
+    expect(tool.selection).toEqual(["room:w1,w2,w3,w4"]);
   });
 });

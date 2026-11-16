@@ -70,7 +70,18 @@ export interface ModuleElement extends ElementBase {
   host?: Host;
 }
 
-export type Element = Wall | Opening | ModuleElement;
+/**
+ * A room's user data (name now; type/finishes later). Rooms themselves are DERIVED from walls
+ * (geometry/rooms.ts); a tag attaches to the detected room that contains its `seed` (DATA_MODEL
+ * "Room identity" lean). Unmatched tags are kept (rule 13) and re-attach if the room comes back.
+ */
+export interface RoomTag extends ElementBase {
+  type: "room";
+  seed: Vec2;
+  name: string;
+}
+
+export type Element = Wall | Opening | RoomTag | ModuleElement;
 
 export interface Level {
   id: Id;
@@ -101,7 +112,8 @@ export interface Project {
   settings: { gridSize: number };
 }
 
-export const isModuleElement = (e: Element): e is ModuleElement => e.type !== "wall" && e.type !== "opening";
+const CORE_TYPES = new Set(["wall", "opening", "room"]);
+export const isModuleElement = (e: Element): e is ModuleElement => !CORE_TYPES.has(e.type);
 
 export interface NewProjectArgs {
   id: Id;

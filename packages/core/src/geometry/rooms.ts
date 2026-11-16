@@ -10,7 +10,7 @@
 //
 // Known limits (logged): an island loop inside a room isn't subtracted from that room's area;
 // curved walls don't exist yet.
-import type { Id, Project, Wall } from "../model";
+import type { Id, Project, RoomTag, Wall } from "../model";
 import { faceOffsets, DEFAULTS } from "./joins";
 import { wallsOnLevel } from "./plan";
 import { add, area, cross, dist, dot, inside, lineLine, mul, norm, perp, sub, type V } from "./vec";
@@ -241,4 +241,24 @@ export function uncoveredPieces(p: Project, levelId: Id, a: V, b: V, tol = DEFAU
   }
   if (t < L - tol) out.push([add(a, mul(u, t)), b]);
   return out.filter(([x, y]) => dist(x, y) > tol);
+}
+
+export function roomTags(p: Project, levelId: Id): RoomTag[] {
+  return Object.values(p.elements)
+    .filter((e): e is RoomTag => e.type === "room" && e.levelId === levelId)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+/**
+ * Detected room key → its tag: the tag whose seed lies inside the room's centre-line polygon.
+ * Several tags in one room (two named rooms merged by deleting a wall): the lowest id wins; the
+ * others stay stored and re-attach if the rooms split again (undo, new wall).
+ */
+export function matchRoomTags(rooms: readonly Room[], tags: readonly RoomTag[]): Map<string, RoomTag> {
+  const out = new Map<string, RoomTag>();
+  for (const t of tags) {
+    const r = rooms.find((x) => inside(t.seed, x.polygon));
+    if (r && !out.has(r.key)) out.set(r.key, t);
+  }
+  return out;
 }

@@ -6,6 +6,8 @@
 //   drag from empty space    → box select: left→right = fully inside, right→left = touching
 import {
   boxSelect,
+  detectRooms,
+  inside,
   dist,
   hitTest,
   moveCommand,
@@ -18,6 +20,10 @@ import {
   type V,
 } from "@prumo/core";
 import type { PointerInfo } from "./wall-tool";
+
+/** Selection ids for detected rooms (rooms aren't elements; their key = sorted wall ids). */
+export const ROOM_PREFIX = "room:";
+export const isRoomSel = (id: string) => id.startsWith(ROOM_PREFIX);
 
 export interface SelectPointer extends PointerInfo {
   /** Shift held: add/toggle instead of replace. */
@@ -56,7 +62,12 @@ export class SelectTool {
 
   down(p: SelectPointer): void {
     const g = planGeometry(this.h.current, this.options.levelId);
-    const hit = hitTest(g, p.at, this.options.pickPx / p.scale);
+    let hit = hitTest(g, p.at, this.options.pickPx / p.scale);
+    if (!hit) {
+      // nothing drawn under the cursor: maybe a room's floor (Sims-like: click the floor = the room)
+      const room = detectRooms(this.h.current, this.options.levelId).find((r) => inside(p.at, r.floor));
+      if (room) hit = ROOM_PREFIX + room.key;
+    }
     if (hit && !p.additive && !this.selection.includes(hit)) this.selection = [hit];
     this.press = { at: p.at, hit, additive: p.additive, dragging: false };
     this.blocked = [];
@@ -73,7 +84,7 @@ export class SelectTool {
       const raw = { x: p.at.x - pr.at.x, y: p.at.y - pr.at.y };
       const delta = p.free ? raw : { x: Math.round(raw.x / g) * g + 0, y: Math.round(raw.y / g) * g + 0 };
       this.gesture ??= this.h.beginGesture({ key: "cmd.move", params: { count: this.selection.length } });
-      const r = this.gesture.preview(moveCommand(this.selection, delta, { stretch: !p.detach }));
+      const r = this.gesture.preview(moveCommand(this.elementIds(), delta, { stretch: !p.detach }));
       this.blocked = r.ok ? [] : r.problems;
     } else {
       this.box = {
@@ -119,10 +130,22 @@ export class SelectTool {
     this.blocked = [];
   }
 
-  /** Drop ids that no longer exist (after undo, delete, …). */
+  /** Drop ids that no longer exist (after undo, delete, …); rooms survive while still detected. */
   prune(): void {
     const els = this.h.current.elements;
-    this.selection = this.selection.filter((id) => els[id]);
+    const keys = new Set(detectRooms(this.h.current, this.options.levelId).map((r) => ROOM_PREFIX + r.key));
+    this.selection = this.selection.filter((id) => (isRoomSel(id) ? keys.has(id) : els[id]));
+  }
+
+  /** The selection as model element ids: a selected room stands for its walls (move/rotate/mirror). */
+  elementIds(): Id[] {
+    const ids = this.selection.flatMap((id) => (isRoomSel(id) ? id.slice(ROOM_PREFIX.length).split(",") : [id]));
+    return sortUnique(ids);
+  }
+
+  /** Only real elements (delete/duplicate don't expand rooms: deleting a room's walls would hit its neighbours). */
+  realIds(): Id[] {
+    return this.selection.filter((id) => !isRoomSel(id));
   }
 
   selectAll(): void {
