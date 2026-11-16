@@ -11,6 +11,8 @@ export interface ComponentDecl {
   version: number;
   /** Rule 6: the module owns its migrations. Key = from-version → data for from-version + 1. */
   migrations: Record<number, (data: unknown) => unknown>;
+  /** The element was mirrored: e.g. swap per-side data. Absent = data unchanged. Must be pure. */
+  mirror?: (data: unknown) => unknown;
 }
 
 export interface ModuleManifest {
@@ -111,6 +113,12 @@ export class ModuleHost {
       },
     };
   }
+
+  /** For mirrorCommand: apply each module's own mirror rule to its data (uninstalled modules: unchanged). */
+  readonly mirrorComponent = (moduleId: ModuleId, data: unknown): unknown => {
+    const m = this.manifests.get(moduleId)?.component?.mirror;
+    return m ? m(structuredClone(data)) : data;
+  };
 
   /**
    * Bring every component up to its module's current version (rule 6). Pure.

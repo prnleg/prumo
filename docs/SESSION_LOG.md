@@ -428,3 +428,15 @@ Owner: "I merged, it will finish soon, so you can continue" (PRs #8, #9). Branch
 **Inferences/defaults logged**: on a split, the part containing the seed keeps the name (DATA_MODEL leaned "larger part"; seed rule is simpler and predictable — reversible). Delete ignores selected rooms (only real elements). Copies (duplicate, mirror copy) don't copy names. Room types (Q-107/114) not yet.
 
 **Next**: 7b finishes; 8 save/open (+ dependency ADR for Tauri plugins), start screen, settings.
+
+### Session #11, part 15 — Phase 1 slice 7b (finishes), 2026-11-16
+
+Owner: "I already merged. You can continue" (PR #10). No answer on ADR-036 yet → stays PROPOSED; did 7b (no new dependency). Branch `phase1/finishes` from `main`.
+
+**Done**: core `editRoomCommand` (generic room-tag edit; tag removed only when it has no name and no module data; `nameRoomCommand` now uses it), `ComponentDecl.mirror` + `ModuleHost.mirrorComponent`, `mirrorCommand({ mirrorComponent })`. Architect: `finishes.ts` (12 built-in finishes with stable ids + plan colours; component v1 `{ sides: { left?, right? }, floor? }`; `setWallSide`, `setRoomFloor`, empty component removed; mirror rule swaps sides). App: panel pickers ("Side facing Sala" / "outside", computed by probing 20 cm off each face into the detected rooms), floor picker for rooms, faces drawn as 5 px strips clipped to each wall's joined polygon (clean corners), floor tints; room labels got a halo (were unreadable on light floors in the screenshot).
+
+**Tests**: 202. Mirror hook runs only the owning module's rule and leaves other modules' data alone; a room tag with a floor finish survives clearing its name and disappears when emptied; painted sides swap on mirror (hand-reasoned geometry in the test); finish ids unique.
+
+**Inferences/defaults logged**: finishes have no thickness in Phase 1 (paint ≈ 0; plaster/tile thickness changing wall geometry is later, DATA_MODEL "Total wall thickness = core + finishes"); built-in list until data packs (ADR-030); sides are named by the room they face, never "A/B" (beginner wording, CLAUDE.md rule 20); copies keep finishes (they're part of the wall), room names still aren't copied.
+
+**Next**: ADR-036 answer → slice 8.

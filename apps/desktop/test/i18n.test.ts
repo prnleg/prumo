@@ -18,6 +18,7 @@ describe("UI i18n (ADR-021/034)", () => {
             module: "m",
             kind: "door",
             example: "14,5",
+            room: "Sala",
           }),
         ).not.toThrow();
     }

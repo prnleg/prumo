@@ -143,3 +143,41 @@ describe("mirror (EDITING_OPERATIONS 'Mirror')", () => {
     expect(r.newIds).toEqual(["m-1"]);
   });
 });
+
+describe("module mirror hook (MODULES rule 1: core doesn't know module data)", () => {
+  it("the owning module's mirror rule runs on its component; other modules' data is untouched", async () => {
+    const { ModuleHost } = await import("../src");
+    const { manifest } = await import("./fixtures");
+    const host = new ModuleHost([
+      manifest("x.sides", {
+        component: {
+          version: 1,
+          migrations: {},
+          mirror: (d) => {
+            const s = d as { left?: string; right?: string };
+            return { left: s.right, right: s.left };
+          },
+        },
+      }),
+    ]);
+    const p = putCommand({ key: "x" }, [
+      wall("w", 0, 0, 4000, 0, {
+        components: {
+          "x.sides": { v: 1, data: { left: "blue", right: "red" } },
+          "y.other": { v: 2, data: { left: 1 } },
+        },
+      }),
+    ]).apply(blank());
+    const r = mirrorCommand(
+      p,
+      ["w"],
+      "vertical",
+      { x: 5000, y: 0 },
+      { copy: true, newId: counterIds("m"), mirrorComponent: host.mirrorComponent },
+    );
+    const m = r.command.apply(p).elements["m-1"] as Wall;
+    expect(m.components["x.sides"]!.data).toEqual({ left: "red", right: "blue" });
+    expect(m.components["y.other"]!.data).toEqual({ left: 1 });
+    expect((p.elements["w"] as Wall).components["x.sides"]!.data).toEqual({ left: "blue", right: "red" }); // input untouched
+  });
+});

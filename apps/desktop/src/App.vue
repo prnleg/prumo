@@ -11,6 +11,10 @@ import {
   wallsOnLevel,
   deleteCommand,
   detectRooms,
+  editRoomCommand,
+  faceOffsets,
+  inside,
+  updateCommand,
   matchRoomTags,
   nameRoomCommand,
   roomTags,
@@ -30,6 +34,10 @@ import {
   OpeningTool,
   ROOM_PREFIX,
   RoomTool,
+  architectData,
+  finishById,
+  setRoomFloor,
+  setWallSide,
   SelectTool,
   WallTool,
   architectManifest,
@@ -45,7 +53,6 @@ const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
 const modules = new ModuleHost([architectManifest]);
-void modules;
 
 const levelId = randomIds();
 const history = new History(
@@ -118,7 +125,51 @@ const walls = computed(() => wallsOnLevel(project.value, levelId));
 const detected = computed(() => {
   const rs = detectRooms(project.value, levelId);
   const tags = matchRoomTags(rs, roomTags(project.value, levelId));
-  return rs.map((r) => ({ ...r, name: tags.get(r.key)?.name ?? "" }));
+  return rs.map((r) => {
+    const tag = tags.get(r.key);
+    return { ...r, name: tag?.name ?? "", floorFinish: tag ? architectData(tag).floor : undefined };
+  });
+});
+
+// Painted faces (Architect finishes): a strip just inside each painted face, clipped by the renderer.
+const faces = computed(() => {
+  const inset = 2.5 / view.value.scale; // half the 5 px strip
+  return walls.value.flatMap((w) => {
+    const sides = architectData(w).sides ?? {};
+    const len = wallLength(w);
+    if (!len) return [];
+    const u = { x: (w.end.x - w.start.x) / len, y: (w.end.y - w.start.y) / len };
+    const n = { x: -u.y, y: u.x };
+    const { l, r } = faceOffsets(w);
+    const mid = (l + r) / 2;
+    const ext = w.thickness * 2; // overshoot the ends; the clip trims to the joined shape
+    return (["left", "right"] as const).flatMap((side) => {
+      const f = finishById(sides[side]);
+      if (!f) return [];
+      const face = side === "left" ? l : r;
+      const off = face + Math.sign(mid - face) * inset;
+      const P = (s: number) => ({ x: w.start.x + u.x * s + n.x * off, y: w.start.y + u.y * s + n.y * off });
+      return [{ key: `${w.id}:${side}`, wallId: w.id, line: [P(-ext), P(len + ext)] as const, color: f.color }];
+    });
+  });
+});
+
+/** What each side of the selected wall looks at, in plain words ("Sala", "outside"). */
+const wallSideLabels = computed(() => {
+  const id = selection.value.length === 1 ? selection.value[0] : undefined;
+  const w = id ? project.value.elements[id] : undefined;
+  if (w?.type !== "wall") return null;
+  const len = wallLength(w);
+  const u = { x: (w.end.x - w.start.x) / len, y: (w.end.y - w.start.y) / len };
+  const n = { x: -u.y, y: u.x };
+  const { l, r } = faceOffsets(w);
+  const m = { x: (w.start.x + w.end.x) / 2, y: (w.start.y + w.end.y) / 2 };
+  const look = (off: number) => {
+    const q = { x: m.x + n.x * off, y: m.y + n.y * off };
+    const room = detected.value.find((x) => inside(q, x.floor));
+    return room ? room.name || formatArea(room.floorArea, locale.value) : t("finish.outside");
+  };
+  return { left: look(l + 200), right: look(r - 200) };
 });
 const rooms = computed(() =>
   detected.value.map((r) => ({
@@ -127,9 +178,34 @@ const rooms = computed(() =>
     at: r.labelAt,
     label: r.name ? `${r.name} · ${formatArea(r.floorArea, locale.value)}` : formatArea(r.floorArea, locale.value),
     selected: selection.value.includes(ROOM_PREFIX + r.key),
+    ...(() => {
+      const f = finishById(r.floorFinish);
+      return f ? { fill: f.color } : {};
+    })(),
   })),
 );
-const panelRooms = computed(() => detected.value.map((r) => ({ key: r.key, name: r.name, area: r.floorArea })));
+const panelRooms = computed(() =>
+  detected.value.map((r) => ({ key: r.key, name: r.name, area: r.floorArea, floor: r.floorFinish ?? "" })),
+);
+function paintSide(wallId: string, side: "left" | "right", finishId: string) {
+  run(
+    updateCommand({ key: "cmd.paint" }, [wallId], (e) =>
+      e.type === "wall" ? setWallSide(e, side, finishId || undefined) : e,
+    ),
+  );
+}
+function paintFloor(key: string, finishId: string) {
+  run(
+    editRoomCommand(
+      history.current,
+      levelId,
+      key,
+      { key: "cmd.paint" },
+      (tg) => setRoomFloor(tg, finishId || undefined),
+      randomIds,
+    ),
+  );
+}
 function nameRoom(key: string, name: string) {
   run(nameRoomCommand(history.current, levelId, key, name, randomIds));
 }
@@ -220,6 +296,7 @@ function mirrorSelection(axis: MirrorAxis) {
   const r = mirrorCommand(history.current, ids, axis, through, {
     copy: keepOriginal.value,
     newId: randomIds,
+    mirrorComponent: modules.mirrorComponent,
   });
   run(r.command);
   if (r.newIds.length) selectTool.selection = r.newIds;
@@ -386,7 +463,7 @@ onMounted(() => window.addEventListener("keydown", onKey));
 
 // Dev-only smoke path (?demo=room): draws an L-shaped room through the real wall tool, for screenshots.
 const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
-if (demo === "rooms" || demo === "names") {
+if (demo === "rooms" || demo === "names" || demo === "paint") {
   const c = (x: number, y: number) => roomTool.click({ at: { x, y }, scale: 0.1, free: false });
   c(0, 0);
   c(4000, 3000);
@@ -399,7 +476,7 @@ if (demo === "rooms" || demo === "names") {
   setTool("room");
   roomTool.click({ at: { x: 5000, y: 3000 }, scale: 0.1, free: false });
   roomTool.move({ at: { x: 7000, y: 5200 }, scale: 0.1, free: false });
-  if (demo === "names") {
+  if (demo === "names" || demo === "paint") {
     roomTool.finish();
     const key = (x: number, y: number) =>
       detectRooms(history.current, levelId).find(
@@ -409,10 +486,23 @@ if (demo === "rooms" || demo === "names") {
     nameRoom(key(2500, 4500), "Cozinha");
     setTool("select");
     const P = (x: number, y: number, additive = false) => ({ at: { x, y }, scale: 0.1, free: false, additive });
-    selectTool.down(P(2000, 4500));
-    selectTool.up(P(2000, 4500));
-    selectTool.down(P(5500, 0, true));
-    selectTool.up(P(5500, 0, true));
+    if (demo === "paint") {
+      paintFloor(key(2000, 1500), "floor-wood");
+      paintFloor(key(2500, 4500), "floor-ceramic");
+      const shared = Object.values(history.current.elements).find(
+        (e) => e.type === "wall" && e.start.x === 4000 && e.end.x === 4000,
+      );
+      if (shared) {
+        paintSide(shared.id, "left", "paint-blue");
+        paintSide(shared.id, "right", "paint-terracotta");
+        selectTool.selection = [shared.id];
+      }
+    } else {
+      selectTool.down(P(2000, 4500));
+      selectTool.up(P(2000, 4500));
+      selectTool.down(P(5500, 0, true));
+      selectTool.up(P(5500, 0, true));
+    }
   }
   sync();
 }
@@ -498,6 +588,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :walls="walls"
         :hover="tool === 'wall' || tool === 'room' ? hover : null"
         :rooms="rooms"
+        :faces="faces"
         :selected-ids="selection"
         :box="box"
         :labels="labels"
@@ -513,8 +604,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :selection="selection"
         :locale="locale"
         :rooms="panelRooms"
+        :wall-sides="wallSideLabels"
         @apply="run"
         @name="nameRoom"
+        @paint-side="paintSide"
+        @paint-floor="paintFloor"
         @delete="deleteSelection"
         @duplicate="duplicateSelection"
         @rotate="rotateSelection"
