@@ -14,7 +14,15 @@ import { computed, ref } from "vue";
 import { formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 
 const props = defineProps<{ project: Project; selection: readonly string[]; locale: Locale }>();
-const emit = defineEmits<{ apply: [cmd: Command]; delete: []; duplicate: [] }>();
+const emit = defineEmits<{
+  apply: [cmd: Command];
+  delete: [];
+  duplicate: [];
+  rotate: [deg: number];
+  mirror: [axis: "vertical" | "horizontal"];
+}>();
+const keepOriginal = defineModel<boolean>("keepOriginal", { default: true });
+const hasWalls = computed(() => props.selection.some((id) => props.project.elements[id]?.type === "wall"));
 const t = (k: string, p?: Params) => translate(props.locale, k, p);
 
 const one = computed<Element | null>(() =>
@@ -140,6 +148,13 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
       <h3>{{ t("props.selected", { count: selection.length }) }}</h3>
     </template>
 
+    <div v-if="hasWalls" class="row">
+      <button :title="t('action.rotateLeft.tip')" @click="emit('rotate', 90)">↺ 90°</button>
+      <button :title="t('action.rotateRight.tip')" @click="emit('rotate', -90)">↻ 90°</button>
+      <button :title="t('action.mirrorX.tip')" @click="emit('mirror', 'vertical')">⇆ {{ t("action.mirror") }}</button>
+      <button :title="t('action.mirrorY.tip')" @click="emit('mirror', 'horizontal')">⇅ {{ t("action.mirror") }}</button>
+      <label class="check"><input v-model="keepOriginal" type="checkbox" /> {{ t("props.keepOriginal") }}</label>
+    </div>
     <p v-if="bad" class="warn">{{ t("props.badNumber", { example: formatCm(145, locale) }) }}</p>
     <div class="row">
       <button @click="emit('duplicate')">{{ t("action.duplicate") }}</button>
@@ -210,6 +225,14 @@ button {
   border-radius: 6px;
   background: var(--panel);
   cursor: pointer;
+}
+.check {
+  justify-content: flex-start;
+  margin: 0;
+  font-size: 12px;
+}
+.check input {
+  width: auto;
 }
 .danger {
   color: var(--warn);

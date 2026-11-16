@@ -384,3 +384,17 @@ Owner: "continue" (PR #6 already merged). Branch `phase1/edit` from `main`.
 **Not done**: mirror, rotate (slice 5b), copy/paste with cursor, re-hosting an opening onto another wall, multi-select property edits.
 
 **Next**: slice 5b — mirror + rotate.
+
+### Session #11, part 11 — Phase 1 slice 5b (rotate, mirror), 2026-11-16
+
+Owner: "continue" (PR #7 already merged). Branch `phase1/transform` from `main`.
+
+**Done**: `operations.ts` refactor — `stretchNeighbours(…, f)` shared by move/rotate/mirror (joined ends land exactly on the transformed end; T stems re-meet). `rotator` (exact at multiples of 90°, otherwise 1 nm quantized), `reflector`, `selectionBounds`, `selectionCentre` (grid-rounded), `rotateCommand`, `mirrorCommand` (copy or in place; alignment left ↔ right; door `swing` flips; walls on the axis skipped in a copy). App: panel buttons ↺/↻ 90°, mirror ⇆/⇅, "Keep the original" (default on), R / Shift+R; notice when walls on the axis were shared.
+
+**Tests**: 178. Hand: (0,0)→(4000,0) by 90° about (2000,0) → (2000,−2000)→(2000,2000); −30° about (4000,0): end (5500, 2598.076211); 4 × 90° = original exactly; left-aligned wall mirrored → right-aligned with faces (0, −140); door property test for all handing × swing combos, mutation-checked (flipping handing instead of swing fails 2 tests).
+
+**Decision logged (inference, reversible)**: mirror *copy* uses the selection's right edge (⇆) / top edge (⇅) as the axis so the copy lands beside the original (edge walls shared — e.g. semi-detached twin); mirror *in place* uses the centre. A user-picked axis (2 clicks, EDITING_OPERATIONS) is a later gesture. The spec's "handing flips, swing stays" is real-world wording; in our encoding (handing relative to wall start) it is `swing` that flips — documented in EDITING_OPERATIONS.
+
+**Bug caught**: ⟲/⟳ glyphs missing in the system font → ↺/↻.
+
+**Next**: slice 6 — rooms.

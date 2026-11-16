@@ -11,6 +11,11 @@ import {
   wallsOnLevel,
   deleteCommand,
   duplicateCommand,
+  mirrorCommand,
+  rotateCommand,
+  selectionBounds,
+  selectionCentre,
+  type MirrorAxis,
   type Command,
   type Label,
   type Project,
@@ -130,6 +135,7 @@ function endTools() {
 /** Run a command from the panel/keyboard; show why if the core refuses it (Q-072: blocked). */
 function run(cmd: Command) {
   endTools();
+  notice.value = "";
   const r = history.execute(cmd);
   blocked.value = r.ok ? [] : [...new Set(r.problems.map((p) => p.code))];
   selectTool.prune();
@@ -138,6 +144,29 @@ function run(cmd: Command) {
 function deleteSelection() {
   if (!selectTool.selection.length) return;
   run(deleteCommand(history.current, selectTool.selection));
+}
+function rotateSelection(deg: number) {
+  const pivot = selectionCentre(history.current, selectTool.selection, DEFAULT_SNAP.grid);
+  if (pivot) run(rotateCommand(selectTool.selection, pivot, deg));
+}
+const keepOriginal = ref(true); // EDITING_OPERATIONS default: mirror copy
+const notice = ref("");
+function mirrorSelection(axis: MirrorAxis) {
+  const b = selectionBounds(history.current, selectTool.selection);
+  if (!b) return;
+  // Copy: mirror about the selection's right/top edge so the copy sits beside it (edge walls shared).
+  // In place: about the centre.
+  const through = keepOriginal.value
+    ? { x: b.maxX, y: b.maxY }
+    : (selectionCentre(history.current, selectTool.selection, DEFAULT_SNAP.grid) ?? { x: 0, y: 0 });
+  const r = mirrorCommand(history.current, selectTool.selection, axis, through, {
+    copy: keepOriginal.value,
+    newId: randomIds,
+  });
+  run(r.command);
+  if (r.newIds.length) selectTool.selection = r.newIds;
+  notice.value = r.skipped.length ? t("mirror.skipped", { count: r.skipped.length }) : "";
+  sync();
 }
 function duplicateSelection() {
   if (!selectTool.selection.length) return;
@@ -238,6 +267,8 @@ function onKey(e: KeyboardEvent) {
     setTool("select");
     selectTool.selectAll();
     sync();
+  } else if (!mod && e.key.toLowerCase() === "r" && tool.value === "select") {
+    rotateSelection(e.shiftKey ? -90 : 90);
   } else if ((e.key === "Delete" || e.key === "Backspace") && tool.value === "select") {
     e.preventDefault();
     deleteSelection();
@@ -259,7 +290,7 @@ onMounted(() => window.addEventListener("keydown", onKey));
 
 // Dev-only smoke path (?demo=room): draws an L-shaped room through the real wall tool, for screenshots.
 const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
-if (demo === "room" || demo === "select") {
+if (demo === "room" || demo === "select" || demo === "mirror") {
   const pts = [
     [0, 0],
     [6000, 0],
@@ -285,6 +316,11 @@ if (demo === "room" || demo === "select") {
   }
   setTool("window");
   openingTool.move({ at: { x: 0, y: 2500 }, scale: 0.1, free: false });
+  if (demo === "mirror") {
+    setTool("select");
+    selectTool.selectAll();
+    mirrorSelection("vertical");
+  }
   if (demo === "select") {
     setTool("select");
     const p = { at: { x: 3000, y: 1500 }, scale: 0.1, free: false, additive: false };
@@ -342,13 +378,17 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       />
       <PropertiesPanel
         v-if="tool === 'select'"
+        v-model:keep-original="keepOriginal"
         :project="project"
         :selection="selection"
         :locale="locale"
         @apply="run"
         @delete="deleteSelection"
         @duplicate="duplicateSelection"
+        @rotate="rotateSelection"
+        @mirror="mirrorSelection"
       />
+      <p v-if="notice" class="blocked">{{ notice }}</p>
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
     </main>
 
