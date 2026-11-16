@@ -149,7 +149,7 @@ Open sub-question: can a "generic opening" (the owner said doors don't need to b
 ---
 
 ## ADR-008 — Project file format
-Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). Proposed (Q-110): the format id inside the file, not the extension, identifies it, so a future rename keeps opening `.prumo` files.
+Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). **Q-110 (owner): keep `.prumo` permanently**, even if the product is renamed. The format id inside the file is still recommended for robustness.
 Original status: **OPEN**
 Lean: **JSON**, with `schemaVersion` at the root, stable UUIDs for every element, and a migration function for every version bump. Possibly IFC export later, but **not** as the native format (IFC is huge and complex). Confidence: high.
 
@@ -266,6 +266,7 @@ Why: designing a plugin API before you have plugins is the classic way to get it
 Confidence: high. Owner: accept?
 
 ## ADR-021 — Internationalization
+**Owner principle (session #7, Q-116/117):** *every locale-dependent default follows the UI language and stays customizable*: number format for display **and** input (no mixed parsing), floor names (Térreo / Ground floor), room-type names, etc.
 Status: **PROPOSED**: i18n from day 1 (no hard-coded UI strings), shipping **pt-BR + en**. Every module ships its own strings. Rule/finding messages are i18n keys with parameters, never concatenated sentences.
 Why now: "for everyone" + Brazil + EU, and retrofitting i18n is painful.
 

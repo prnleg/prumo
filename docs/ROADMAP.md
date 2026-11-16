@@ -47,6 +47,7 @@ Scope:
 - **Finishes ("paint")** on wall sides and room floors (Q-090), no structural materials in this Vision.
 - **Snapping defaults** per Q-087; any angle allowed.
 - **Crash log + "Report on GitHub" button** (ADR-028).
+- ❌ No image/PDF export in Phase 1. Export belongs to a future **rendering/export module** (Q-118). Until then users can take screenshots.
 - **Beginner onboarding:** a starter template + a skippable guided tour (Q-080).
 - **Feedback timing plumbing (ADR-025):** commit/settle events exist even before rules do.
 - Selection: click, box-select, multi-select.
@@ -135,6 +136,10 @@ What could go wrong: boolean cuts for openings (CSG) are fiddly; performance wit
 What could go wrong: data model rework if ADR-015 chose "single storey only" in a way that hard-codes it. → keep `levelId` in the model from Phase 1 even if there's only one level.
 
 ---
+
+## Phase 5c — Rendering/export module (candidate)
+
+- PNG/PDF export of plans (with the disclaimer line), maybe printable sheets later. Needs its own ADR and scoping (Q-118).
 
 ## Phase 5b — Third Vision (probably Electrical) → validate the module API
 

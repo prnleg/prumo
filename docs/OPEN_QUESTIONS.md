@@ -10,13 +10,7 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 
 ## Round 6 — raised in session #6
 
-### Clarification needed
-
-**Q-108 🟡 (your answer was cut off: "I guess it should…")** Where do snapping/grid settings live: per user, per project, or both (user default + project override)? Default: both.
-
 ### Files & saving
-
-**Q-110 🟠 File extension vs product name.** You liked `.prumo` but the name may change (Q-109). Proposal: the file stores a **format id** inside (`"format": "prumo-project"`, plus `schemaVersion`), independent of the extension. Use `.prumo` for now; if the name changes, the new app keeps opening `.prumo` forever (registered as a legacy extension). Default: yes.
 
 **Q-111 🟠 Autosave + crash recovery?** Beginners lose work. Proposal: autosave to a recovery file every ~30 s and on Vision switch; offer "Recover unsaved work?" after a crash. Not the same as the named snapshots (Q-104). Default: yes, Phase 1.
 
@@ -24,19 +18,7 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 
 **Q-113 🟡 Opening a file from a newer app version, or one that uses modules you don't have:** open read-only with a banner (default), open and risk it, or refuse?
 
-### Rooms (Q-107 ✅)
-
-**Q-114 🟠 Who owns the room-type list?** The core (a fixed list), the Architect module (a default list), or packs (extendable: e.g. *"área de serviço"*, *"edícula"* are very Brazilian)? Default: the Architect module ships a default list; data packs can add types; users can add a custom type with a free name.
-
-**Q-115 🟡 Default room types:** bedroom, suite, bathroom, toilet (*lavabo*), kitchen, living room, dining room, laundry/service area, garage, office, hallway/circulation, balcony, storage, other. Missing anything?
-
-### Beginner details (Brazil + i18n)
-
-**Q-116 🟠 Number format:** pt-BR writes `3,50 m` (comma decimal), English `3.50 m`. Input should accept **both** `3,5` and `3.5` regardless of locale? Default: yes, accept both; display in the UI language's format.
-
-**Q-117 🟡 Floor naming:** Brazil says *térreo, 1º andar*; the US says *first floor* for the ground floor; the UK says *ground floor*. Default: levels are named per UI locale (Térreo / Ground floor) and the user can rename them.
-
-**Q-118 🟠 Export an image/PDF of the plan in Phase 1?** Beginners will want to share ("look at my house"). Default: PNG + PDF export of the 2D plan in Phase 1, with the disclaimer line (SAFETY doc).
+### Beginner details
 
 **Q-119 🟡 Starter template content:** an empty lot, a small 2-bedroom house, or an apartment? Default: one small 2-bedroom house + empty.
 
@@ -138,4 +120,10 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 - **Q-105** — Single zip-container file, `.prumo` for now; the extension may change with the name. — 2026-11-15 — ADR-008, Q-110
 - **Q-107** — Room types: yes. — 2026-11-15 — DATA_MODEL, Q-114/115
 - **Q-106** — Fences/railings do **not** close rooms. — 2026-11-15 — UX_PRINCIPLES
+- **Q-108** — Both: a user default + a per-project override. — 2026-11-15 — UX_PRINCIPLES §3b
+- **Q-110** — Keep `.prumo` even if the name changes. — 2026-11-15 — ADR-008
+- **Q-114/115** — The default room-type list is OK; add more gradually (packs/users can extend). — 2026-11-15 — DATA_MODEL
+- **Q-116** — Numbers follow the **UI language's format**, for display *and* input (pt-BR: `3,50`; en: `3.50`). Side benefit: no ambiguity for `1.000` (one thousand in pt-BR, one in en). — 2026-11-15 — ADR-021
+- **Q-117** — Floor names follow the UI language by default and are customizable. Same principle for every locale-dependent default (room-type names, units display). — 2026-11-15 — ADR-021
+- **Q-118** — Image/PDF export only through a dedicated **rendering/export module**, not in the core. To refine later. Not in Phase 1. — 2026-11-15 — ADR-019, ROADMAP
 

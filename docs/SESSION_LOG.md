@@ -159,3 +159,11 @@ Done: ADR-008 accepted in principle (zip container, format id inside); ADR-029 h
 Doubts: Brazilian conventions (comma decimals, *térreo*, *área de serviço*) are easy to get wrong if defaults are US-centric. Treat pt-BR as a first-class locale, not a translation.
 
 Next step: owner answers round 6; Spikes D + E can start in parallel (nothing 🔴 pending).
+
+---
+
+## Session #7 — 2026-11-15 — Round 6 answers (Claude, chat)
+
+Owner answers: Q-108 both; Q-110 keep `.prumo`; Q-114/115 room-type list OK, grow gradually; Q-116/117 follow the UI language + customizable; Q-118 export only via a future rendering/export module. The owner didn't understand Q-111/112/113/119/120 → re-explained in plain terms in chat; still open.
+
+Lesson for future sessions: **phrase questions in plain product terms, with a concrete example**, not internal jargon ("snapshot deltas", "newer-version files").

@@ -44,7 +44,7 @@
 Snapping defaults (10 cm grid, 15° steps, Alt = free) are fine, but **users must be told how to change them**:
 - the status bar always shows `Grid 10 cm · Angle 15° · Alt = free`, and clicking it opens the setting;
 - the guided tour mentions it once;
-- the setting lives under Settings → Drawing (user default) and Project → Drawing (override, Q-108).
+- the setting lives under Settings → Drawing (user default) **and** Project → Drawing (override) — **Q-108 ✅ both**.
 
 ## 4. General principles
 
