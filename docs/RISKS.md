@@ -80,6 +80,19 @@ Likelihood (L) and Impact (I): 1 (low) – 5 (high). Score = L × I. Review at t
 | R-50 | **Skeleton vs Architect split wrong**: if core vs Architect is drawn wrong, other modules depend on Architect anyway. | 3 | 4 | 12 | Q-128; test "Electrical-only install" as a scenario in Spike E. | Open |
 | R-51 | **Recovery copies pile up forever** (never deleted by time). | 2 | 2 | 4 | Show them on the start screen with a discard button. | Open |
 
+### Added in session #11 (spikes)
+
+| ID | Risk / flaw | L | I | Score | Mitigation | Status |
+|---|---|---|---|---|---|---|
+| R-52 | **Windows performance unknown.** All Spike D numbers come from a fast Apple Silicon Mac; WebView2 on a low-end Windows laptop could be much slower. | 3 | 4 | 12 | Run the CI-built installer + bench on a real (ideally modest) Windows PC before Phase 1. | Open |
+| R-53 | **Module write isolation is convention only.** A first-party module can mutate another module's namespace by hand; TS can't stop it in-process. | 3 | 3 | 9 | Module context API + lint/boundary checks + review; real isolation only with ADR-023 sandboxing. | Open |
+| R-54 | **Snapshots hold data from removed/uninstalled modules.** The missing-module dialog counts only the live model, so old snapshots silently carry (and on export, could leak) another module's data. Snapshots are also not migrated on open. | 3 | 3 | 9 | Export strips excluded modules from snapshots too (done in spike); compare view migrates snapshot data lazily; Q-131. | Open |
+| R-55 | **Local toolchain drift**: Node 20.11 here caps Vite at 6.x (Vite 7+ needs ≥ 20.19). | 3 | 2 | 6 | Pin Node in `.nvmrc`/CI when the real monorepo starts. | Open |
+
+R-07 (geometry eats the schedule) → **reduced by Spike A**: L/T/X/Y joins at any angle work in ~250 lines; L 5 → 4 (score 12). The remaining traps are listed in CURRENT_STATE (unequal thickness near-straight, short walls, X overlap).
+
+R-50 (skeleton vs Architect split) → **reduced**: Spike E's Electrical-only scenario works with no Architect module (L 3 → 2).
+
 R-46 (file growth) → owner confirmed the concern; mitigation in Q-124 (accepted).
 R-37 (handoff divergence) → reduced by the owner's no-parallel-edits decision: L 4 → 3.
 

@@ -113,7 +113,7 @@ Doubts:
 ## Doubts
 
 1. **Thickness vs layers:** if a wall has layers, is `thickness` derived (sum of layers) or independent? Lean: derived when layers exist, so there's one source of truth.
-2. **Wall joins:** stored (explicit `joins: [{wallId, end}]`) or computed from geometry each time? Computed is simpler and can't go stale, but needs robust tolerance logic; stored is faster and preserves user intent. Lean: **computed**, revisit after Spike A.
+2. **Wall joins:** stored (explicit `joins: [{wallId, end}]`) or computed from geometry each time? Computed is simpler and can't go stale, but needs robust tolerance logic; stored is faster and preserves user intent. Lean: **computed**, revisit after Spike A. **Spike A (session #11): computed works**, deterministic regardless of input order, ~52 ms for 480 walls without any spatial index. Keep computed.
 3. **Curved walls:** out of v1. The data model uses `start/end`, so curves would need a new shape type later.
 4. **Rooms/spaces:** not modelled in v1. ❓ Are they needed for slab auto-generation or area-based loads? Probably later.
 5. **Lintel as part of Opening vs a separate element:** lean: part of Opening (simpler); becomes separate only if users need to edit it independently.

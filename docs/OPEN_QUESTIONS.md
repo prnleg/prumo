@@ -12,6 +12,15 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 
 The owner asked when building can start. Answer: **now.** Every remaining question below has a default, and **the default is applied** unless the owner objects. They're no longer "asked"; they're **defaults on record**. Future sessions: follow the questioning rule in CLAUDE.md §1, and only add a question here if it's new, consequential, and genuinely ambiguous.
 
+### New in session #11 (from the spikes)
+
+- **Q-130 🟠** Who can run the Windows build on a real Windows PC to measure startup + smoothness? (Blocks closing Spike D for Windows.) Default: the owner, on any Windows machine they can borrow.
+- **Q-131 🟡** Snapshots containing a removed/uninstalled module's data: default = keep them untouched (they're the recovery path) and don't count them in the missing-module dialog; export strips them per module selection. Reversible.
+- **Q-132 🟡** Missing-module dialog wording when a module only *adds data* to walls (Architect finishes): "Remove 42 items" sounds like walls get deleted. Default: "Remove Architect data from 42 items (the walls stay)". Reversible.
+
+- **Q-133 🟡** When a half wall (or fence) touches a full wall, should the plan draw them as **one merged shape** (no line between them) or keep a line to show they're different? Default (Spike A): merged outline, different fill colour per kind. Reversible.
+- **Q-134 🟡** Two walls of **different thickness** meeting almost in a straight line: today the corner cuts a small wedge off the thicker wall. Default for Phase 1: show a simple step (thick wall ends square, thin wall continues), implemented when the real editor is built. Reversible.
+
 ### Defaults on record (from earlier rounds)
 
 - **Q-089 🟡** 3D walls up/cutaway/down toggle? Default: yes, Phase 4.

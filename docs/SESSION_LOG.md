@@ -197,3 +197,59 @@ Owner answers: stages 1+2 OK; the core = the basic building (no colour/furniture
 **Owner feedback:** questions had started re-asking things that were inferable from context ("triple checks"). Action: a new questioning rule in CLAUDE.md §1 (infer → log; cheap to reverse → default; ask only new + consequential + ambiguous). Open questions converted to "defaults on record".
 
 **Planning phase closed. Next: Spikes D and E in Claude Code.**
+
+---
+
+## Session #11 — 2026-11-15/16 — Spikes D and E (Claude Code, local)
+
+**Done**
+- **Spike D** (`spikes/stack`): Tauri 2.12 (wry 0.57) + Vue 3.5 + Vite 6.4 + Three.js 0.170. SVG plan with 500 walls (15×15 grid of 4 m rooms + 20 angled walls; pan, wheel zoom, drag a wall) + a Three.js scene extruding the same walls (one mesh per wall, OrbitControls). Built a release `.app` for macOS arm64. Built-in benchmark (`PRUMO_SPIKE_BENCH=<n>`): auto-pans/zooms, drags a wall, orbits 3D for 3 s each, prints frame stats and exits. Tauri imports live only in `src/platform.ts` (rule 16).
+- **CI**: `.github/workflows/spike-stack.yml` builds Windows (NSIS + MSI) and macOS (universal app + DMG), writes installer sizes to the job summary, uploads artifacts. **Not run yet**: nothing committed/pushed this session.
+- **Spike E** (`spikes/modules`): plain TS + Vitest, 28 tests, `tsc --strict` clean. Core = skeleton (levels, walls, openings, opaque module-owned elements); `ModuleHost` (registration, dependency + API-version checks, namespaced `ModuleContext`, rule engine with declared `reads`); persistence (canonical JSON, open → ok / missing-modules / read-only, per-module migrations, explicit removal with snapshot, export with module selection).
+
+**Results (Spike D, macOS 27, Apple Silicon)**: `.app` 3.1 MiB, DMG 1.7 MiB; startup process→first frame cold 1.56 s, warm 0.52–0.61 s; 60 fps (vsync cap) with p95 ≤ 18 ms in all three scenarios at 500 walls, and still 60 fps at 4,920 walls. Naive Vue `v-for` re-render while dragging is fine at this scale. Details in CURRENT_STATE.
+
+**Lessons (Spike E)**
+1. MODULES rules 1–7 and ADR-032 are implementable as written. The skeleton/Architect split (Q-128) holds: an Electrical-only install builds walls and outlets, and removing Architect data leaves walls intact.
+2. `save()` refuses data from an uninstalled module, so the ADR-032 dialog can't be bypassed by code paths, not only by UI.
+3. "Installed but disabled" (rule 7: no dialog, data kept, no findings) and "not installed" (ADR-032 dialog) are two different states; the real app needs both.
+4. **Snapshots** carry module data too: export must strip excluded modules from snapshots (done) or the copy leaks; the missing-module dialog only counts the live model; snapshot data isn't migrated on open → R-54, Q-131.
+5. Module-owned hosted elements (outlet on a wall) push the generic `host` field into the core (supports ADR-024). Delete cascade not tested.
+6. Write isolation between modules is convention-only in-process → R-53.
+7. Dialog wording for "component-only" modules is misleading ("remove 1 item" when only finishes go) → Q-132.
+
+**Decisions / inferences logged (no question needed)**
+- Spike deps (Vue, Vite, Vitest, TypeScript, Tauri CLI/API, Three.js, @types/*) are covered by ADR-001/002 and the Spike D definition; spikes are throwaway, so no new ADR. Production deps still need ADRs.
+- Vite 6 (not 7+) because local Node is 20.11 (R-55). pnpm 9.15.9 via corepack (the latest pnpm needs a newer Node).
+- Placeholder app icon generated (solid colour); mobile icons deleted.
+- `FAKE-STRUCT-001` is a topological fake for the module test, `severity: info`, `UNSOURCED – placeholder`, never to be promoted; not added to STRUCTURAL_ANALYSIS on purpose.
+- ADR-022/024 stay PROPOSED; spike evidence noted under each.
+
+**Not done / broken**
+- Windows: no build, no measurements (Q-130, R-52).
+- macOS DMG via `tauri build` failed locally (Finder AppleScript timeout, automation permission); measured with a plain `hdiutil` DMG instead. CI should build it normally.
+- Measurements are rAF-based (main thread only) on a 60 Hz display: they show "no dropped frames", not headroom.
+- Linux CI build (Q-075 default) not added; the user asked for Windows + macOS.
+
+**Next step**: push → CI Windows build → measure on a real Windows PC; then Spikes A and B.
+
+### Session #11, part 2 — Spike A (wall joins), 2026-11-16
+
+Owner: "start spike A"; then "code through the night, stop at a milestone". Milestone chosen = Spike A done + docs + local commit.
+
+**Done**: `spikes/joins` (Vue 3 + Vite viewer, Vitest). Own 2D math (`geom.ts`), computed joins (`joins.ts`), clean outline (`outline.ts`), 18 presets, browser viewer (drag wall ends, 10 cm snap + Alt = free, edit thickness/alignment/kind, tweak tolerances, issues list), opt-in PNG render for visual review.
+
+**Algorithm**: endpoints within `joinTol` (5 mm) cluster into a node (gap healing). At a node, arms are sorted by angle; each arm's left face line meets the next arm's right face line → shared corner (miter). 3+ arms route caps through the node so they tile. A lone end on another wall's body = T, cut at the host's facing side. Miter limit (4 × thickness) trims only the outer spike, replacing it with a straight bevel through the midpoint of the two square ends. The clean outline splits each polygon edge where it crosses other walls and hides pieces whose outside lies inside another wall (seams, T, X), so **no polygon boolean library** is needed for drawing.
+
+**Bugs found and fixed during the spike** (useful for Phase 1):
+1. The reflex (outside) side of an L must still be mitered: an early "gap ≥ 180° → square" rule removed every outer corner.
+2. Face lines must come from each wall's **own** drawn line, not from the healed node; otherwise healing a 3 mm gap shifts the faces 1.5 mm.
+3. The miter limit must not trim the **inner** corner of a sharp angle (that's where the bodies really overlap); trimming it caused overlaps.
+
+**Tests**: 56 passing. Hand-calculated: L, T, X, +, straight continuation, room, left-aligned room, 3×3 grid (area + outline length), thick/thin T and L corners, 30° miter length = 100 / sin 15°. Properties: 30 random equal-thickness junctions → no overlap and no gaps (sampling); rotation by 37° preserves area and outline length; shuffled input → byte-identical output.
+
+**Findings / evidence**: ADR-012 → own math is enough for joins + drawing; boolean library only when areas, quantities, or opening cuts need it. DATA_MODEL doubt 2 → computed joins are fine. Known limits in CURRENT_STATE. Perf: 480 walls ≈ 52 ms per full recompute (O(n²) pairs, no spatial index) — OK for a house, would need incremental/indexed recompute for drag at 60 fps on large plans.
+
+**Inferences/defaults logged**: `joinTol` 5 mm and `miterLimit` 4 are UNSOURCED spike values (geometry, not structural) → real values go with ADR-006/012. All wall kinds join the same way (Q-133). Viewer is browser-only (`pnpm dev`): joins are pure TS, Tauri adds nothing to this question.
+
+**Next**: Spike B, then decide ADR-012/006.
