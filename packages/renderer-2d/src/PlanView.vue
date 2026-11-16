@@ -274,7 +274,11 @@ function wheel(e: WheelEvent) {
   font:
     12px system-ui,
     sans-serif;
-  fill: var(--muted);
+  fill: var(--ink);
+  /* halo: readable on any floor colour */
+  paint-order: stroke;
+  stroke: var(--plan-bg);
+  stroke-width: 3px;
   text-anchor: middle;
   dominant-baseline: middle;
   pointer-events: none;

@@ -50,7 +50,7 @@ Every value used by a rule shows **which pack (and version) it came from**.
 3. **Unknown data is never dropped silently.** ~~Keep it untouched and show a banner~~ → **Updated session #8 (owner, Q-113):** opening a project that uses a module you don't have **stops first** and asks you to choose (see §6). Data is only removed when the user explicitly picks "remove".
 4. **Module data is namespaced** by module id inside each element: `element.components["org.project.structural"]`.
 5. **Rules declare their inputs** (which components they read), so the engine knows what to re-run and cross-module rules are explicit.
-6. **Each module owns its migrations.**
+6. **Each module owns its migrations.** *(Implemented: `ComponentDecl.migrations`; also `ComponentDecl.mirror` — how a module's data changes when its element is mirrored, e.g. Architect swaps a wall's painted sides; core calls it without knowing the data, s#11.)*
 7. **Disabling a module hides its UI and findings but keeps its data.**
 
 ## 4. Open problems (critic's list)
