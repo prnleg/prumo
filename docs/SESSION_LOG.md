@@ -416,3 +416,15 @@ Owner: "continue". Branch `phase1/rooms` on top of `phase1/transform` (not merge
 Owner: "Is there a real necessity to run all those CIs every time I open a PR? It takes too long … might even overload my free tier."
 Facts: public repo → GitHub-hosted Actions minutes are free and unlimited, so no quota risk; the cost was waiting time and duplicate runs (every branch push AND its PR ran `ci`, plus a ~10 min installer build).
 **Changed** (reversible): `ci` runs on PRs (Linux only, ~1 min) and on pushes to `main` (Linux + Windows + macOS, keeps the cross-OS golden save hash); `concurrency` cancels superseded runs; docs/spikes/markdown-only changes skip CI. `desktop` installers: manual (Actions → Run workflow) or `v*` tags. `spike-stack`: manual only.
+
+### Session #11, part 14 — Phase 1 slice 7 (room names, dimensions), 2026-11-16
+
+Owner: "I merged, it will finish soon, so you can continue" (PRs #8, #9). Branch `phase1/details` from `main` (first commit = CI trim).
+
+**Done**: core `RoomTag` element (`type: "room"`, seed + name; validated on open), `roomTags`, `matchRoomTags`, `nameRoomCommand` (create / rename / empty = remove; seed = room label point), seeds travel with move/rotate/mirror-in-place when all the room's walls are selected. SelectTool: clicking a room's floor selects `room:<key>`; `elementIds()` expands rooms to their walls (drag/rotate/mirror/duplicate), `realIds()` for delete (deleting a room's walls would also cut its neighbours). Panel: room name field + floor area. Plan: "Name · area" labels, selected room highlighted, length labels on selected walls and width labels on selected doors/windows.
+
+**Tests**: 197. Name/rename/clear; merge by deleting the shared wall keeps both tags and shows the lower id, undo splits them again; move/rotate/mirror carry the name (mirror case first written so it was vacuous — symmetric room, seed unchanged — fixed with a non-symmetric axis and mutation-checked); save/open round trip; a broken room tag is refused on open.
+
+**Inferences/defaults logged**: on a split, the part containing the seed keeps the name (DATA_MODEL leaned "larger part"; seed rule is simpler and predictable — reversible). Delete ignores selected rooms (only real elements). Copies (duplicate, mirror copy) don't copy names. Room types (Q-107/114) not yet.
+
+**Next**: 7b finishes; 8 save/open (+ dependency ADR for Tauri plugins), start screen, settings.

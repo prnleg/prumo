@@ -51,6 +51,11 @@ export const en = {
   "mirror.skipped":
     "{count, plural, one {# wall on the mirror line was shared, not copied.} other {# walls on the mirror line were shared, not copied.}}",
   "action.duplicate": "Duplicate",
+  "props.room": "Room",
+  "props.area": "Floor area",
+  "props.name": "Name",
+  "props.namePlaceholder": "e.g. Kitchen",
+  "cmd.nameRoom": "name room",
   "props.wall": "Wall",
   "props.length": "Length",
   "props.thickness": "Thickness",
@@ -151,6 +156,11 @@ export const ptBR: Record<MessageKey, string> = {
   "mirror.skipped":
     "{count, plural, one {# parede na linha do espelho foi compartilhada, não copiada.} other {# paredes na linha do espelho foram compartilhadas, não copiadas.}}",
   "action.duplicate": "Duplicar",
+  "props.room": "Cômodo",
+  "props.area": "Área do piso",
+  "props.name": "Nome",
+  "props.namePlaceholder": "ex.: Cozinha",
+  "cmd.nameRoom": "dar nome ao cômodo",
   "props.wall": "Parede",
   "props.length": "Comprimento",
   "props.thickness": "Espessura",

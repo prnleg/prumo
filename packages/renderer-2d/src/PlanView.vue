@@ -16,7 +16,7 @@ const props = defineProps<{
   /** Grid step, mm. */
   grid?: number;
   /** Detected rooms: floor polygon + a localized label (e.g. area). Drawn under the walls. */
-  rooms?: readonly { key: string; floor: readonly V[]; at: V; label: string }[];
+  rooms?: readonly { key: string; floor: readonly V[]; at: V; label: string; selected?: boolean }[];
   /** Rubber band (model coords); "touching" draws dashed (CAD convention). */
   box?: { minX: number; minY: number; maxX: number; maxY: number; mode: "inside" | "touching" } | null;
 }>();
@@ -160,7 +160,7 @@ function wheel(e: WheelEvent) {
       <line v-for="(l, k) in gridLines" :key="k" v-bind="l" :class="{ major: l.major }" />
     </g>
     <g class="rooms">
-      <polygon v-for="r in rooms ?? []" :key="r.key" :points="pts(r.floor)" />
+      <polygon v-for="r in rooms ?? []" :key="r.key" :points="pts(r.floor)" :class="{ selected: r.selected }" />
       <text v-for="r in rooms ?? []" :key="r.key + 't'" :x="S(r.at).x" :y="S(r.at).y">{{ r.label }}</text>
     </g>
     <g class="walls">
@@ -240,6 +240,10 @@ function wheel(e: WheelEvent) {
 }
 .rooms polygon {
   fill: var(--room);
+}
+.rooms polygon.selected {
+  fill: var(--accent-soft);
+  fill-opacity: 0.5;
 }
 .rooms text {
   font:

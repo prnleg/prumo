@@ -11,6 +11,10 @@ import {
   wallsOnLevel,
   deleteCommand,
   detectRooms,
+  matchRoomTags,
+  nameRoomCommand,
+  roomTags,
+  wallLength,
   duplicateCommand,
   mirrorCommand,
   rotateCommand,
@@ -24,6 +28,7 @@ import {
 import {
   DEFAULT_OPENING_SIZES,
   OpeningTool,
+  ROOM_PREFIX,
   RoomTool,
   SelectTool,
   WallTool,
@@ -110,14 +115,24 @@ const tooShort = ref(false);
 
 const geometry = computed(() => planGeometry(project.value, levelId));
 const walls = computed(() => wallsOnLevel(project.value, levelId));
+const detected = computed(() => {
+  const rs = detectRooms(project.value, levelId);
+  const tags = matchRoomTags(rs, roomTags(project.value, levelId));
+  return rs.map((r) => ({ ...r, name: tags.get(r.key)?.name ?? "" }));
+});
 const rooms = computed(() =>
-  detectRooms(project.value, levelId).map((r) => ({
+  detected.value.map((r) => ({
     key: r.key,
     floor: r.floor,
     at: r.labelAt,
-    label: formatArea(r.floorArea, locale.value),
+    label: r.name ? `${r.name} · ${formatArea(r.floorArea, locale.value)}` : formatArea(r.floorArea, locale.value),
+    selected: selection.value.includes(ROOM_PREFIX + r.key),
   })),
 );
+const panelRooms = computed(() => detected.value.map((r) => ({ key: r.key, name: r.name, area: r.floorArea })));
+function nameRoom(key: string, name: string) {
+  run(nameRoomCommand(history.current, levelId, key, name, randomIds));
+}
 const view = ref<ViewState>({ x: -2000, y: 6000, scale: 0.1 });
 let fitted = false;
 
@@ -183,24 +198,26 @@ function run(cmd: Command) {
   selection.value = [...selectTool.selection];
 }
 function deleteSelection() {
-  if (!selectTool.selection.length) return;
-  run(deleteCommand(history.current, selectTool.selection));
+  if (!selectTool.realIds().length) return;
+  run(deleteCommand(history.current, selectTool.realIds()));
 }
 function rotateSelection(deg: number) {
-  const pivot = selectionCentre(history.current, selectTool.selection, DEFAULT_SNAP.grid);
-  if (pivot) run(rotateCommand(selectTool.selection, pivot, deg));
+  const ids = selectTool.elementIds();
+  const pivot = selectionCentre(history.current, ids, DEFAULT_SNAP.grid);
+  if (pivot) run(rotateCommand(ids, pivot, deg));
 }
 const keepOriginal = ref(true); // EDITING_OPERATIONS default: mirror copy
 const notice = ref("");
 function mirrorSelection(axis: MirrorAxis) {
-  const b = selectionBounds(history.current, selectTool.selection);
+  const ids = selectTool.elementIds();
+  const b = selectionBounds(history.current, ids);
   if (!b) return;
   // Copy: mirror about the selection's right/top edge so the copy sits beside it (edge walls shared).
   // In place: about the centre.
   const through = keepOriginal.value
     ? { x: b.maxX, y: b.maxY }
-    : (selectionCentre(history.current, selectTool.selection, DEFAULT_SNAP.grid) ?? { x: 0, y: 0 });
-  const r = mirrorCommand(history.current, selectTool.selection, axis, through, {
+    : (selectionCentre(history.current, ids, DEFAULT_SNAP.grid) ?? { x: 0, y: 0 });
+  const r = mirrorCommand(history.current, ids, axis, through, {
     copy: keepOriginal.value,
     newId: randomIds,
   });
@@ -210,9 +227,10 @@ function mirrorSelection(axis: MirrorAxis) {
   sync();
 }
 function duplicateSelection() {
-  if (!selectTool.selection.length) return;
+  const ids = selectTool.elementIds();
+  if (!ids.length) return;
   const g = DEFAULT_SNAP.grid * 5; // 50 cm down-right (EDITING_OPERATIONS "fixed offset" default)
-  const d = duplicateCommand(history.current, selectTool.selection, { x: g, y: -g }, randomIds);
+  const d = duplicateCommand(history.current, ids, { x: g, y: -g }, randomIds);
   run(d.command);
   if (d.newIds.length) selectTool.selection = d.newIds;
   sync();
@@ -254,6 +272,23 @@ const labels = computed(() => {
   const a = wallTool.anchor;
   const h = hover.value;
   void project.value; // re-evaluate on model change
+  if (tool.value === "select") {
+    // Dimensions of what's selected (ROADMAP Phase 1 "Dimensions displayed").
+    const g = geometry.value;
+    return selection.value.flatMap((id) => {
+      const e = project.value.elements[id];
+      if (e?.type === "wall") {
+        const mid = { x: (e.start.x + e.end.x) / 2, y: (e.start.y + e.end.y) / 2 };
+        return [{ at: mid, text: formatLength(wallLength(e), locale.value) }];
+      }
+      const o = g.openings.find((x) => x.id === id);
+      if (e?.type === "opening" && o) {
+        const c = o.cover.reduce((s, q) => ({ x: s.x + q.x / 4, y: s.y + q.y / 4 }), { x: 0, y: 0 });
+        return [{ at: c, text: formatLength(e.width, locale.value) }];
+      }
+      return [];
+    });
+  }
   if (tool.value === "room") {
     const r = roomHover.value;
     if (!roomTool.size || !r) return [];
@@ -351,7 +386,7 @@ onMounted(() => window.addEventListener("keydown", onKey));
 
 // Dev-only smoke path (?demo=room): draws an L-shaped room through the real wall tool, for screenshots.
 const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
-if (demo === "rooms") {
+if (demo === "rooms" || demo === "names") {
   const c = (x: number, y: number) => roomTool.click({ at: { x, y }, scale: 0.1, free: false });
   c(0, 0);
   c(4000, 3000);
@@ -364,6 +399,21 @@ if (demo === "rooms") {
   setTool("room");
   roomTool.click({ at: { x: 5000, y: 3000 }, scale: 0.1, free: false });
   roomTool.move({ at: { x: 7000, y: 5200 }, scale: 0.1, free: false });
+  if (demo === "names") {
+    roomTool.finish();
+    const key = (x: number, y: number) =>
+      detectRooms(history.current, levelId).find(
+        (r) => r.floor.length && r.labelAt && Math.abs(r.labelAt.x - x) < 1500 && Math.abs(r.labelAt.y - y) < 1500,
+      )?.key ?? "";
+    nameRoom(key(2000, 1500), "Sala");
+    nameRoom(key(2500, 4500), "Cozinha");
+    setTool("select");
+    const P = (x: number, y: number, additive = false) => ({ at: { x, y }, scale: 0.1, free: false, additive });
+    selectTool.down(P(2000, 4500));
+    selectTool.up(P(2000, 4500));
+    selectTool.down(P(5500, 0, true));
+    selectTool.up(P(5500, 0, true));
+  }
   sync();
 }
 if (demo === "room" || demo === "select" || demo === "mirror") {
@@ -462,7 +512,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :project="project"
         :selection="selection"
         :locale="locale"
+        :rooms="panelRooms"
         @apply="run"
+        @name="nameRoom"
         @delete="deleteSelection"
         @duplicate="duplicateSelection"
         @rotate="rotateSelection"
