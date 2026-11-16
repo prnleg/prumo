@@ -76,7 +76,11 @@ Likelihood (L) and Impact (I): 1 (low) – 5 (high). Score = L × I. Review at t
 | R-47 | **Receiver deletes another person's module data** ("remove items" on a missing module) and sends the file back. | 3 | 4 | 12 | Second confirmation, item list, automatic snapshot, read-only option (Q-122). | Open |
 | R-48 | **Terminology drift**: module / plugin / data pack / Vision used inconsistently in UI, code, and docs. | 4 | 2 | 8 | GLOSSARY as the single source; resolve Q-121. | Open |
 
-R-46 (file growth) → owner confirmed the concern; mitigation in Q-124.
+| R-49 | **Optional downloadable modules = platform plumbing** (dynamic loading, integrity, version matching), the R-22 trap through another door. | 4 | 4 | 16 | Staged: Stage 1 = bundled but not loaded; Stage 2 only after a 3rd module (Q-127). | Open |
+| R-50 | **Skeleton vs Architect split wrong**: if core vs Architect is drawn wrong, other modules depend on Architect anyway. | 3 | 4 | 12 | Q-128; test "Electrical-only install" as a scenario in Spike E. | Open |
+| R-51 | **Recovery copies pile up forever** (never deleted by time). | 2 | 2 | 4 | Show them on the start screen with a discard button. | Open |
+
+R-46 (file growth) → owner confirmed the concern; mitigation in Q-124 (accepted).
 R-37 (handoff divergence) → reduced by the owner's no-parallel-edits decision: L 4 → 3.
 
 **Update to R-01** (2026-11-15, session #2): the engineer has unlimited availability, so review is mandatory for rules above "info". Likelihood 4 → 3. Score 15.

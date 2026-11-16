@@ -149,7 +149,7 @@ Open sub-question: can a "generic opening" (the owner said doors don't need to b
 ---
 
 ## ADR-008 — Project file format
-Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). **Snapshots (Q-112, owner): full copies (option A).** The owner notes files will keep growing → mitigation needed (Q-124).
+Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). **Snapshots (Q-112, owner): full copies (option A).** Growth mitigation **ACCEPTED (Q-124)**: a size warning + manual deletion of old snapshots, "Export a clean copy" (no history), and an optional "keep only the last N" setting.
 **Q-110 (owner): keep `.prumo` permanently**, even if the product is renamed. The format id inside the file is still recommended for robustness.
 Original status: **OPEN**
 Lean: **JSON**, with `schemaVersion` at the root, stable UUIDs for every element, and a migration function for every version bump. Possibly IFC export later, but **not** as the native format (IFC is huge and complex). Confidence: high.
@@ -257,7 +257,7 @@ Lean: **C + D.** Confidence: medium. Needs Q-010 and ADR-004 first.
 ---
 
 ## ADR-032 — Missing modules & export with module selection
-Status: **ACCEPTED (2026-11-15, owner, Q-113)**: opening a project with uninstalled modules **stops** and offers **install** or **remove the module's items**. Exporting/sending a copy shows the modules used and lets you **remove modules from the exported copy**. Details: MODULES.md §7–8. Proposed addition: a read-only option (Q-122).
+Status: **ACCEPTED (2026-11-15, owner, Q-113)**: opening a project with uninstalled modules **stops** and offers **install** or **remove the module's items**. Exporting/sending a copy shows the modules used and lets you **remove modules from the exported copy**. Details: MODULES.md §7–8. **No read-only option** (owner, Q-122): if you choose not to install the module, its work isn't viewable; you either install it or remove those items. Risk R-47 accepted, mitigated by the confirmation + automatic snapshot.
 Supersedes MODULES rule 3's "keep untouched silently" default and CLAUDE.md rule 13's wording (both updated).
 
 ## ADR-019 — Modular "Visions" architecture
@@ -269,6 +269,15 @@ Still OPEN: the user-facing name ("Vision", "Mode", "Module", "Add-on"?) → Q-0
 Status: **ACCEPTED (2026-11-15, owner liked the approach)**
 Proposal: v1 modules are **bundled at build time** (no runtime install, no marketplace). The module API is internal and may break freely (`apiVersion 0.x`). It becomes a public, stable API only after **three** real modules use it (Architect, Structural, + one more).
 Why: designing a plugin API before you have plugins is the classic way to get it wrong.
+
+**⚠️ Revised session #9 (owner, Q-123):** modules must be **truly optional installs**, not just switches. Owner's reasons: (1) each role sees only what it needs (*"an electrical engineer doesn't need to know the colour of the wall"*), (2) it makes the system lighter.
+Reconciliation proposed (still keeps the anti-platform-trap intent):
+- **"Public API" ≠ "separately installed".** Official modules (Structural, Electrical…) can be *distributed* separately while the API stays **internal**: they're built in the same monorepo, released **in lockstep** with the app version, and only first-party modules are installable. Third-party code modules still wait for ADR-020's 3-module condition.
+- **Staged delivery (Q-127):**
+  - **Stage 1 (Phases 1–2):** modules ship inside the installer but are **not loaded** unless enabled (no UI, no memory, no rules). Lighter at runtime, not on disk. Cheap.
+  - **Stage 2 (when a 3rd module exists):** real **download-on-demand** (app downloads the module from GitHub Releases, verifies a hash/signature, loads it dynamically). Lighter on disk too. Needs: dynamic JS loading in Tauri, integrity checks, offline "install from file", version compatibility checks.
+- Why staged: real downloadable modules are exactly the platform plumbing R-22 warns about; doing it before there's a second module to download is premature.
+Status of revision: **ACCEPTED (2026-11-15, owner: Q-127, stage 1 and 2)**.
 Confidence: high. Owner: accept?
 
 ## ADR-021 — Internationalization

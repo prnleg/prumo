@@ -78,7 +78,7 @@ Every value used by a rule shows **which pack (and version) it came from**.
 | Size | Big: a whole discipline / Vision | Small add-on |
 | Examples | Structural, Electrical, Plumbing, Rendering/Export (Q-118) | Language packs, compatibility with external things (e.g. import/export of other formats), *maybe* country/city rule packs (Q-121) |
 | Installed | "Install if you want" | "Install if you want" |
-| Relation to ADR-030 | = code modules | ⚠️ overlaps "data packs". Plugins may contain code (import/export needs code) **or** only data (languages, rule values). Reconcile → Q-121 |
+| Relation to ADR-030 | = code modules | **Resolved (Q-121):** users only see *Modules* and *Plugins*. Internally a plugin is **data-only** (languages, rule values; publishable early) or **code** (import/export; internal until ADR-020's condition). "Data pack" is an internal term only. |
 
 ## 7. Opening a project that uses a module you don't have (owner, session #8 — ADR-032)
 
@@ -90,11 +90,10 @@ Example: the engineer has the Electrical module, you don't, and they send you th
 │   • Electrical (v0.3) — 42 items                             │
 │                                                              │
 │  [Install Electrical]   [Remove those 42 items…]   [Cancel]  │
-│                         (+ proposed: [Open read-only] Q-122) │
 └──────────────────────────────────────────────────────────────┘
 ```
 - "Remove…" shows the list of items first and needs a second confirmation; it's destructive. The removal is an undoable command and gets a snapshot ("Before removing Electrical items").
-- ⚠️ Concern: in a handoff, the receiver removing another person's module data and sending it back **destroys their work**. The snapshot + handoff history make it recoverable, and Q-122 proposes a read-only option as the safe middle ground.
+- Owner decision (Q-122): **no read-only option.** Not installing the module means you can't see its work. Recovery path: the automatic snapshot before removal + the sender's own copy.
 - A file from a **newer app version** (same modules, newer format): default **read-only + "Update Prumo to edit"** (not discussed by the owner yet; keep this default).
 
 ## 8. Sending/exporting a project: choose which modules to include (owner, session #8)
@@ -110,4 +109,14 @@ This project uses these modules:
 - Stripping happens **only in the exported copy**, never in your working file.
 - Required modules (Architect/core) can't be unchecked.
 - Doubt: if Structural findings depend on data you strip, the receiver sees a different result. Show "the receiver won't see: …" under each unchecked module.
+
+## 9. Optional installs (owner, session #8–9 — ADR-020 revision PROPOSED)
+
+- Modules are **opt-in installs**: each role installs only what its work needs. The electrical engineer never sees wall paint; the architect never sees circuits. Side effect: a lighter app.
+- **Resolved (Q-128, owner):** every installation has the same core: the **basic building**: levels, walls, floors/slabs, openings, rooms as shapes ("the blueprint"). **No colours, no finishes, no furniture** in the core. Original question: if an electrical engineer installs *only* Electrical, what's the minimum they still need? Walls, openings, and rooms (geometry) are needed by everyone, but **finishes (paint, tiles) and room-type lists** are Architect concerns. Proposal: split into
+  - **core "Building" model** (always present): levels, walls (geometry + kind), openings, rooms (geometry), slabs: the shared skeleton;
+  - **Architect module**: finishes, room types/names, the room tool, architect rules;
+  - **Structural / Electrical / …**: their own data on top of the skeleton.
+  The UX in every Vision still lets you draw walls (you can't place an outlet without a wall), but only the Architect module adds the "pretty" layer.
+- Uninstalling a module that open projects use → those projects hit the missing-module dialog (§7) next time.
 

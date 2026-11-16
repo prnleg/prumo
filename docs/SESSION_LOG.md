@@ -177,3 +177,23 @@ Owner answers: autosave yes; snapshots = full copies (aware the file grows); a m
 Done: new ADR-032; MODULES §6–8 (terminology, missing-module dialog, export dialog); MODULES rule 3 + CLAUDE.md rule 13 reworded; ADR-008/019 notes; ROADMAP Phase 1 (autosave, start screen, themes); GLOSSARY (module, plugin, snapshot); RISKS R-47/48; OPEN_QUESTIONS round 7 (Q-121…126).
 
 Doubts: "plugin" (owner) vs "data pack" (ADR-030) overlap → Q-121. "Remove items" during a handoff can destroy someone else's work → read-only option proposed (Q-122). "Install" in v1 really means "enable" because everything is bundled (Q-123).
+
+---
+
+## Session #9 — 2026-11-15 — Round 7 answers (Claude, chat)
+
+Owner answers: modules = real opt-in installs (focus per role + a lighter app); snapshot growth mitigation OK; example projects incl. "perfect" ones; recovery copies not deleted after a crash by time.
+
+Conflict found: ADR-020 said modules are bundled at build time. Proposed a staged revision (bundled-but-unloaded → real downloads after the 3rd module) that keeps the anti-platform-trap intent (Q-127). Also proposed a core "Building skeleton" vs Architect split so an Electrical-only install works (Q-128).
+
+Wording guard: "perfect" examples → "no warnings from current checks" in the UI.
+
+---
+
+## Session #10 — 2026-11-15 — Planning closed (Claude, chat)
+
+Owner answers: stages 1+2 OK; the core = the basic building (no colour/furniture); recovery reading confirmed; two words (Modules/Plugins) OK; no read-only option (install or remove).
+
+**Owner feedback:** questions had started re-asking things that were inferable from context ("triple checks"). Action: a new questioning rule in CLAUDE.md §1 (infer → log; cheap to reverse → default; ask only new + consequential + ambiguous). Open questions converted to "defaults on record".
+
+**Planning phase closed. Next: Spikes D and E in Claude Code.**

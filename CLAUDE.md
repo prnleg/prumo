@@ -19,7 +19,11 @@ Source of truth for status: `docs/CURRENT_STATE.md`.
   - **The owner can't check whether structural math is correct.** You can't count on them to catch engineering mistakes, so you need to be *more* careful, not less. They know an engineer who can review (Q-068); route structural doubts there.
   - Never assume the owner "probably meant" something technical. Ask.
 - The owner explicitly asked for you to be **critical and insecure** about decisions: surface doubts, flaws, and alternatives *before* implementing, not after.
-- The owner **wants a steady stream of questions**: they enrich the docs. Add new ones to `docs/OPEN_QUESTIONS.md` every session, each with a default.
+- **How to ask questions (owner feedback, session #10):** the owner wants questions, but **not re-asks or confirmations of things you can infer from context**. Before asking:
+  1. Is it already answered in DECISIONS/OPEN_QUESTIONS "Resolved", or inferable from a related answer? → **don't ask; apply it and log your inference** in SESSION_LOG.
+  2. Is it cheap to reverse? → **use the default, log it**, and mention it in one line at the end of your report.
+  3. Ask only when it's **new, consequential, and genuinely ambiguous**. One question, plain words, a concrete example, a default.
+  Never ask the same thing twice in different words.
 - The project is **open source, modular, and for everyone** (beginner-first UX). See `docs/VISION.md` and `docs/MODULES.md`.
 
 ## 2. Golden rules (non-negotiable)

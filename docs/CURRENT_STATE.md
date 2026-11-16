@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 > This file must always be **truthful**. If something is stubbed, faked, or broken, say so here.
-> Last updated: 2026-11-15, session #8 (round-6 follow-ups). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
+> Last updated: 2026-11-15, session #10 (planning closed, ready to build). Previously: session #4 (owner's round-4 answers incorporated). Codename: **Prumo**.
 
 ## Summary
 
@@ -12,7 +12,7 @@
 | PROPOSED | ADR-018, 021, 022, 024, 025; crash-report mechanics (028). |
 | ACCEPTED (s#8) | ADR-032 (missing modules & export with module selection); ADR-008 snapshots = full copies. |
 | OPEN | ADR-003, 005, 006, 008, 010, 011, 012, 013, 015, 016 (name), 017, 023. |
-| Owner answers | Rounds 1–5 answered (except leftovers with defaults). Rounds 1–6 answered. Round 7 asked (Q-121…126). |
+| Owner answers | Rounds 1–5 answered (except leftovers with defaults). **Planning rounds closed.** All remaining questions are defaults on record. |
 | Engineer | Questions batched in `ENGINEER_QUESTIONS.md`; none sent yet. |
 | Phase | Phase 0: decisions & spikes. |
 
@@ -23,7 +23,11 @@
 | Final name | Trademark check before the first release (Q-109) |
 | Structural rules | ENGINEER_QUESTIONS batch 1–2, ADR-017 |
 
-## Next immediate step
+## Next immediate step (READY TO BUILD)
+
+Open Claude Code in this repo and run **Spike D** (stack) and **Spike E** (module boundary). See ROADMAP Phase 0.
+
+## Older next steps
 
 1. Owner answers round 5 (none of it is 🔴; defaults are usable).
 2. Owner forwards ENGINEER_QUESTIONS batch 1 to the engineer.

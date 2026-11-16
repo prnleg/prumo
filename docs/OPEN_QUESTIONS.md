@@ -8,25 +8,11 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 
 ---
 
-## Round 7 — raised in session #8 (written in plain terms, with examples)
+## ⚙️ Status after session #10: no more question rounds before building
 
-**Q-121 🟠 What exactly is a "plugin" vs a "module" vs a "data pack"?** You defined modules (big: Electrical) and plugins (small: languages, compatibility with external things). We'd also agreed on "data packs" (ADR-030: just values, like São Paulo's minimum bedroom size). Where does each of these go?
-- Portuguese/English translation → plugin?
-- "São Paulo city rules" → plugin or data pack?
-- "Open AutoCAD (DXF) files" → plugin (it has code)?
-Proposal: **two words for users**: *Modules* (big) and *Plugins* (small). Internally, a plugin is either **data-only** (safe: languages, rule values; anyone can publish early) or **code** (import/export; internal until the API opens, ADR-020). "Data pack" stops being a user-facing word. OK?
+The owner asked when building can start. Answer: **now.** Every remaining question below has a default, and **the default is applied** unless the owner objects. They're no longer "asked"; they're **defaults on record**. Future sessions: follow the questioning rule in CLAUDE.md §1, and only add a question here if it's new, consequential, and genuinely ambiguous.
 
-**Q-122 🟠 Add a third button, "Open read-only", when a module is missing?** Example: the engineer sends you a project with Electrical items; you only want to *look* before deciding whether to install Electrical. Without this option you must install it or delete their work just to peek. Default: yes, add it.
-
-**Q-123 🟠 What does "install a module" mean in v1?** Since v1 bundles everything inside the app (ADR-020), "install" could simply mean **turn on** (all modules ship with the app; you enable the ones you want). Real downloads come later. Example: Settings → Modules → [✓] Structural [ ] Electrical. Default: yes, enable/disable in v1.
-
-**Q-124 🟡 The file keeps growing with full-copy snapshots (your concern).** Options: (a) a warning + you delete old snapshots by hand; (b) automatically keep only the last N (e.g. 20) handoff snapshots; (c) "Export a clean copy" without history. Default: (a) + (c), and (b) as an optional setting.
-
-**Q-125 🟡 Which example projects?** Ideas: a small 2-bedroom house; an apartment; a two-storey house (once multi-storey exists); and a **"house with problems"** example that already shows structural warnings, to teach what they mean. Default: house + apartment + "house with problems".
-
-**Q-126 🟡 Autosave details:** where the backup copy lives (next to your file vs a hidden app folder) and how long it's kept. Default: a hidden app folder, deleted after a successful save, kept 7 days after a crash.
-
-### Still open from round 4
+### Defaults on record (from earlier rounds)
 
 - **Q-089 🟡** 3D walls up/cutaway/down toggle? Default: yes, Phase 4.
 - **Q-092 🟠** Identity = a local display name, no accounts? Default: yes.
@@ -37,7 +23,7 @@ Proposal: **two words for users**: *Modules* (big) and *Plugins* (small). Intern
 - **Q-100 🟡** Curved walls: not v1.
 - **Q-101 🟡** Pack publishing: import-from-file + a curated packs repo.
 
-### Still open from round 3
+### Defaults on record (round 3)
 
 - **Q-072 🟠** Geometric impossibilities: block/clamp (default) or allow with a model-error marker?
 - **Q-073 🟠** When is an element "settled" for checks? Default: gesture ended + 1.5 s idle; open chains = draft.
@@ -133,4 +119,13 @@ Proposal: **two words for users**: *Modules* (big) and *Plugins* (small). Intern
 - **Q-113** — A missing module **stops the user**: install it, or remove that module's items. When exporting, show the modules used and allow removing them from the copy. Modules = big, install-if-you-want; plugins = smaller (languages, external compatibility). — 2026-11-15 — ADR-032, MODULES §6–8
 - **Q-119** — Start blank, plus **several pre-made example projects** to see and work with. — 2026-11-15 — ROADMAP, Q-125
 - **Q-120** — Light/dark themes following the OS: yes. — 2026-11-15 — ROADMAP
+- **Q-123** — Modules must be **real optional installs**: each role only gets what its work needs (an electrical engineer doesn't need wall colours), and the app gets lighter. — 2026-11-15 — ADR-020 revision (PROPOSED, staged → Q-127), MODULES §9
+- **Q-124** — OK: warning + manual deletion + "export a clean copy" + optional "keep last N". — 2026-11-15 — ADR-008
+- **Q-125** — House, apartment, "house with problems", **plus clean ("perfect") reference examples**. — 2026-11-15 — ROADMAP (wording: "no warnings from current checks", never "perfect/safe")
+- **Q-126** — Don't delete recovery copies after a crash by time; only when that change is resolved. — 2026-11-15 — ROADMAP; confirm → Q-129
+- **Q-127** — Staged optional modules (stage 1: bundled but not loaded; stage 2: real downloads): yes. — 2026-11-15 — ADR-020 revision ACCEPTED
+- **Q-128** — Same core for everyone: the basic building (blueprint/walls/floor…), no colours, no furniture. — 2026-11-15 — MODULES §9
+- **Q-129** — Yes: recovery copies are removed only when resolved (recovered/saved/discarded). — 2026-11-15 — ROADMAP
+- **Q-121** — Yes: users see only "Modules" and "Plugins". — 2026-11-15 — MODULES §6
+- **Q-122** — No read-only option: install the module or remove its items. — 2026-11-15 — ADR-032
 

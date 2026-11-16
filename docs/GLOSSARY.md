@@ -23,7 +23,9 @@
 - **Lintel** [verga] — Small beam over an opening.
 - **Sill reinforcement** [contraverga] — Reinforcement under a window opening in masonry.
 - **Module** — A big, install-if-you-want discipline (Structural, Electrical…). Usually provides a Vision. (MODULES §6)
-- **Plugin** — A smaller add-on: a language, compatibility with an external format/tool, possibly rule values. (MODULES §6)
+- **Plugin** — A smaller add-on: a language, compatibility with an external format/tool, rule values (country/state/city). Internally data-only or code. (MODULES §6)
+- **Data pack** — *Internal term only*: a data-only plugin. Never shown to users.
+- **Core / basic building** — What every installation has: levels, walls, slabs/floors, openings, rooms as shapes. No colours, finishes, or furniture.
 - **Snapshot** — A saved "photo" of the whole project at a moment (e.g. at each handoff), used to compare versions.
 - **Live load** [carga acidental / variável] — People, furniture.
 - **Load path** — The route forces take to the ground.
