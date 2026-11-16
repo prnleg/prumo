@@ -47,6 +47,9 @@ Scope:
 - **Finishes ("paint")** on wall sides and room floors (Q-090), no structural materials in this Vision.
 - **Snapping defaults** per Q-087; any angle allowed.
 - **Crash log + "Report on GitHub" button** (ADR-028).
+- **Autosave + crash recovery** (Q-111 ✅): a recovery copy every ~30 s; "Recover unsaved work?" on the next start.
+- **Start screen** (Q-119 ✅): "Start blank" + **several pre-made example projects** to open and modify (which ones → Q-125).
+- **Light/dark theme** following the OS (Q-120 ✅).
 - ❌ No image/PDF export in Phase 1. Export belongs to a future **rendering/export module** (Q-118). Until then users can take screenshots.
 - **Beginner onboarding:** a starter template + a skippable guided tour (Q-080).
 - **Feedback timing plumbing (ADR-025):** commit/settle events exist even before rules do.
@@ -145,6 +148,7 @@ What could go wrong: data model rework if ADR-015 chose "single storey only" in 
 
 - Build a deliberately *different* module (Electrical: hosted outlets/switches + circuits as a graph) to stress-test the API.
 - Only after this: consider making the module API public (ADR-020), plus the trust model (ADR-023).
+- The missing-module flow (ADR-032) gets its first real test here: a file with Electrical items opened by someone without Electrical.
 
 ## Phase 6+ — Maybe / later (each needs its own ADR)
 

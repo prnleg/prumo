@@ -47,7 +47,7 @@ Every value used by a rule shows **which pack (and version) it came from**.
 
 1. **The core never imports a module.** Modules depend on the core (and, if declared, on other modules).
 2. **Built-in features are modules too.** The Architect Vision is a module on the same API. If the API can't express Architect, the API is wrong.
-3. **Unknown data survives.** If a file contains components from a module that isn't installed, the app **keeps them untouched** on save and shows "This project uses module X (not installed)". Never silently drop data.
+3. **Unknown data is never dropped silently.** ~~Keep it untouched and show a banner~~ → **Updated session #8 (owner, Q-113):** opening a project that uses a module you don't have **stops first** and asks you to choose (see §6). Data is only removed when the user explicitly picks "remove".
 4. **Module data is namespaced** by module id inside each element: `element.components["org.project.structural"]`.
 5. **Rules declare their inputs** (which components they read), so the engine knows what to re-run and cross-module rules are explicit.
 6. **Each module owns its migrations.**
@@ -70,3 +70,44 @@ Every value used by a rule shows **which pack (and version) it came from**.
 - ~~Findings from other Visions show as a badge~~ → **Updated session #2 (owner, Q-054):** only **critical** findings from other Visions surface, quietly (a marker on the element + a counter), and **never during an active gesture**. Full rules in ADR-025.
 - Visions are **role-based** (Architect, Engineer, Electrician…). A Vision must be usable without understanding any other Vision.
 - Open: can a Vision mark elements as protected for others ("load-bearing, don't remove")? → Q-077. Handoff between different people → Q-076.
+
+## 6. Modules vs plugins — terminology (owner, session #8)
+
+| | **Module** | **Plugin** |
+|---|---|---|
+| Size | Big: a whole discipline / Vision | Small add-on |
+| Examples | Structural, Electrical, Plumbing, Rendering/Export (Q-118) | Language packs, compatibility with external things (e.g. import/export of other formats), *maybe* country/city rule packs (Q-121) |
+| Installed | "Install if you want" | "Install if you want" |
+| Relation to ADR-030 | = code modules | ⚠️ overlaps "data packs". Plugins may contain code (import/export needs code) **or** only data (languages, rule values). Reconcile → Q-121 |
+
+## 7. Opening a project that uses a module you don't have (owner, session #8 — ADR-032)
+
+Example: the engineer has the Electrical module, you don't, and they send you the project.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  This project uses modules you don't have installed:         │
+│   • Electrical (v0.3) — 42 items                             │
+│                                                              │
+│  [Install Electrical]   [Remove those 42 items…]   [Cancel]  │
+│                         (+ proposed: [Open read-only] Q-122) │
+└──────────────────────────────────────────────────────────────┘
+```
+- "Remove…" shows the list of items first and needs a second confirmation; it's destructive. The removal is an undoable command and gets a snapshot ("Before removing Electrical items").
+- ⚠️ Concern: in a handoff, the receiver removing another person's module data and sending it back **destroys their work**. The snapshot + handoff history make it recoverable, and Q-122 proposes a read-only option as the safe middle ground.
+- A file from a **newer app version** (same modules, newer format): default **read-only + "Update Prumo to edit"** (not discussed by the owner yet; keep this default).
+
+## 8. Sending/exporting a project: choose which modules to include (owner, session #8)
+
+When saving a copy to send ("Export project…" / "Hand off…"):
+```
+This project uses these modules:
+  [x] Architect (required)
+  [x] Structural   — 18 items
+  [ ] Electrical   — 42 items   ← unchecked = stripped from the exported copy
+[Export]
+```
+- Stripping happens **only in the exported copy**, never in your working file.
+- Required modules (Architect/core) can't be unchecked.
+- Doubt: if Structural findings depend on data you strip, the receiver sees a different result. Show "the receiver won't see: …" under each unchecked module.
+

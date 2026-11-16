@@ -22,6 +22,9 @@
 - **Invariant** — A condition the model must always satisfy.
 - **Lintel** [verga] — Small beam over an opening.
 - **Sill reinforcement** [contraverga] — Reinforcement under a window opening in masonry.
+- **Module** — A big, install-if-you-want discipline (Structural, Electrical…). Usually provides a Vision. (MODULES §6)
+- **Plugin** — A smaller add-on: a language, compatibility with an external format/tool, possibly rule values. (MODULES §6)
+- **Snapshot** — A saved "photo" of the whole project at a moment (e.g. at each handoff), used to compare versions.
 - **Live load** [carga acidental / variável] — People, furniture.
 - **Load path** — The route forces take to the ground.
 - **Load takedown** — Adding up loads from top to bottom, storey by storey.

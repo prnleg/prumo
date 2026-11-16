@@ -149,7 +149,8 @@ Open sub-question: can a "generic opening" (the owner said doors don't need to b
 ---
 
 ## ADR-008 — Project file format
-Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). **Q-110 (owner): keep `.prumo` permanently**, even if the product is renamed. The format id inside the file is still recommended for robustness.
+Status: **ACCEPTED in principle (2026-11-15, owner: Q-104/105)**: one **zip-container** file, extension **`.prumo`** for now. It contains `project.json` (model, with `format: "prumo-project"` + `schemaVersion`), `snapshots/` (named versions for the compare view), `thumbnail.png`, and `packs.lock.json` (which data-pack versions were used). **Snapshots (Q-112, owner): full copies (option A).** The owner notes files will keep growing → mitigation needed (Q-124).
+**Q-110 (owner): keep `.prumo` permanently**, even if the product is renamed. The format id inside the file is still recommended for robustness.
 Original status: **OPEN**
 Lean: **JSON**, with `schemaVersion` at the root, stable UUIDs for every element, and a migration function for every version bump. Possibly IFC export later, but **not** as the native format (IFC is huge and complex). Confidence: high.
 
@@ -255,9 +256,14 @@ Lean: **C + D.** Confidence: medium. Needs Q-010 and ADR-004 first.
 
 ---
 
+## ADR-032 — Missing modules & export with module selection
+Status: **ACCEPTED (2026-11-15, owner, Q-113)**: opening a project with uninstalled modules **stops** and offers **install** or **remove the module's items**. Exporting/sending a copy shows the modules used and lets you **remove modules from the exported copy**. Details: MODULES.md §7–8. Proposed addition: a read-only option (Q-122).
+Supersedes MODULES rule 3's "keep untouched silently" default and CLAUDE.md rule 13's wording (both updated).
+
 ## ADR-019 — Modular "Visions" architecture
 Status: **ACCEPTED in principle (2026-11-15, owner):** the product is a shared model + installable Visions/modules (Architect, Civil/Structural, Electrical later…). Details (extension points, manifest, naming) are **PROPOSED** in `MODULES.md`.
 Still OPEN: the user-facing name ("Vision", "Mode", "Module", "Add-on"?) → Q-059.
+**Terminology (owner, session #8):** **modules** = big, install-if-you-want disciplines (Electrical, Structural…); **plugins** = smaller things (languages, compatibility with external tools/formats…). See MODULES §6; overlap with ADR-030 → Q-121.
 
 ## ADR-020 — When does the plugin API become public?
 Status: **ACCEPTED (2026-11-15, owner liked the approach)**

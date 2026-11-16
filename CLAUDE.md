@@ -42,7 +42,7 @@ Source of truth for status: `docs/CURRENT_STATE.md`.
 10. **Determinism.** Analysis must give identical output for identical model input. No randomness, no reliance on object iteration order, no floating-point comparisons without tolerance.
 11. **Module boundaries.** `packages/core` never imports a module or a UI framework. Modules never reach into another module's internals; they use declared dependencies. Built-in features (Architect) go through the same module API. See `docs/MODULES.md`.
 12. **No platform plumbing ahead of features.** Don't build a plugin marketplace, runtime installer, sandbox, or public API before ADR-020 allows it. If you catch yourself building infrastructure no user-visible feature needs yet, stop and ask.
-13. **Never drop unknown data.** Components from modules that aren't loaded must round-trip through save/load untouched.
+13. **Never drop unknown data silently.** Data from modules that aren't installed is only removed when the user explicitly chooses "remove" (ADR-032); until then it must survive save/load untouched.
 14. **i18n from day 1.** No hard-coded user-facing strings; pt-BR + en (ADR-021 proposed).
 15. **No standards text in the repo.** Code profiles store values + clause references only (ADR-014).
 16. **Platform isolation.** No Tauri imports outside the platform adapter (ARCHITECTURE "Doubts").

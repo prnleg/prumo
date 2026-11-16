@@ -73,6 +73,10 @@ Likelihood (L) and Impact (I): 1 (low) – 5 (high). Score = L × I. Review at t
 | R-45 | **The "baton" is only a convention**: copies of the file can still diverge. | 3 | 3 | 9 | Holder banner, "Take over" logged, compare view to spot divergence. | Open |
 | R-46 | **Project files grow large** with embedded snapshots. | 3 | 2 | 6 | Delta snapshots or pruning (Q-104). | Open |
 
+| R-47 | **Receiver deletes another person's module data** ("remove items" on a missing module) and sends the file back. | 3 | 4 | 12 | Second confirmation, item list, automatic snapshot, read-only option (Q-122). | Open |
+| R-48 | **Terminology drift**: module / plugin / data pack / Vision used inconsistently in UI, code, and docs. | 4 | 2 | 8 | GLOSSARY as the single source; resolve Q-121. | Open |
+
+R-46 (file growth) → owner confirmed the concern; mitigation in Q-124.
 R-37 (handoff divergence) → reduced by the owner's no-parallel-edits decision: L 4 → 3.
 
 **Update to R-01** (2026-11-15, session #2): the engineer has unlimited availability, so review is mandatory for rules above "info". Likelihood 4 → 3. Score 15.

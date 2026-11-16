@@ -167,3 +167,13 @@ Next step: owner answers round 6; Spikes D + E can start in parallel (nothing �
 Owner answers: Q-108 both; Q-110 keep `.prumo`; Q-114/115 room-type list OK, grow gradually; Q-116/117 follow the UI language + customizable; Q-118 export only via a future rendering/export module. The owner didn't understand Q-111/112/113/119/120 → re-explained in plain terms in chat; still open.
 
 Lesson for future sessions: **phrase questions in plain product terms, with a concrete example**, not internal jargon ("snapshot deltas", "newer-version files").
+
+---
+
+## Session #8 — 2026-11-15 — Round 6 follow-ups (Claude, chat)
+
+Owner answers: autosave yes; snapshots = full copies (aware the file grows); a missing module stops the user (install / remove its items) and export lets you choose modules; **modules (big) vs plugins (small: languages, external compatibility)**; start blank + several example projects; themes yes.
+
+Done: new ADR-032; MODULES §6–8 (terminology, missing-module dialog, export dialog); MODULES rule 3 + CLAUDE.md rule 13 reworded; ADR-008/019 notes; ROADMAP Phase 1 (autosave, start screen, themes); GLOSSARY (module, plugin, snapshot); RISKS R-47/48; OPEN_QUESTIONS round 7 (Q-121…126).
+
+Doubts: "plugin" (owner) vs "data pack" (ADR-030) overlap → Q-121. "Remove items" during a handoff can destroy someone else's work → read-only option proposed (Q-122). "Install" in v1 really means "enable" because everything is bundled (Q-123).

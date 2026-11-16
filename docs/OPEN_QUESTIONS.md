@@ -8,21 +8,23 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 
 ---
 
-## Round 6 — raised in session #6
+## Round 7 — raised in session #8 (written in plain terms, with examples)
 
-### Files & saving
+**Q-121 🟠 What exactly is a "plugin" vs a "module" vs a "data pack"?** You defined modules (big: Electrical) and plugins (small: languages, compatibility with external things). We'd also agreed on "data packs" (ADR-030: just values, like São Paulo's minimum bedroom size). Where does each of these go?
+- Portuguese/English translation → plugin?
+- "São Paulo city rules" → plugin or data pack?
+- "Open AutoCAD (DXF) files" → plugin (it has code)?
+Proposal: **two words for users**: *Modules* (big) and *Plugins* (small). Internally, a plugin is either **data-only** (safe: languages, rule values; anyone can publish early) or **code** (import/export; internal until the API opens, ADR-020). "Data pack" stops being a user-facing word. OK?
 
-**Q-111 🟠 Autosave + crash recovery?** Beginners lose work. Proposal: autosave to a recovery file every ~30 s and on Vision switch; offer "Recover unsaved work?" after a crash. Not the same as the named snapshots (Q-104). Default: yes, Phase 1.
+**Q-122 🟠 Add a third button, "Open read-only", when a module is missing?** Example: the engineer sends you a project with Electrical items; you only want to *look* before deciding whether to install Electrical. Without this option you must install it or delete their work just to peek. Default: yes, add it.
 
-**Q-112 🟡 Snapshot storage:** full copies (simple, files grow) or deltas (small, complex)? Default: full copies, compressed inside the zip, with a warning when the file passes ~50 MB.
+**Q-123 🟠 What does "install a module" mean in v1?** Since v1 bundles everything inside the app (ADR-020), "install" could simply mean **turn on** (all modules ship with the app; you enable the ones you want). Real downloads come later. Example: Settings → Modules → [✓] Structural [ ] Electrical. Default: yes, enable/disable in v1.
 
-**Q-113 🟡 Opening a file from a newer app version, or one that uses modules you don't have:** open read-only with a banner (default), open and risk it, or refuse?
+**Q-124 🟡 The file keeps growing with full-copy snapshots (your concern).** Options: (a) a warning + you delete old snapshots by hand; (b) automatically keep only the last N (e.g. 20) handoff snapshots; (c) "Export a clean copy" without history. Default: (a) + (c), and (b) as an optional setting.
 
-### Beginner details
+**Q-125 🟡 Which example projects?** Ideas: a small 2-bedroom house; an apartment; a two-storey house (once multi-storey exists); and a **"house with problems"** example that already shows structural warnings, to teach what they mean. Default: house + apartment + "house with problems".
 
-**Q-119 🟡 Starter template content:** an empty lot, a small 2-bedroom house, or an apartment? Default: one small 2-bedroom house + empty.
-
-**Q-120 🟡 Dark mode / themes?** Default: light + dark following the OS.
+**Q-126 🟡 Autosave details:** where the backup copy lives (next to your file vs a hidden app folder) and how long it's kept. Default: a hidden app folder, deleted after a successful save, kept 7 days after a crash.
 
 ### Still open from round 4
 
@@ -126,4 +128,9 @@ When answered: move to **Resolved** at the bottom with the answer, date, and the
 - **Q-116** — Numbers follow the **UI language's format**, for display *and* input (pt-BR: `3,50`; en: `3.50`). Side benefit: no ambiguity for `1.000` (one thousand in pt-BR, one in en). — 2026-11-15 — ADR-021
 - **Q-117** — Floor names follow the UI language by default and are customizable. Same principle for every locale-dependent default (room-type names, units display). — 2026-11-15 — ADR-021
 - **Q-118** — Image/PDF export only through a dedicated **rendering/export module**, not in the core. To refine later. Not in Phase 1. — 2026-11-15 — ADR-019, ROADMAP
+- **Q-111** — Autosave: yes. — 2026-11-15 — ROADMAP Phase 1
+- **Q-112** — Snapshots as full copies (option A); the owner notes the file will keep growing → Q-124. — 2026-11-15 — ADR-008
+- **Q-113** — A missing module **stops the user**: install it, or remove that module's items. When exporting, show the modules used and allow removing them from the copy. Modules = big, install-if-you-want; plugins = smaller (languages, external compatibility). — 2026-11-15 — ADR-032, MODULES §6–8
+- **Q-119** — Start blank, plus **several pre-made example projects** to see and work with. — 2026-11-15 — ROADMAP, Q-125
+- **Q-120** — Light/dark themes following the OS: yes. — 2026-11-15 — ROADMAP
 
