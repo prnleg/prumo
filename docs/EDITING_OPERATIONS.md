@@ -47,6 +47,7 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 - Wall layers: the order of layers flips (inside ↔ outside). ❓ Is that correct for the user's intent? (Mirroring an exterior wall keeps the outside layer outside — after a mirror, the "outside" is the mirrored side, so flipping is geometrically right.) Default: flip, and test it.
 - Opening offset: measured from `wall.start`, so after a mirror, recompute it so the opening is in the mirrored position.
 - Doors: **handing flips** (left ↔ right) (Q-021 default). Swing in/out stays.
+  - **Implemented (slice 5b):** our `handing` is stored relative to the wall start, so after mirroring start/end the hinge is already in the mirrored place; what flips in *our encoding* is `swing` (in ↔ out). Net effect = the real-world handing flip above. Proven by a property test: mirrored door symbol == mirror of the original symbol, for all 4 handing × swing combinations (mutation-checked).
 - Slabs: polygon orientation reverses (CW ↔ CCW) → re-normalize to CCW (I-6).
 - Span direction: angle mirrored.
 - Text/labels: not mirrored (stay readable).
