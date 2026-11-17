@@ -247,7 +247,13 @@ Lean: use **Prumo as the codename**, check the trademark registers (INPI in Braz
 ---
 
 ## ADR-017 — How do we know whether a wall is load-bearing? ⚠️ CRITICAL
-Status: **OPEN** · Blocks Phase 2
+Status: **ACCEPTED (2026-11-17, owner, on the engineer contact's answer E-04 — review level VERIFIED-UNSIGNED, ADR-041): D as the default + A as an explicit, recorded exception; B only to explain, never to decide; C not used for masonry.**
+- **Structural masonry:** every wall (full, half) counts as load-bearing / bracing by default. Reason (engineer): walls carry slabs AND brace the building; a wall parallel to the slab span still braces and takes load from bonded neighbours, so slab-based inference (B) under-counts.
+- **Exception (A):** the user may mark a wall `non-bearing` ("vedação") and the app stores **where that came from** (e.g. "my structural drawing says so", "I assume"). A `non-bearing` mark in a masonry project gets its own warning: partitions are the exception in structural masonry; confirm with the structural drawing before removing or opening it.
+- **B (slab/span):** may be shown to explain the load path; it never downgrades a wall to non-bearing.
+- **Reinforced-concrete frame (later pack):** the default flips toward partitions, but "partition" is NOT a safe default for self-built houses (slab sitting on the masonry, missing columns) → decide with that pack.
+- Spike B's model stays: per-wall mark `bearing` / `non-bearing` / `unmarked` + profile setting for unmarked (`assume-bearing`), plus the mark's **origin** (new).
+Previous status: OPEN · Blocks Phase 2
 
 This is the single most important structural modelling decision. Options:
 - **A) User declares it** per wall. (+) Simple, honest. (−) A non-expert will often get it wrong; garbage in → garbage out.
@@ -446,3 +452,12 @@ Status: **ACCEPTED (2026-11-17, owner picked A + toolbar button)**. Replaces the
 Context: an invisible line that splits one open space into two rooms (living | kitchen). Options: A) a wall kind `"separator"` (reuses move/rotate/mirror/copy/delete/snap/select/overlap rules), B) its own element type (cleaner, but every operation needs new code).
 Decision: **A.** `Wall.kind = "separator"`: closes rooms; the floor is measured to its LINE (no body); not in joins/outline (drawn as a dashed line, picked as a 1 mm strip); no doors/windows (`host-not-wall`), no paint (panel hides it), ignored by the outside-faces rule (ADR-038). `thickness/height/alignment` stay stored (the model requires them) but mean nothing. Future structural checks must skip it (`isDivider`). UI: "Divider" toolbar button (L) = the wall tool drawing dividers; any wall can be switched in the panel's Type list.
 Compatibility: an older Prumo build has no "separator" kind; it'd treat a divider like an unknown wall kind (no crash; validation doesn't check kinds). Acceptable before v1.
+
+## ADR-041 — Review levels: UNVERIFIED → VERIFIED-UNSIGNED → VERIFIED
+Status: **ACCEPTED (2026-11-17, owner)**. Amends CLAUDE.md rule 17 and SAFETY_AND_LIABILITY.
+Context: the owner's engineer contact answered batch 1 informally and doesn't want to be named (signing would make Prumo an engineering product, which isn't the plan, GOALS). Rule 17 required a named reviewer.
+Decision — three levels per rule / value / validation case:
+- `UNVERIFIED` — no source, or the engineer marked it "check" ([CONFERIR]), or a value given from memory. Shown as UNVERIFIED (unchanged).
+- `VERIFIED-UNSIGNED` — an engineer reviewed the statement informally and agreed, **anonymously, without technical responsibility** (no ART/RRT). Recorded as `reviewer: owner's engineer contact (anonymous, unsigned)` + date + question id. Applies only to what they stated without a "check" mark. **No numeric threshold reaches this level from a value recalled from memory.**
+- `VERIFIED` — reviewed by a named professional who signs it. Not used now; would need its own ADR (liability).
+UI wording (pt-BR / en): *"Regra revisada informalmente por um engenheiro, sem assinatura técnica (sem ART)."* / *"Rule informally reviewed by an engineer; not a signed technical review."* It describes **the rule**, never the user's design; it never appears as a badge of approval, and the banned-words test keeps covering it.

@@ -25,7 +25,7 @@ Model snapshot (immutable)
 
 | Profile id | Codes (*verify editions*) | Notes |
 |---|---|---|
-| `br-nbr` | NBR 6120 (loads), 6123 (wind), 6118 (concrete), 16868 (structural masonry), 7190 (timber), 8800 (steel), 15575 (performance) | Brazil |
+| `br-nbr` | NBR 16868-1/-2/-3:2020 (structural masonry: design / execution / tests), 6120:2019 (actions), 8681:2003 (actions & safety), 6123 (wind — check revision), 6118:2023 (concrete: lintels, tie beams, slabs), 6136 (concrete blocks — check), 15270-1 (ceramic blocks — check), 6122:2019 (foundations — out of scope, cited as a limit), 15575 (performance — check), **16280 (renovations — Prumo's main use case; useful for "talk to a professional")**, 7190 (timber), 8800 (steel). ⚠️ NBR 15961 / 15812 were **replaced** by 16868: never cite them. Editions per the engineer contact (E-03, 2026-11-17); "check" = to confirm. No Brazilian normative simplified method for houses known; EN 1996-3 = inspiration only. | Brazil |
 | `eu-en-rec` | EN 1990 (basis), EN 1991 (actions), EN 1992 (concrete), EN 1996 (masonry), EN 1995 (timber), EN 1993 (steel) | **DEFERRED (session #2).** Later, as an installable rule-pack plugin. |
 
 v1 = `br-nbr` only. Packs: **structural masonry first**, then (likely) a column-grid frame system (Q-071).
@@ -75,24 +75,35 @@ type Finding = {
 
 Thresholds shown as `⟨placeholder⟩` are **not** real values.
 
-| ID | Rule | Applies to | Severity | Notes / doubts |
-|---|---|---|---|---|
-| R-OPEN-001 | Opening in a bearing wall without a lintel defined | masonry, timber | warning | In RC frame + infill a lintel is still needed for the masonry above, but the severity is lower. **Spike B (s#11): implemented in `spikes/rule`** with source `UNSOURCED – placeholder`, shown UNVERIFIED; no numeric threshold (presence check only). Hand check = the case table in `spikes/rule/test/rule.test.ts`. Source + exceptions → E-06. |
-| R-OPEN-002 | Lintel bearing length each side < ⟨placeholder⟩ | masonry, timber | warning | Commonly cited values exist; **must source**. |
-| R-OPEN-003 | Pier between two openings narrower than ⟨placeholder⟩ (or ⟨ratio⟩ × wall thickness) | structural masonry | warning/critical | Pier stress concentration. |
-| R-OPEN-004 | Opening closer than ⟨placeholder⟩ to a wall end or intersection | structural masonry | warning | |
-| R-OPEN-005 | Total opening length in a wall > ⟨ratio⟩ of the wall length | masonry, timber | advisory | Proxy for loss of bracing. |
-| R-OPEN-006 | Opening overlaps another opening / extends past the wall end / above the wall height | all | critical (geometry error) | This is really a **model validity** check. Should it block the edit instead? (Q) |
-| R-WALL-001 | Wall slenderness (height/thickness) > ⟨placeholder⟩ | masonry | warning | Value is code- and support-dependent. |
-| R-WALL-002 | Bearing wall deleted or moved → a slab edge loses support | all with slabs | critical | Needs ADR-017. |
-| R-WALL-003 | Free-standing wall end (not braced by a perpendicular wall) longer than ⟨placeholder⟩ | masonry | advisory | |
-| R-BRACE-001 | Bracing-wall length in direction X (or Y) < ⟨ratio⟩ of the building dimension | masonry, timber | warning | Simplified lateral check. |
-| R-LOAD-001 | Upper-storey bearing wall not supported below | multi-storey | critical | Phase 5. |
-| R-LOAD-002 | Opening in upper wall not aligned with the opening below (load path jog) | multi-storey masonry | advisory | Phase 5. |
-| R-COL-001 | Column removed → beam/slab loses support | RC frame | critical | |
-| R-SLAB-001 | Slab span > ⟨placeholder⟩ for its thickness/material | all | advisory | span/depth ratio rules exist per code. |
-| R-MAT-001 | Material incompatible with the selected system | all | critical | Ties to R-20. |
-| R-FOUND-001 | Ground-floor bearing wall placed off the original footprint | renovation mode | advisory | Q-020. |
+Order = engineer contact's ranking (E-02, 2026-11-17: "most common real-world mistakes when residents renovate"). Review levels per ADR-041. "Engineer hint" = a value recalled from memory or marked check: **not a source**, stays `UNSOURCED – placeholder` until a clause is confirmed.
+
+| # | ID | Rule | Applies to | Severity | Review | Notes / engineer hints |
+|---|---|---|---|---|---|---|
+| 1 | R-WALL-002 | Load-bearing wall deleted or moved | masonry (all walls by default, ADR-017) | critical | rule: VERIFIED-UNSIGNED (E-02) | "Error no. 1 in renovations." Needs a baseline (original plan) to compare. |
+| 2 | R-OPEN-NEW | New or widened opening in a load-bearing wall, vs the original plan | masonry | critical / warning | rule: VERIFIED-UNSIGNED (E-02) | **New.** "Most real problems start with 'I only widened the door'." Needs the baseline snapshot (Q-104). |
+| 3 | R-WALL-004 | Chase cut in a load-bearing wall for pipes/wiring, esp. horizontal | masonry | warning | rule: VERIFIED-UNSIGNED (E-02) | **New.** Reduces the resisting section. NBR 16868 restricts embedded pipes — clause → E-33. Needs a "chase" element (Phase 2+). |
+| 4 | R-OPEN-001 | Opening in a load-bearing wall without a lintel (or without an element designed to span it) | masonry | warning | rule: VERIFIED-UNSIGNED (E-06); clause: UNVERIFIED (E-30) | Spike B: presence check, no threshold. Opening reaching the tie beam/slab: that element **is** the lintel — text: "the element above the opening must have been designed to span it". **No small-opening exception** without a source. Arching may reduce the lintel's load, never removes it. |
+| 5 | R-OPEN-006 | Window without a sill reinforcement (contraverga) | masonry | advisory | rule: VERIFIED-UNSIGNED (E-02) | **New.** Classic 45° crack at the lower window corner. Good practice → advisory. |
+| 6 | R-OPEN-002 | Lintel bearing length each side < ⟨placeholder⟩ | masonry | warning | UNVERIFIED | Engineer hint: common practice 20 cm (NBR 8545 for partitions, check); in modular masonry "half a block to one block" each side → **cm or modules?** (E-34). |
+| 7 | R-OPEN-003 | Pier between two openings narrower than ⟨placeholder⟩ | structural masonry | warning / critical | UNVERIFIED | Local bearing at lintel supports governs narrow piers (VC-004 note). |
+| 8 | R-OPEN-004 | Opening closer than ⟨placeholder⟩ to a wall end or junction | structural masonry | warning | UNVERIFIED | |
+| 9 | R-WALL-005 | Load-bearing wall without vertical continuity (standing on a slab or over an opening) | masonry, multi-storey / extensions | critical | rule: VERIFIED-UNSIGNED (E-02) | **New.** Typical of extensions ("puxadinho") and added upper floors. Phase 5 for full multi-storey. |
+| 10 | R-WALL-001 | Wall slenderness (effective height / effective thickness) > ⟨placeholder⟩ | masonry | warning | UNVERIFIED | Engineer hint (memory, check): λ limit 24 unreinforced / 30 reinforced; reduction R = 1 − (λ/40)³ — item number → E-35. |
+| — | R-WALL-003 | Free-standing wall end longer than ⟨placeholder⟩ | masonry | advisory | UNVERIFIED | Later. |
+| — | R-BRACE-001 | Bracing length in X (or Y) < ⟨ratio⟩ of the building dimension | masonry | warning | UNVERIFIED | Later: "rarely the problem in a single-storey house with walls both ways". |
+| — | R-OPEN-005 | Total opening length > ⟨ratio⟩ of the wall length | masonry | advisory | UNVERIFIED | Later. |
+| — | R-WALL-006 | Load-bearing wall thinner than ⟨placeholder⟩ | structural masonry | warning | UNVERIFIED | **New.** Engineer hint (memory, check): 14 cm, with an exception for low buildings → E-36. |
+| — | R-JOINT-001 | Wall junction without bonding (no interlocking, no ties or grout) | structural masonry | warning | rule: VERIFIED-UNSIGNED (E-02) | **New.** Was hidden behind the simplification "connections assumed adequate" (removed, §7). Needs a junction-detail field. |
+| — | R-RING-001 | No top tie beam (cinta de respaldo) under the slab/roof | structural masonry | warning | rule: VERIFIED-UNSIGNED (E-02) | **New.** |
+| — | R-OPEN-007 | Opening overlaps another / passes the wall end / above the wall height | all | — | — | Was R-OPEN-006 (renumbered: 006 is now the contraverga rule). Not a finding: the editor already refuses these edits (invariants I-1…I-3). |
+| — | R-LOAD-001 | Upper-storey bearing wall not supported below | multi-storey | critical | UNVERIFIED | Phase 5 (overlaps R-WALL-005). |
+| — | R-LOAD-002 | Upper opening not aligned with the one below | multi-storey masonry | advisory | UNVERIFIED | Phase 5. |
+| — | R-COL-001 | Column removed → beam/slab loses support | RC frame | critical | UNVERIFIED | RC pack (later). |
+| — | R-SLAB-001 | Slab span > ⟨placeholder⟩ for its thickness | all | advisory | UNVERIFIED | |
+| — | R-MAT-001 | Material incompatible with the selected system | all | critical | UNVERIFIED | Ties to R-20. |
+| — | R-FOUND-001 | Ground-floor bearing wall off the original footprint | renovation | advisory | UNVERIFIED | Q-020. |
+
+**Construction system (E-01, 2026-11-17):** the project asks for it up front — structural masonry · reinforced-concrete frame + infill · **"não sei" (don't know)** → apply the masonry rules (conservative) and say that this is the assumption. Old solid-brick houses without columns ("alvenaria resistente") are **not** standardized structural masonry: say so, don't apply the masonry pack silently. The RC pack comes later (its rules need columns/beams the beginner can't model yet).
 
 ## 4. Tier 1 calculators (candidates)
 
@@ -146,7 +157,10 @@ Hand:   I  = 0.14 × 0.20³ / 12 = 0.14 × 0.008 / 12 = 9.3333·10⁻⁵ m⁴
         δ  = 5 × 8.0 × 1.20⁴ / (384 × 25·10⁶ × 9.3333·10⁻⁵)
            = 5 × 8.0 × 2.0736 / (384 × 2333.33) = 82.944 / 896 000 = 9.257·10⁻⁵ m
 Expected: M = 1.44 kN·m · V = 4.80 kN · reactions 4.80 + 4.80 = 9.60 kN = w·L ✔ · δ = 0.0926 mm
-Status: draft
+Status: draft · Review (E-22, 2026-11-17): arithmetic ✅ VERIFIED-UNSIGNED (ADR-041; brief numbered it VC-001).
+        ⚠️ FORMULA TEST ONLY: E = 25 000 MPa is a concrete modulus (a grouted masonry lintel is far
+        softer) and δ uses the uncracked gross section — a real RC lintel works cracked, deflecting
+        several times more. Never show this δ to users as realistic.
 
 VC-001b — Same formulas, second case (CLAUDE.md: ≥ 2 cases per calculator)
 Input:  L = 2.00 m · w = 12.0 kN/m · b × h = 0.14 × 0.30 m · E = 25·10⁶ kN/m²
@@ -154,18 +168,32 @@ Hand:   I = 0.14 × 0.027 / 12 = 3.15·10⁻⁴ m⁴
         M = 12 × 4 / 8 = 6.00 kN·m · V = 12 × 2 / 2 = 12.0 kN
         δ = 5 × 12 × 16 / (384 × 25·10⁶ × 3.15·10⁻⁴) = 960 / 3 024 000 = 3.175·10⁻⁴ m
 Expected: M = 6.00 kN·m · V = 12.0 kN · δ = 0.317 mm
-Status: draft
+Status: draft · Review (E-22, 2026-11-17): arithmetic ✅ VERIFIED-UNSIGNED (ADR-041; brief numbered it VC-002). Same ⚠️ as VC-001a: formula test only.
 
-VC-002 — One-way slab, tributary load to two parallel walls
+VC-002 — One-way slab (precast joist slab, joists spanning 4 m), tributary load to two parallel walls
 Source: hand calc by Claude (AI), 2026-11-16. Method: one-way slab simply supported on two
         parallel walls → each wall takes half the span ("tributary width" = span / 2).
+        ⚠️ One-way BY CONSTRUCTION (joists, "laje de vigota"), not by proportion: a solid slab of
+        4 × 6 m (ratio 1.5 < 2) spans both ways → VC-002b (engineer, E-22).
 Input:  walls W-1 and W-2 parallel, 6.0 m long, 4.0 m apart (slab span L = 4.0 m, spans W-1 → W-2)
         q = 5.0 kN/m² total on the slab (given)
 Hand:   line load on each wall = q × L / 2 = 5.0 × 4.0 / 2 = 10.0 kN/m
         total per wall = 10.0 × 6.0 = 60.0 kN
         check: whole slab = 5.0 × 4.0 × 6.0 = 120 kN = 60 + 60 ✔ (no load lost or created)
 Expected: 10.0 kN/m on W-1 and on W-2; 0 on the two short end walls (one-way assumption)
-Status: draft · ❓ the "0 on end walls" is what one-way means; two-way slabs (45° rule, §4 item 2) are a separate case.
+Status: draft · Review (E-22, 2026-11-17): arithmetic ✅ VERIFIED-UNSIGNED (ADR-041; brief numbered it VC-003). Premise corrected as above.
+
+VC-002b — Two-way solid slab on four walls, 45° yield-line (envelope) split
+Source: hand calc by Claude (AI), 2026-11-17, method suggested by the engineer contact (E-22;
+        reference: support reactions of slabs in NBR 6118 — item number to check, E-30).
+Input:  same slab 4.0 × 6.0 m, q = 5.0 kN/m², supported on all four walls
+Hand:   lines at 45° from each corner split the slab into 2 triangles (short sides) + 2 trapezoids
+        triangle on a 4 m wall: base 4.0, height 2.0 → area = 4.0 × 2.0 / 2 = 4.0 m² → 20.0 kN
+            → 20.0 / 4.0 = 5.0 kN/m
+        trapezoid on a 6 m wall: (24.0 − 2 × 4.0) / 2 = 8.0 m² → 40.0 kN → 40.0 / 6.0 = 6.667 kN/m
+        check: 20 + 20 + 40 + 40 = 120 kN = 5.0 × 4.0 × 6.0 ✔
+Expected: 6.667 kN/m on each 6 m wall · 5.0 kN/m on each 4 m wall (vs 10.0 / 0 one-way, VC-002)
+Status: draft (new; not yet reviewed)
 
 VC-003 — Two-storey load takedown on one wall
 Source: hand calc by Claude (AI), 2026-11-16. Method: add loads from top to bottom; a wall's
@@ -181,7 +209,10 @@ Hand:   self-weight per storey = 0.14 × 2.70 × 14 = 5.292 kN/m
         base of ground wall    = 21.292 + 5.292           = 26.584 kN/m
         stress at base, per 1 m of wall: σ = N / (t × 1 m) = 26.584 / 0.14 = 189.9 kN/m² = 0.190 MPa
 Expected: N = 26.584 kN/m · σ = 0.1899 MPa (no slenderness reduction, no safety factors)
-Status: draft · ❓ engineer: is "own weight at the base" the convention you'd show a beginner? (E-22)
+Status: draft · Review (E-22, 2026-11-17): arithmetic ✅ VERIFIED-UNSIGNED (ADR-041; brief numbered it VC-004). "Own weight at the base" OK as a first method for
+        compression, not as a complete check (buckling/slenderness uses a reduction factor). Ignores
+        load sharing between bonded walls (spread at ~45°). Gross area is consistent with NBR 16868.
+        γ = 14 kN/m³ plausible for hollow concrete block without grout — still a given test input.
 
 VC-004 — Pier between two openings, redistributed load
 Source: hand calc by Claude (AI), 2026-11-16. Method (simplified, §4 item 6): the load that would
@@ -195,7 +226,10 @@ Hand:   pier's own share       = 0.80 × 20 = 16.0 kN
         pier stress σ = P / (0.80 × 0.14) = 38.0 / 0.112 = 339.3 kN/m² = 0.339 MPa
         cross-check: without the openings the same 0.80 m would carry 16 kN → ×2.375
 Expected: P = 38.0 kN · σ = 0.3393 MPa
-Status: draft · ❓ engineer: is "half to each side" acceptable as the first simplified method? (E-21)
+Status: draft · Review (E-22, 2026-11-17): arithmetic ✅ VERIFIED-UNSIGNED (ADR-041; brief numbered it VC-005). "Half to each side" OK for the TOTAL reaching each side;
+        wrong as a picture of how it reaches the pier: it arrives concentrated at the lintel bearings
+        (pier edges), so the local bearing stress is much higher than 0.339 MPa — that check governs
+        narrow piers (future case; clause → E-31).
 
 VC-005 — Self-weight of a wall with one opening (subtract the opening!)
 Source: hand calc by Claude (AI), 2026-11-16.
@@ -207,7 +241,8 @@ Hand:   gross face area = 4.00 × 2.70 = 10.80 m²
         weight          = 1.3104 × 14 = 18.346 kN
         the classic bug (no subtraction): 10.80 × 0.14 × 14 = 21.168 kN → +15.4 % too high
 Expected: 18.346 kN (and a test that FAILS if the opening isn't subtracted)
-Status: draft · Not included: lintel/frame weight, finishes (plaster) — a later case.
+Status: draft · Not included: lintel/frame weight, finishes (plaster) — a later case. Not in the
+        batch-1 brief (not reviewed) → E-32.
 ```
 
 Still to write (later): two-way slab (45° rule), lintel with triangular/arching load (Q-033), wall with two openings + pier (VC-004 + VC-005 combined).
@@ -218,13 +253,26 @@ Every placeholder threshold/material value lives here until verified.
 
 | Key | Value | Unit | Profile | Source | Status |
 |---|---|---|---|---|---|
-| *(empty)* | | | | | |
+| r-wall-001.lambda-max | 24 unreinforced / 30 reinforced (memory) | — | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-35) | UNVERIFIED |
+| r-wall-001.reduction | R = 1 − (λ/40)³ (memory) | — | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-35) | UNVERIFIED |
+| r-wall-006.t-min | 140 (memory; exception for low buildings) | mm | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-36) | UNVERIFIED |
+| r-open-002.bearing-min | 200 (common practice) or ½–1 block (modular) | mm / modules | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-34) | UNVERIFIED |
+| masonry.E | ≈ 800·f_pk (concrete block) / 600·f_pk (ceramic) (memory) | MPa | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-37) | UNVERIFIED |
 
 ## 7. Known simplifications (shown to users)
 
-- No foundations/soil.
-- No lateral analysis beyond rule-of-thumb bracing checks.
-- Linear elastic assumptions; no cracking/creep.
+Revised with the engineer contact (E-05, 2026-11-17). Shown as part of "what was NOT checked" (SAFETY: no single "no issues" sentence, no green).
+
+- Doesn't consider foundations or soil (including extra load on an existing foundation).
+- No lateral analysis (wind) beyond rule-of-thumb bracing checks.
+- **Calculations are textbook estimates, without the code's safety factors** (was "linear elastic; no cracking/creep" — technically odd: NBR 16868 designs at the ultimate limit state).
+- **Doesn't check connections** (wall–wall bonding, wall–slab, wall–roof) (was "connections assumed adequate", which reads as "checked and OK").
+- Doesn't check material strength (block, prism, mortar, grout) or whether the block used is the designed one.
+- Doesn't know whether the drawing matches the real building (a wall drawn as block may be something else; an opening may already have been cut).
+- Doesn't consider existing damage: cracks, damp, settlement, corroded lintel reinforcement — **a cracked wall can show no findings**.
+- Doesn't consider new loads from the renovation: water tank, new slab, a second floor, a heavier roof, planters.
+- Doesn't consider roof thrust (unbraced trusses/rafters pushing the top of the wall).
+- Doesn't consider point loads or load sharing between walls (spread at ~45°, wall groups).
+- Doesn't consider construction sequence or shoring: opening a wall without propping is dangerous even if the final layout is fine.
 - Walls treated as uniform; no workmanship variability.
-- Connections assumed adequate.
 - Openings rectangular.
