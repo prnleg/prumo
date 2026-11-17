@@ -54,6 +54,8 @@ function fakePlatform(
     listAppFiles: async (dir) =>
       [...app.keys()].filter((n) => n.startsWith(`${dir}/`)).map((n) => n.slice(dir.length + 1)),
     removeAppFile: async (n) => void app.delete(n),
+    appVersion: async () => "test",
+    openUrl: async () => false,
   };
   return { p, writes, asked, app };
 }

@@ -12,6 +12,12 @@ export const en = {
   "start.blank.desc": "An empty plan. Draw your own rooms and walls.",
   "start.open": "Open a file…",
   "start.close": "Close",
+  "crash.message":
+    "Something went wrong. Prumo wrote the details to a log on this computer (without file names or paths). Your drawing is still here: saving now is a good idea.",
+  "crash.report": "Report on GitHub",
+  "crash.dismiss": "Dismiss",
+  "crash.linkCopied": "Report link copied. Paste it in your browser: you'll see the report before sending it.",
+  "crash.copyFailed": "Couldn't copy the report link. The details are in Prumo's crash log.",
   "recovery.title": "Recover unsaved work?",
   "recovery.intro":
     "Prumo closed before these changes were saved. Each copy is kept until you recover and save it, or discard it.",
@@ -226,6 +232,12 @@ export const ptBR: Record<MessageKey, string> = {
   "start.blank.desc": "Uma planta vazia. Desenhe seus próprios cômodos e paredes.",
   "start.open": "Abrir um arquivo…",
   "start.close": "Fechar",
+  "crash.message":
+    "Algo deu errado. O Prumo anotou os detalhes num registro neste computador (sem nomes de arquivo nem caminhos). Seu desenho continua aqui: é uma boa ideia salvar agora.",
+  "crash.report": "Relatar no GitHub",
+  "crash.dismiss": "Fechar",
+  "crash.linkCopied": "Link do relato copiado. Cole no navegador: você verá o relato antes de enviar.",
+  "crash.copyFailed": "Não foi possível copiar o link do relato. Os detalhes estão no registro de erros do Prumo.",
   "recovery.title": "Recuperar trabalho não salvo?",
   "recovery.intro":
     "O Prumo fechou antes de salvar estas alterações. Cada cópia fica guardada até você recuperar e salvar, ou descartar.",

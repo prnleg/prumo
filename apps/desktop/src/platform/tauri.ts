@@ -1,5 +1,6 @@
 // Desktop platform (ADR-036): official dialog + fs plugins. Files the user picks, plus Prumo's own
 // app-data folder (ADR-037: settings, later recovery copies). Nothing else is reachable.
+import { getVersion } from "@tauri-apps/api/app";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
@@ -82,4 +83,7 @@ export const tauriPlatform: Platform = {
   async removeAppFile(name) {
     if (await exists(name, AppData)) await remove(name, AppData);
   },
+  appVersion: () => getVersion(),
+  // Opening the system browser needs tauri-plugin-opener → ADR-039 (PROPOSED). Until then: copy the link.
+  openUrl: async () => false,
 };

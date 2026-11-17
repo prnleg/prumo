@@ -30,7 +30,6 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 - **Q-089 🟡** 3D walls up/cutaway/down toggle? Default: yes, Phase 4.
 - **Q-092 🟠** Identity = a local display name, no accounts? Default: yes.
 - **Q-093 🟠** Notes on elements in Phase 2? Default: yes.
-- **Q-095 🟡** v1 crash reporting = local log + "Report on GitHub"? Default: yes.
 - **Q-097 🟡** Stairs/multi-floor: Phase 5.
 - **Q-098 🟡** Roofs: flat roof = slab until later.
 - **Q-100 🟡** Curved walls: not v1.
@@ -82,6 +81,8 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 ---
 
 ## Resolved
+
+- **Q-095** — v1 crash reporting = local log + "Report on GitHub" (owner: "easy and direct"). Implemented; browser opening waits for ADR-039. — 2026-11-17
 
 - **Q-134** — Outside junctions: outside walls are drawn by their outside face (ADR-038, project setting, on for new projects). Inside junctions: mismatch is fine (owner). — 2026-11-17
 
