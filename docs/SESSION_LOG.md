@@ -609,3 +609,13 @@ Owner merged opener + wall-length and said to focus on fixes. Branch `phase1/fix
 **Known side effect (logged in EDITING_OPERATIONS)**: pasting a room so one of its walls lands on a neighbour's wall is now refused (before: silently doubled walls). Merge-on-paste could come later.
 
 **Still waiting on the owner**: midpoint/perpendicular snapping (a feature, not a fix); next Phase 1 feature (room separator / polygon rooms / module manager / tour).
+
+### Session #11, part 30 — gentle snapping assists, 2026-11-17
+
+Owner: midpoint/perpendicular snapping yes, "smoothly and not instantly … like an assurance, to make it close perfectly"; next feature = room divider. Branch `phase1/snap-assist` from main.
+
+**Done**: core `snap` gets `segments` + `assistRadiusPx` (8 px, smaller than endpoints' 12 px) → `midpoint` and `perpendicular` kinds (foot of the perpendicular from the wall's fixed end, only on the wall body). Wall tool: both; room tool: midpoint. Plan view draws ▲ / ⊾ marks. Wall hint mentions them (pt-BR/en). Dev `?demo=snap`.
+
+**Tests**: 282 (+3): midpoint within 64 mm yes / 100 mm no at 0.1 px/mm; right-angle foot on a 3-4-5 wall from (0, 5000) = (2400, 1800) (t = 15e6 / 25e6 = 0.6), dot product 0; endpoint wins; Alt free. Screenshot: 4.00 m wall square to the slanted one.
+
+**Interpretation logged**: "not instantly" = small capture radius + lower priority than ends (no time delay; a delay would make clicks unpredictable).

@@ -259,7 +259,16 @@ function wheel(e: WheelEvent) {
       :height="(box.maxY - box.minY) * view.scale"
     />
     <g v-if="hover" class="cursor" :class="hover.kind">
-      <circle :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
+      <!-- assists get their own mark: ▲ wall middle, ⊾ right angle -->
+      <polygon
+        v-if="hover.kind === 'midpoint'"
+        :points="`${S(hover.point).x},${S(hover.point).y - 6} ${S(hover.point).x - 6},${S(hover.point).y + 4} ${S(hover.point).x + 6},${S(hover.point).y + 4}`"
+      />
+      <path
+        v-else-if="hover.kind === 'perpendicular'"
+        :d="`M${S(hover.point).x - 6},${S(hover.point).y - 6} V${S(hover.point).y + 6} H${S(hover.point).x + 6} M${S(hover.point).x - 6},${S(hover.point).y} H${S(hover.point).x} V${S(hover.point).y + 6}`"
+      />
+      <circle v-else :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
     </g>
     <g class="labels">
       <text v-for="(l, k) in labels ?? []" :key="k" :x="S(l.at).x + 12" :y="S(l.at).y - 12">{{ l.text }}</text>
@@ -358,13 +367,16 @@ function wheel(e: WheelEvent) {
   stroke-width: 1;
   stroke-dasharray: 4 3;
 }
-.cursor circle {
+.cursor circle,
+.cursor polygon,
+.cursor path {
   fill: none;
   stroke: var(--accent);
   stroke-width: 1.5;
   pointer-events: none;
 }
-.cursor.endpoint circle {
+.cursor.endpoint circle,
+.cursor.midpoint polygon {
   fill: var(--accent);
 }
 .labels text {

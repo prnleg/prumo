@@ -198,7 +198,8 @@ export const en = {
   "hint.room.idle": "Click one corner of the room. Sides it shares with existing walls are reused.",
   "hint.room.active": "Click the opposite corner. Esc to cancel.",
   "hint.wall.idle": "Click to start a wall.",
-  "hint.wall.active": "Click to place the end. Click the first point to close a room. Esc or double-click to stop.",
+  "hint.wall.active":
+    "Click to place the end. Click the first point to close a room. Near a wall's middle (▲) or square to it (⊾) it locks on. Esc or double-click to stop.",
   "hint.opening":
     "Move over a wall and click to place a {kind, select, door {door} other {window}}. It snaps to the middle, the ends, and next to other openings. Hold Alt to place freely.",
   "hint.opening.tooShort": "This wall is too short for this {kind, select, door {door} other {window}}.",
@@ -424,7 +425,7 @@ export const ptBR: Record<MessageKey, string> = {
   "hint.room.active": "Clique no canto oposto. Esc para cancelar.",
   "hint.wall.idle": "Clique para começar uma parede.",
   "hint.wall.active":
-    "Clique para marcar o fim. Clique no primeiro ponto para fechar um cômodo. Esc ou clique duplo para parar.",
+    "Clique para marcar o fim. Clique no primeiro ponto para fechar um cômodo. Perto do meio de uma parede (▲) ou em esquadro com ela (⊾) o ponto se prende. Esc ou clique duplo para parar.",
   "hint.opening":
     "Passe sobre uma parede e clique para colocar uma {kind, select, door {porta} other {janela}}. Ela se encaixa no meio, nas pontas e ao lado de outras aberturas. Mantenha Alt apertado para posicionar livremente.",
   "hint.opening.tooShort": "Esta parede é curta demais para esta {kind, select, door {porta} other {janela}}.",

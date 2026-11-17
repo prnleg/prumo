@@ -1,6 +1,10 @@
 // Snapping (ADR-031 / Q-087 defaults: 10 cm grid, 15° steps, Alt = free) + endpoint snap.
-// Pure and deterministic; the UI passes the zoom so screen-pixel radii become mm.
-import { dist, type V } from "./vec";
+// Assists (owner 2026-11-17: "smoothly, not instantly … an assurance, to make it close perfectly"):
+// a wall's midpoint, and the point where the new wall meets another wall at a right angle. They have a
+// SMALL capture radius, so they only take over when the pointer is already almost there.
+// Priority: endpoint > midpoint > right angle > 15°/grid. Pure and deterministic; the UI passes the
+// zoom so screen-pixel radii become mm.
+import { add, dist, dot, mul, sub, type V } from "./vec";
 
 export interface SnapSettings {
   /** Grid step, mm. */
@@ -9,11 +13,13 @@ export interface SnapSettings {
   angleStepDeg: number;
   /** Endpoint capture radius, screen px. */
   endpointRadiusPx: number;
+  /** Midpoint / right-angle capture radius, screen px (small on purpose: a gentle assist). */
+  assistRadiusPx: number;
 }
 
-export const DEFAULT_SNAP: SnapSettings = { grid: 100, angleStepDeg: 15, endpointRadiusPx: 12 };
+export const DEFAULT_SNAP: SnapSettings = { grid: 100, angleStepDeg: 15, endpointRadiusPx: 12, assistRadiusPx: 8 };
 
-export type SnapKind = "free" | "endpoint" | "grid" | "angle";
+export type SnapKind = "free" | "endpoint" | "midpoint" | "perpendicular" | "grid" | "angle";
 
 export interface SnapInput {
   cursor: V;
@@ -21,6 +27,8 @@ export interface SnapInput {
   from?: V | undefined;
   /** Existing wall ends to snap onto. */
   endpoints: readonly V[];
+  /** Existing wall centre lines (midpoint + right-angle assists). Optional. */
+  segments?: readonly (readonly [V, V])[];
   /** Screen px per mm. */
   scale: number;
   /** Alt held: no snapping at all. */
@@ -48,6 +56,40 @@ export function snap(i: SnapInput): { point: V; kind: SnapKind } {
     }
   }
   if (best) return { point: { x: best.x, y: best.y }, kind: "endpoint" };
+
+  const ra = i.settings.assistRadiusPx / i.scale;
+  const nearest = (cands: V[]) => {
+    let b: V | null = null;
+    let bd = Infinity;
+    for (const c of cands) {
+      const d = dist(c, i.cursor);
+      if (d <= ra && (d < bd || (d === bd && b && (c.x < b.x || (c.x === b.x && c.y < b.y))))) {
+        b = c;
+        bd = d;
+      }
+    }
+    return b;
+  };
+  const segs = i.segments ?? [];
+  const mid = nearest(segs.map(([a, b]) => ({ x: q((a.x + b.x) / 2), y: q((a.y + b.y) / 2) })));
+  if (mid) return { point: mid, kind: "midpoint" };
+  if (i.from) {
+    const from = i.from;
+    // foot of the perpendicular from the fixed end onto each wall line, if it lies on the wall
+    const feet: V[] = [];
+    for (const [a, b] of segs) {
+      const e = sub(b, a);
+      const L2 = dot(e, e);
+      if (!L2) continue;
+      const t = dot(sub(from, a), e) / L2;
+      if (t <= 0 || t >= 1) continue;
+      const f = add(a, mul(e, t));
+      if (dist(f, from) > 1e-6) feet.push({ x: q(f.x), y: q(f.y) });
+    }
+    const foot = nearest(feet);
+    if (foot) return { point: foot, kind: "perpendicular" };
+  }
+
   const g = i.settings.grid;
   if (i.from) {
     const dx = i.cursor.x - i.from.x;

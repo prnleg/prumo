@@ -127,14 +127,14 @@ export class WallTool {
   }
 
   private snapAt(p: PointerInfo) {
-    const endpoints = wallsOnLevel(this.h.current, this.options.levelId)
-      .filter((w) => w.id !== this.segmentId)
-      .flatMap((w) => [w.start, w.end]);
+    const walls = wallsOnLevel(this.h.current, this.options.levelId).filter((w) => w.id !== this.segmentId);
+    const endpoints = walls.flatMap((w) => [w.start, w.end]);
     if (this.chainStart) endpoints.push(this.chainStart);
     return snap({
       cursor: p.at,
       from: this.from ?? undefined,
       endpoints,
+      segments: walls.map((w) => [w.start, w.end] as const),
       scale: p.scale,
       free: p.free,
       settings: this.options.snap,
