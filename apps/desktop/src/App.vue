@@ -880,6 +880,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
+/* narrow windows: the toolbar wraps onto a second row instead of overflowing (row height is auto) */
+.toolbar {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
 .status {
   border-top: 1px solid var(--line);
   border-bottom: none;
