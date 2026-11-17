@@ -23,6 +23,8 @@ describe("UI i18n (ADR-021/034)", () => {
             error: "disk full",
             modules: "org.example.electrical",
             time: "17 nov 2026 13:40",
+            n: 1,
+            total: 8,
           }),
         ).not.toThrow();
     }
