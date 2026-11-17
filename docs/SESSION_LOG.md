@@ -531,3 +531,9 @@ Branch `phase1/app-data`.
 **Inferences/defaults logged**: write failures are silent (a lost preference isn't worth a popup); the grid preference applies to blank projects only, not examples (examples are fixed content); prefs are read once at launch.
 
 **Next**: 8c autosave + recovery copies.
+
+### Session #11, part 23 — Q-134 owner answers, menu bar idea, 2026-11-17
+
+Owner: "outside" = the outside of each block (connected wall group), even inside another block; option A (move geometry, not only drawing); settings belong in a settings area; a menu bar (File, Toolbox, …, later Modules/Plugins) will be needed → **Q-138** (not now).
+
+**Follow-up asked (not implemented):** today walls are drawn by their centre line, so "outer faces flush" can't be kept by alignment alone when thicknesses differ. Proposal: outside walls are anchored by their **outside face** (the line you draw = the outside face, thickness grows inward); room tool does it from the first click; free-drawn walls switch when their block closes (body shifts inward by half the thickness at that moment). Lean medium.
