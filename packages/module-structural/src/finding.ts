@@ -48,6 +48,8 @@ export interface CheckContext {
   levelId: Id;
   /** The project's stated system. */
   system: ConstructionSystem;
+  /** "The existing building" (ADR-043), or null when none is marked. */
+  baseline: Project | null;
 }
 
 export interface RuleDef {
@@ -62,6 +64,8 @@ export interface RuleDef {
   notConsidered: string[];
   /** Systems whose rules include this one (after "unknown" → masonry). */
   appliesTo: ConstructionSystem[];
+  /** Compares with the existing building: doesn't run (listed as not checked) until one is marked. */
+  needsBaseline?: boolean;
   run(ctx: CheckContext): Finding[];
 }
 

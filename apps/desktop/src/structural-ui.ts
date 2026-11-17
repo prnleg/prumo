@@ -31,6 +31,8 @@ export const assumptionText = (a: AssumptionUse, project: Project, locale: Local
 
 export interface RuleCard {
   rule: RuleDef;
+  /** Worst severity among its findings (a rule may grade findings differently, e.g. new vs enlarged). */
+  severity: Finding["severity"];
   findings: Finding[];
   /** Distinct assumptions across the card (by text), in order. */
   assumptions: string[];
@@ -57,8 +59,9 @@ export function cards(
         if (!first) return "";
         return distinct.size > 1 ? translate(locale, `${first.key}.many`) : assumptionText(first, project, locale);
       });
-      return { rule, findings: fs, assumptions };
+      const severity = fs.map((f) => f.severity).sort((a, b) => SEV[a] - SEV[b])[0] ?? rule.severity;
+      return { rule, severity, findings: fs, assumptions };
     })
     .filter((c) => c.findings.length)
-    .sort((a, b) => SEV[a.rule.severity] - SEV[b.rule.severity] || (a.rule.id < b.rule.id ? -1 : 1));
+    .sort((a, b) => SEV[a.severity] - SEV[b.severity] || (a.rule.id < b.rule.id ? -1 : 1));
 }

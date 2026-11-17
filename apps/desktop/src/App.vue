@@ -336,7 +336,7 @@ function recheck(keepDiff = true) {
     checks.value = null;
     return;
   }
-  const next = runChecks(history.current, level.value);
+  const next = runChecks(history.current, level.value, { baseline: session.baselineProject() });
   checksDiff.value = keepDiff && checks.value ? diffFindings(checks.value.findings, next.findings) : null;
   checks.value = next;
 }
@@ -946,6 +946,21 @@ if (demo === "shape") {
   sync();
   setTimeout(fitAll, 0);
 }
+if (demo === "renovation") {
+  const house = EXAMPLES.find((e) => e.id === "house");
+  if (house)
+    void startExample(house).then(() => {
+      session.markBaseline();
+      const els = Object.values(history.current.elements);
+      const bath = els.find((e) => e.type === "wall" && e.start.x === 7000);
+      const win = els.find((e) => e.type === "opening" && e.kind === "window" && e.width === 1500);
+      if (bath) run(deleteCommand(history.current, [bath.id]));
+      if (win)
+        run(updateCommand({ key: "cmd.edit" }, [win.id], (e) => (e.type === "opening" ? { ...e, width: 2000 } : e)));
+      recheck(true);
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "divider") {
   // open living room + kitchen: one 8 × 4 m box split by a divider at 5 m
   const P = (x: number, y: number) => ({ at: { x, y }, scale: 0.1, free: false });
@@ -1186,6 +1201,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :project="project"
         :result="checks"
         :diff="checksDiff"
+        :baseline="(void tick, session.baselineDate())"
+        @mark="session.markBaseline()"
+        @clear-baseline="session.clearBaseline()"
         @select="selectFromCheck"
         @system="showSettings = true"
       />

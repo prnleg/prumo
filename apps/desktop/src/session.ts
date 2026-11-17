@@ -5,6 +5,7 @@ import {
   openWithModules,
   removeModuleCommand,
   saveProjectFile,
+  setBaselineCommand,
   snapshotBefore,
   type History,
   type IdSource,
@@ -79,6 +80,40 @@ export class Session {
     } catch {
       return false; // e.g. disk full: try again next time; the document itself is untouched
     }
+  }
+
+  // --- "the existing building" (ADR-043) --------------------------------------------------------
+
+  /** The marked existing building, or null. */
+  baselineProject(): Project | null {
+    const id = this.history.current.settings.baseline;
+    return (id && this.snapshots.find((s) => s.id === id)?.project) || null;
+  }
+
+  /** When it was marked (ISO), or null. */
+  baselineDate(): string | null {
+    const id = this.history.current.settings.baseline;
+    return (id && this.snapshots.find((s) => s.id === id)?.createdAt) || null;
+  }
+
+  /**
+   * Mark the current plan as the existing building: a named snapshot in the file + an undoable pointer
+   * to it (so the document becomes unsaved). Undo removes the pointer; the snapshot stays in the file's
+   * history (snapshots aren't part of undo).
+   */
+  markBaseline(): void {
+    const { baseline: _old, ...settings } = this.history.current.settings;
+    void _old;
+    const snap = snapshotBefore(
+      { ...this.history.current, settings },
+      { id: this.ids(), name: this.t("baseline.snapshotName"), now: this.now(), author: null },
+    );
+    this.snapshots = [...this.snapshots, snap];
+    this.history.execute(setBaselineCommand(snap.id));
+  }
+
+  clearBaseline(): void {
+    this.history.execute(setBaselineCommand(undefined));
   }
 
   listRecovery(): Promise<RecoveryEntry[]> {

@@ -31,6 +31,8 @@ describe("UI i18n (ADR-021/034)", () => {
             system: "Alvenaria estrutural",
             length: "4,00 m",
             width: "1,20 m",
+            before: "0,80 m",
+            date: "17 nov 2026 13:40",
           }),
         ).not.toThrow();
     }

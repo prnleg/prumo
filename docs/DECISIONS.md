@@ -470,3 +470,12 @@ Status: **ACCEPTED (2026-11-17, owner: "use defaults")**.
   - opening → `{ lintel?: true }` — absent = not specified → R-OPEN-001 applies.
   - Unknown fields are kept; an empty component is removed (no clutter). Mirroring changes nothing.
 - Findings: Spike B's shape + `review` (ADR-041 level, reviewer, date, question id). Rule strings live in the desktop catalogue for now (same as Architect's; module-owned catalogues later, ADR-021).
+
+## ADR-043 — "The existing building" (baseline) for renovation checks
+Status: **ACCEPTED (2026-11-17, owner: "Yes")**.
+Context: the engineer's top two rules (E-02: R-WALL-002 load-bearing wall removed/moved, R-OPEN-NEW opening added/enlarged) compare the plan with the building as it was.
+Decision:
+- "Mark the current plan as the existing building" (checks panel) saves a **named snapshot** in the file (`snapshots[]`, same format as ADR-032's) and an undoable pointer **`project.settings.baseline = <snapshot id>`** (marking makes the document unsaved; undo removes the pointer; the snapshot stays in the file's history — snapshots aren't part of undo). "Mark again" adds a new snapshot; "Stop comparing" clears the pointer.
+- Rules with `needsBaseline` run only when one is marked; otherwise the panel lists them under "Not checked — needs the existing building" with the button.
+- Comparison is by element id within a level: a wall that was load-bearing (by the baseline's own marks + the system default) and is now gone / moved or resized by > 1 mm / no longer full or half → R-WALL-002 (critical). An opening in a load-bearing wall that is new (id not in the baseline, or on another wall) → R-OPEN-NEW critical; wider, or reaching lower/higher → warning ("critical / warning", E-02); slid along the wall → nothing.
+- Later: the compare view (Q-104) starts from the same snapshot.

@@ -118,6 +118,8 @@ export interface Project {
     gridSize: number;
     /** Outside walls keep their drawn line as the outside face (ADR-038). Missing = off (older files). */
     outsideFaces?: boolean;
+    /** Snapshot id of "the existing building" (ADR-043): renovation checks compare against it. */
+    baseline?: Id;
   };
 }
 

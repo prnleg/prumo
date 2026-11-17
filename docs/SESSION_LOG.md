@@ -693,3 +693,13 @@ Branch `phase2/structural-ui`, stacked on `phase2/structural-core`.
 **Lost and redone**: a script truncated App.vue (opened for write before reading); restored from git, the 4 lost edits redone. No harm, logged.
 
 **Next**: R-WALL-002 needs a baseline ("original plan") — design question (snapshot? Q-104); more presence rules need new data (contraverga flag, chases, tie beam) → small additions to ADR-042.
+
+### Session #11, part 39 — Phase 2 slice 3: the existing building + R-WALL-002 + R-OPEN-NEW, 2026-11-17
+
+Owner approved the baseline design → **ADR-043**. Branch `phase2/baseline`, stacked on `phase2/structural-ui`.
+
+**Done**: core `settings.baseline` (validated string) + `setBaselineCommand`; module-structural `CheckContext.baseline`, `RuleDef.needsBaseline`, `runChecks(p, level, { rules?, baseline? })` → `needBaseline` list; **R-WALL-002** and **R-OPEN-NEW** (VERIFIED-UNSIGNED E-02, UNSOURCED); Session `markBaseline` / `clearBaseline` / `baselineProject` / `baselineDate`; checks panel: "Mark the current plan as the existing building" / "Comparing with … marked on {date}" + Mark again / Stop comparing; "Not checked" lists rules waiting for it; card severity = worst finding (R-OPEN-NEW grades new vs enlarged). Dev `?demo=renovation`.
+
+**Tests**: 373 (+11): no baseline → listed not run; unchanged → nothing; removed (no element to point at) / moved 1 m / turned into a fence / 0.5 mm nudge ignored / was marked partition → may go; new door critical, widened warning, slid nothing, taller warning, moved to another wall = new; partition wall not this rule; session: mark → unsaved, snapshot without pointer, unaffected by later edits, survives save → open, undo clears.
+
+**Next**: rules needing new data (contraverga flag R-OPEN-006, tie beam R-RING-001, bonding R-JOINT-001, chases R-WALL-004 — small ADR-042 additions); ghost of a removed wall on the plan; Phase 2 exit needs ≥ 8 rules (have 4).

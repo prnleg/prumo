@@ -17,6 +17,8 @@ export function validateProject(p: Project): string[] {
   if (!isObj(p.settings) || !isNum(p.settings.gridSize)) errs.push("project.settings.gridSize must be a number");
   else if (p.settings.outsideFaces !== undefined && typeof p.settings.outsideFaces !== "boolean")
     errs.push("project.settings.outsideFaces must be a boolean");
+  else if (p.settings.baseline !== undefined && typeof p.settings.baseline !== "string")
+    errs.push("project.settings.baseline must be a string");
   if (errs.length) return errs;
 
   const levels = new Set<string>();

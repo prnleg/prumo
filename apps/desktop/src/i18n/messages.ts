@@ -108,6 +108,27 @@ export const en = {
   "settings.modules.tip":
     "Turning a module off hides its tools and checks on this computer. Its data stays in your files.",
   "cmd.setSystem": "change construction system",
+  "baseline.snapshotName": "Existing building",
+  "cmd.setBaseline": "mark the existing building",
+  "cmd.clearBaseline": "stop comparing with the existing building",
+  "checks.baseline.need":
+    "{count, plural, one {# renovation check needs} other {# renovation checks need}} the building as it is today. Draw it as it stands now, then mark it here.",
+  "checks.baseline.mark": "Mark the current plan as the existing building",
+  "checks.baseline.on": "Comparing with the existing building marked on {date}.",
+  "checks.baseline.again": "Mark again",
+  "checks.baseline.clear": "Stop comparing",
+  "checks.needsBaseline": "needs the existing building",
+  "rule.R-WALL-002.name": "Load-bearing wall removed or changed",
+  "rule.R-WALL-002.removed": "Possible issue: a {length} load-bearing wall of the existing building was removed.",
+  "rule.R-WALL-002.moved":
+    "Possible issue: a {length} load-bearing wall of the existing building was moved or resized.",
+  "rule.R-WALL-002.kind":
+    "Possible issue: a {length} load-bearing wall of the existing building is no longer a full or half wall.",
+  "rule.R-OPEN-NEW.name": "New or enlarged opening in a load-bearing wall",
+  "rule.R-OPEN-NEW.new": "Possible issue: {opening} is a new opening in {wall}.",
+  "rule.R-OPEN-NEW.enlarged": "Possible issue: {opening} in {wall} was enlarged (it was {before} wide).",
+  "nc.newSupport": "whether something new was built to carry the load",
+  "nc.shoring": "propping during the work",
   "cmd.setRole": "mark wall structure",
   "cmd.setLintel": "change lintel",
   "props.structure": "Structure",
@@ -483,6 +504,28 @@ export const ptBR: Record<MessageKey, string> = {
   "settings.modules.tip":
     "Desligar um módulo esconde as ferramentas e verificações dele neste computador. Os dados continuam nos seus arquivos.",
   "cmd.setSystem": "mudar sistema construtivo",
+  "baseline.snapshotName": "Construção existente",
+  "cmd.setBaseline": "marcar a construção existente",
+  "cmd.clearBaseline": "parar de comparar com a construção existente",
+  "checks.baseline.need":
+    "{count, plural, one {# verificação de reforma precisa} other {# verificações de reforma precisam}} da construção como ela é hoje. Desenhe como está agora e marque aqui.",
+  "checks.baseline.mark": "Marcar a planta atual como a construção existente",
+  "checks.baseline.on": "Comparando com a construção existente marcada em {date}.",
+  "checks.baseline.again": "Marcar de novo",
+  "checks.baseline.clear": "Parar de comparar",
+  "checks.needsBaseline": "precisa da construção existente",
+  "rule.R-WALL-002.name": "Parede estrutural removida ou alterada",
+  "rule.R-WALL-002.removed":
+    "Possível problema: uma parede estrutural de {length} da construção existente foi removida.",
+  "rule.R-WALL-002.moved":
+    "Possível problema: uma parede estrutural de {length} da construção existente foi movida ou mudou de tamanho.",
+  "rule.R-WALL-002.kind":
+    "Possível problema: uma parede estrutural de {length} da construção existente deixou de ser parede inteira ou meia parede.",
+  "rule.R-OPEN-NEW.name": "Vão novo ou ampliado em parede estrutural",
+  "rule.R-OPEN-NEW.new": "Possível problema: {opening} é um vão novo na {wall}.",
+  "rule.R-OPEN-NEW.enlarged": "Possível problema: {opening}, na {wall}, foi ampliada (tinha {before} de largura).",
+  "nc.newSupport": "se algo novo foi construído para carregar a carga",
+  "nc.shoring": "o escoramento durante a obra",
   "cmd.setRole": "marcar estrutura da parede",
   "cmd.setLintel": "mudar verga",
   "props.structure": "Estrutura",

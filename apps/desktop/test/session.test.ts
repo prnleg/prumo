@@ -250,3 +250,28 @@ describe("autosave + recovery (Q-111/126/129)", () => {
     expect(files(app)).toEqual([]);
   });
 });
+
+describe("the existing building (ADR-043)", () => {
+  it("marking snapshots the plan, is undoable, makes the file unsaved and survives save → open", async () => {
+    const f = fakePlatform();
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    await s.save();
+    expect(s.baselineProject()).toBeNull();
+    s.markBaseline();
+    expect(h.dirty).toBe(true);
+    expect(Object.keys(s.baselineProject()!.elements)).toEqual(["w"]);
+    expect(s.baselineProject()!.settings.baseline).toBeUndefined(); // no pointer inside the snapshot
+    expect(s.baselineDate()).toBe(NOW);
+    h.execute(putCommand({ key: "x" }, [{ ...wall, id: "w2", start: { x: 0, y: 3000 }, end: { x: 4000, y: 3000 } }]));
+    expect(Object.keys(s.baselineProject()!.elements)).toEqual(["w"]); // later edits don't change it
+    await s.save();
+    const g = fakePlatform({ open: { name: "casa.prumo", bytes: f.writes.at(-1)!.bytes, path: "/tmp/casa.prumo" } });
+    const two = setup(g.p);
+    await two.s.open();
+    expect(Object.keys(two.s.baselineProject()!.elements)).toEqual(["w"]);
+    h.undo();
+    h.undo();
+    expect(s.baselineProject()).toBeNull();
+  });
+});

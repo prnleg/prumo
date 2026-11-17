@@ -44,6 +44,19 @@ export function setOutsideFacesCommand(on: boolean): Command {
   };
 }
 
+/** Point "the existing building" at a snapshot (ADR-043), or clear it (undefined). One undo step. */
+export function setBaselineCommand(snapshotId: Id | undefined): Command {
+  return {
+    label: { key: snapshotId ? "cmd.setBaseline" : "cmd.clearBaseline" },
+    apply: (p) => {
+      if (p.settings.baseline === snapshotId) return p;
+      const { baseline: _old, ...rest } = p.settings;
+      void _old;
+      return { ...p, settings: snapshotId ? { ...rest, baseline: snapshotId } : rest };
+    },
+  };
+}
+
 export function setGridCommand(gridSize: number): Command {
   if (!(gridSize > 0) || !Number.isFinite(gridSize)) throw new RangeError(`grid must be > 0, got ${gridSize}`);
   return {
