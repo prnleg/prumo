@@ -619,3 +619,11 @@ Owner: midpoint/perpendicular snapping yes, "smoothly and not instantly … like
 **Tests**: 282 (+3): midpoint within 64 mm yes / 100 mm no at 0.1 px/mm; right-angle foot on a 3-4-5 wall from (0, 5000) = (2400, 1800) (t = 15e6 / 25e6 = 0.6), dot product 0; endpoint wins; Alt free. Screenshot: 4.00 m wall square to the slanted one.
 
 **Interpretation logged**: "not instantly" = small capture radius + lower priority than ends (no time delay; a delay would make clicks unpredictable).
+
+### Session #11, part 31 — room divider (ADR-040), 2026-11-17
+
+Owner chose A (wall kind "separator") + toolbar button and panel. Branch `phase1/divider`, stacked on `phase1/snap-assist`.
+
+**Done**: core `WallKind` + `"separator"`, `isDivider`; plan geometry keeps dividers out of joins/outline and lists them (`dividers`, 1 mm pick strip; hit test + box select); room detection closes on them with 0-offset faces; label obstacles use 0 thickness; openings refused on them; outside-faces rule skips them; opening tool won't pick them. Renderer: dashed line (accent when selected). App: Divider button + L shortcut (= wall tool in divider mode), hints, panel title/note, Type list entry, body fields and paint hidden; status-bar wall count excludes dividers. Dev `?demo=divider`.
+
+**Tests**: 287 (+5): 8 × 4 m split at 5 m → 19,029,800 + 11,309,800 = 30,339,600 mm² = the undivided floor (hand); not in joins/outline, pickable; alone / dangling = no room; door refused; outside-faces ignores it. Screenshot (new project, outside faces on): 4860 × 3720 = 18.08 m², 2860 × 3720 = 10.64 m² (hand).

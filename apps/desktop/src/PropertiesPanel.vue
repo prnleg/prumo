@@ -121,7 +121,8 @@ function commitLength(w: Wall, ev: Event) {
     </template>
 
     <template v-else-if="wall">
-      <h3>{{ t("props.wall") }}</h3>
+      <h3>{{ wall.kind === "separator" ? t("props.divider") : t("props.wall") }}</h3>
+      <p v-if="wall.kind === 'separator'" class="ro">{{ t("props.divider.note") }}</p>
       <label :class="{ bad: bad === 'length' }" :title="t('props.length.tip')">
         {{ t("props.length") }}
         <span class="field">
@@ -132,49 +133,52 @@ function commitLength(w: Wall, ev: Event) {
           />cm
         </span>
       </label>
-      <label :class="{ bad: bad === 'thickness' }">
-        {{ t("props.thickness") }}
-        <span class="field">
-          <input
-            :key="wall.id + wall.thickness + '/' + rev"
-            :value="formatCm(wall.thickness, locale)"
-            @change="commitCm(wall, 'thickness', $event, (e, mm) => ({ ...e, thickness: mm }))"
-          />cm
-        </span>
-      </label>
-      <label :class="{ bad: bad === 'height' }">
-        {{ t("props.height") }}
-        <span class="field">
-          <input
-            :key="wall.id + wall.height + '/' + rev"
-            :value="formatCm(wall.height, locale)"
-            @change="commitCm(wall, 'height', $event, (e, mm) => ({ ...e, height: mm }))"
-          />cm
-        </span>
-      </label>
-      <label>
-        {{ t("props.alignment") }}
-        <select
-          :value="wall.alignment"
-          @change="
-            edit(wall, (e) => ({ ...e, alignment: ($event.target as HTMLSelectElement).value as Wall['alignment'] }))
-          "
-        >
-          <option v-for="a in ['center', 'left', 'right']" :key="a" :value="a">{{ t(`align.${a}`) }}</option>
-        </select>
-      </label>
+      <!-- a room divider has no body (ADR-040): no thickness/height/alignment/paint -->
+      <template v-if="wall.kind !== 'separator'">
+        <label :class="{ bad: bad === 'thickness' }">
+          {{ t("props.thickness") }}
+          <span class="field">
+            <input
+              :key="wall.id + wall.thickness + '/' + rev"
+              :value="formatCm(wall.thickness, locale)"
+              @change="commitCm(wall, 'thickness', $event, (e, mm) => ({ ...e, thickness: mm }))"
+            />cm
+          </span>
+        </label>
+        <label :class="{ bad: bad === 'height' }">
+          {{ t("props.height") }}
+          <span class="field">
+            <input
+              :key="wall.id + wall.height + '/' + rev"
+              :value="formatCm(wall.height, locale)"
+              @change="commitCm(wall, 'height', $event, (e, mm) => ({ ...e, height: mm }))"
+            />cm
+          </span>
+        </label>
+        <label>
+          {{ t("props.alignment") }}
+          <select
+            :value="wall.alignment"
+            @change="
+              edit(wall, (e) => ({ ...e, alignment: ($event.target as HTMLSelectElement).value as Wall['alignment'] }))
+            "
+          >
+            <option v-for="a in ['center', 'left', 'right']" :key="a" :value="a">{{ t(`align.${a}`) }}</option>
+          </select>
+        </label>
+      </template>
       <label>
         {{ t("props.kind") }}
         <select
           :value="wall.kind"
           @change="edit(wall, (e) => ({ ...e, kind: ($event.target as HTMLSelectElement).value as Wall['kind'] }))"
         >
-          <option v-for="k in ['full', 'half', 'fence', 'railing']" :key="k" :value="k">
+          <option v-for="k in ['full', 'half', 'fence', 'railing', 'separator']" :key="k" :value="k">
             {{ t(`wallKind.${k}`) }}
           </option>
         </select>
       </label>
-      <template v-if="wallSides">
+      <template v-if="wallSides && wall.kind !== 'separator'">
         <label v-for="side in SIDES" :key="side" class="stack">
           {{ t("finish.side", { room: wallSides[side] }) }}
           <select

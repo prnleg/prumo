@@ -33,7 +33,12 @@ interface ElementBase {
 }
 
 export type WallAlignment = "center" | "left" | "right";
-export type WallKind = "full" | "half" | "fence" | "railing";
+/**
+ * "separator" = room divider (ADR-040): an invisible line that closes rooms (open kitchen | living).
+ * No body: thickness/height/alignment are kept but ignored; no doors/windows, finishes or structure.
+ */
+export type WallKind = "full" | "half" | "fence" | "railing" | "separator";
+export const isDivider = (w: { kind: WallKind }) => w.kind === "separator";
 
 export interface Wall extends ElementBase {
   type: "wall";

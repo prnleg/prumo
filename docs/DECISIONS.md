@@ -440,3 +440,9 @@ Options:
 - **B) Keep copying the link.** (+) no dependency. (−) clumsy: paste a very long URL by hand.
 - **C) `tauri-plugin-shell` `open`.** (−) bigger surface (shell), Tauri itself now points to the opener plugin for this.
 Lean: **A**. Confidence: high (official, narrow scope; we'll need it again for "Help" links and module pages). What would change my mind: wanting zero network-facing features in v1.
+
+## ADR-040 — Room divider = wall kind "separator"
+Status: **ACCEPTED (2026-11-17, owner picked A + toolbar button)**. Replaces the PROPOSED `RoomSeparator` element in DATA_MODEL.
+Context: an invisible line that splits one open space into two rooms (living | kitchen). Options: A) a wall kind `"separator"` (reuses move/rotate/mirror/copy/delete/snap/select/overlap rules), B) its own element type (cleaner, but every operation needs new code).
+Decision: **A.** `Wall.kind = "separator"`: closes rooms; the floor is measured to its LINE (no body); not in joins/outline (drawn as a dashed line, picked as a 1 mm strip); no doors/windows (`host-not-wall`), no paint (panel hides it), ignored by the outside-faces rule (ADR-038). `thickness/height/alignment` stay stored (the model requires them) but mean nothing. Future structural checks must skip it (`isDivider`). UI: "Divider" toolbar button (L) = the wall tool drawing dividers; any wall can be switched in the panel's Type list.
+Compatibility: an older Prumo build has no "separator" kind; it'd treat a divider like an unknown wall kind (no crash; validation doesn't check kinds). Acceptable before v1.

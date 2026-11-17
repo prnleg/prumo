@@ -172,6 +172,7 @@ export function pickWall(
   const tol = 12 / p.scale;
   let best: { wall: Wall; along: number; d: number } | null = null;
   for (const w of wallsOnLevel(project, levelId).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    if (w.kind === "separator") continue; // no doors/windows in a room divider (ADR-040)
     const len = wallLength(w);
     if (len === 0) continue;
     const ux = (w.end.x - w.start.x) / len;
