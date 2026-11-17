@@ -517,3 +517,23 @@ Branch `phase1/toolbar`, stacked on `phase1/rehost`.
 
 **Next (owner)**: merge the stack in order; ADR-037; Q-134. Then 8c.
 
+
+### Session #11, part 22 — ADR-037 accepted, remembered settings, Q-134 owner input, 2026-11-17
+
+Owner merged PRs #13–#17 (start → toolbar). **ADR-037 accepted (A)**. **Q-134**: owner input recorded (inside junctions may stay mismatched; outside faces should line up; maybe a setting) — follow-up asked, not implemented.
+
+Branch `phase1/app-data`.
+
+**Done**: `prefs.ts` (`settings.json`, `{ v: 1, locale, angleStepDeg, gridSize }`; never throws on read; invalid fields dropped one by one; unknown keys and a newer `v` kept on write). Platform `readAppText` / `writeAppText` (desktop: fs plugin + `BaseDirectory.AppData`, folder created on first write; browser: localStorage `prumo:<name>`). Capability widened to `$APPDATA/**` only. App loads prefs at launch (locale, angle step); the grid picked last becomes the default for **new blank** projects (each project still keeps its own grid). Settings note now says it's remembered.
+
+**Tests**: 244 (+4 prefs). `cargo check` ok (capability ids valid). Native app not click-tested.
+
+**Inferences/defaults logged**: write failures are silent (a lost preference isn't worth a popup); the grid preference applies to blank projects only, not examples (examples are fixed content); prefs are read once at launch.
+
+**Next**: 8c autosave + recovery copies.
+
+### Session #11, part 23 — Q-134 owner answers, menu bar idea, 2026-11-17
+
+Owner: "outside" = the outside of each block (connected wall group), even inside another block; option A (move geometry, not only drawing); settings belong in a settings area; a menu bar (File, Toolbox, …, later Modules/Plugins) will be needed → **Q-138** (not now).
+
+**Follow-up asked (not implemented):** today walls are drawn by their centre line, so "outer faces flush" can't be kept by alignment alone when thicknesses differ. Proposal: outside walls are anchored by their **outside face** (the line you draw = the outside face, thickness grows inward); room tool does it from the first click; free-drawn walls switch when their block closes (body shifts inward by half the thickness at that moment). Lean medium.

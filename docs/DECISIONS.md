@@ -413,7 +413,7 @@ Options:
 Lean: **A**. Confidence: high (Tauri's documented way; plugin 2.x matches Tauri 2.12; v3 is alpha — stay on 2.x). Imports stay in `apps/desktop/src/platform/` (rule 16). Autosave/recovery (Q-111) later reuses the same fs plugin with the app-data directory.
 
 ## ADR-037 — App data folder: preferences, autosave and recovery copies (desktop)
-Status: **PROPOSED (2026-11-16)** — blocks remembering settings across launches (8b) and autosave/recovery (8c).
+Status: **ACCEPTED (2026-11-17, owner: A — "most apps do exactly that")**. Settings part implemented (`apps/desktop/src/prefs.ts`; capability `fs:allow-appdata-read-recursive` + `fs:allow-appdata-write-recursive`); recovery copies next (8c).
 Context: settings (angle step, language, later the user's default grid) are forgotten when Prumo restarts. Autosave + crash recovery (Q-111/126/129) need a place outside the user's project file. Both are new persisted data and widen the app's file access (today: only files the user picks, ADR-036).
 Options:
 - **A) One Prumo folder in the OS app-data directory** (`%APPDATA%\org.prumo.desktop\` / `~/Library/Application Support/org.prumo.desktop/`), reached with the **fs plugin we already have** (ADR-036), capability scope limited to `$APPDATA/**`. Inside: `settings.json` (`{ "v": 1, "locale", "angleStepDeg", "gridSize" }`) and `recovery/<project-id>.prumo` (autosave copies, removed only when resolved, Q-129). Browser dev build: `localStorage` for settings, no recovery. (+) no new dependency; one rule for "where Prumo keeps its own things"; easy to show the user ("open the folder"). (−) we write the small read/merge/versioning code ourselves.

@@ -33,7 +33,8 @@ export const en = {
   "settings.angle": "Angle steps",
   "settings.angle.tip": "New walls snap to these angles. Hold Alt to draw freely.",
   "settings.language": "Language",
-  "settings.notRemembered": "Angle steps and language go back to the default when Prumo restarts (for now).",
+  "settings.remembered":
+    "Prumo remembers these on this computer. The grid you pick last is also used for new blank projects.",
   "settings.close": "Done",
   "status.snap.tip": "Click to change the grid and angle steps",
   "cmd.setGrid": "change grid",
@@ -230,7 +231,8 @@ export const ptBR: Record<MessageKey, string> = {
   "settings.angle": "Passos de ângulo",
   "settings.angle.tip": "Paredes novas se encaixam nestes ângulos. Mantenha Alt apertado para desenhar livre.",
   "settings.language": "Idioma",
-  "settings.notRemembered": "Passos de ângulo e idioma voltam ao padrão quando o Prumo reinicia (por enquanto).",
+  "settings.remembered":
+    "O Prumo lembra disso neste computador. A última grade escolhida também vale para novos projetos em branco.",
   "settings.close": "Pronto",
   "status.snap.tip": "Clique para mudar a grade e os passos de ângulo",
   "cmd.setGrid": "mudar grade",

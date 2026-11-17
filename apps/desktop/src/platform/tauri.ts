@@ -1,7 +1,9 @@
-// Desktop platform (ADR-036): official dialog + fs plugins. Only files the user picks are readable/writable.
+// Desktop platform (ADR-036): official dialog + fs plugins. Files the user picks, plus Prumo's own
+// app-data folder (ADR-037: settings, later recovery copies). Nothing else is reachable.
+import { appDataDir } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
-import { readFile, writeFile } from "@tauri-apps/plugin-fs";
+import { BaseDirectory, mkdir, readFile, readTextFile, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { PRUMO_EXT, baseName, type Platform } from "./types";
 
 const filters = [{ name: "Prumo", extensions: [PRUMO_EXT] }];
@@ -29,5 +31,16 @@ export const tauriPlatform: Platform = {
     void getCurrentWindow().onCloseRequested(async (e) => {
       if (!(await allow())) e.preventDefault();
     });
+  },
+  async readAppText(name) {
+    try {
+      return await readTextFile(name, { baseDir: BaseDirectory.AppData });
+    } catch {
+      return null; // missing (first launch) or unreadable: callers fall back to defaults
+    }
+  },
+  async writeAppText(name, text) {
+    await mkdir(await appDataDir(), { recursive: true }); // first launch: the folder doesn't exist yet
+    await writeTextFile(name, text, { baseDir: BaseDirectory.AppData });
   },
 };

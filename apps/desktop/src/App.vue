@@ -60,6 +60,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import StartScreen from "./StartScreen.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
+import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
 import { Session, type Outcome } from "./session";
 import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
 
@@ -84,14 +85,19 @@ const history = new History(
 );
 
 const project = shallowRef<Project>(history.current);
-const newProject = () =>
-  emptyProject({
+// Remembered preferences (ADR-037). Loaded once at launch; written whenever one changes.
+let prefs: LoadedPrefs = parsePrefs(null);
+const newProject = () => {
+  const p = emptyProject({
     id: randomIds(),
     levelId: randomIds(),
     name: t("project.untitled"),
     now: new Date().toISOString(),
     profileId: PROFILE,
   });
+  const g = prefs.prefs.gridSize;
+  return g ? { ...p, settings: { ...p.settings, gridSize: g } } : p;
+};
 const session = new Session(history, modules, platform, t, newProject, randomIds, () => new Date().toISOString());
 const fileTick = ref(0);
 const readOnly = computed(() => (void fileTick.value, session.readOnly));
@@ -209,7 +215,26 @@ watch(
 );
 function setGrid(mm: number) {
   if (mm !== gridSize.value) run(setGridCommand(mm));
+  savePrefs({ gridSize: mm }); // the grid picked last becomes the default for new blank projects
 }
+
+let prefsLoaded = false;
+function savePrefs(change: LoadedPrefs["prefs"]) {
+  prefs = { ...prefs, prefs: { ...prefs.prefs, ...change } };
+  if (!prefsLoaded) return; // don't overwrite the file before it was read
+  platform.writeAppText(PREFS_FILE, serializePrefs(prefs)).catch(() => {
+    // not being able to remember a preference is not worth interrupting the user (logged in ADR-037)
+  });
+}
+void platform.readAppText(PREFS_FILE).then((text) => {
+  const loaded = parsePrefs(text);
+  prefs = { ...loaded, prefs: { ...loaded.prefs, ...prefs.prefs } }; // changes made while loading win
+  prefsLoaded = true;
+  if (prefs.prefs.locale) locale.value = prefs.prefs.locale;
+  if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
+  watch(locale, (l) => savePrefs({ locale: l }));
+  watch(angleStep, (a) => savePrefs({ angleStepDeg: a }));
+});
 
 type ToolName = "select" | "room" | "wall" | "door" | "window";
 const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
