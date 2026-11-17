@@ -15,13 +15,15 @@ import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@
 import {
   ROLE_ORIGINS,
   canCarry,
+  junctionsOf,
   structuralData,
+  type WallEnd,
   type ConstructionSystem,
   type RoleOrigin,
   type WallRole,
 } from "@prumo/module-structural";
 import { computed, ref } from "vue";
-import { formatArea, formatCm, parseNumber, translate, type Locale, type Params } from "./i18n";
+import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 
 const props = defineProps<{
   project: Project;
@@ -46,6 +48,9 @@ const emit = defineEmits<{
   roomType: [roomKey: string, typeId: string];
   role: [wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined];
   lintel: [openingId: string, has: boolean];
+  contraverga: [openingId: string, has: boolean];
+  tieBeam: [wallId: string, has: boolean];
+  bonded: [wallId: string, end: WallEnd, bonded: boolean];
 }>();
 const wallFinishes = FINISHES.filter((f) => f.use === "wall");
 const floorFinishes = FINISHES.filter((f) => f.use === "floor");
@@ -86,6 +91,19 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
   bad.value = null;
   edit(el, (e) => set(e, v * 10));
 }
+
+/** Which end, as seen on the plan (model Y up): "top" / "bottom" for walls running up–down, else left/right. */
+function endSide(w: Wall, end: "start" | "end"): "top" | "bottom" | "left" | "right" {
+  const p = end === "start" ? w.start : w.end;
+  const q = end === "start" ? w.end : w.start;
+  const dx = p.x - q.x,
+    dy = p.y - q.y;
+  return Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? "top" : "bottom") : dx > 0 ? "right" : "left";
+}
+
+/** "the 3,00 m wall" for the bonded boxes (no start/end jargon). */
+const wallLabel = (w: Wall | undefined) =>
+  w ? t("el.wall", { length: formatLength(wallLength(w), props.locale) }) : "";
 
 /** Length: the start stays, the end moves; walls joined there follow (core setWallLengthCommand). */
 function commitLength(w: Wall, ev: Event) {
@@ -234,6 +252,22 @@ function commitLength(w: Wall, ev: Event) {
             <option v-for="o in ROLE_ORIGINS" :key="o" :value="o">{{ t(`origin.${o}`) }}</option>
           </select>
         </label>
+        <label v-if="wall.kind === 'full'" class="check" :title="t('tieBeam.tip')">
+          <input
+            type="checkbox"
+            :checked="!!structuralData(wall).tieBeam"
+            @change="emit('tieBeam', wall.id, ($event.target as HTMLInputElement).checked)"
+          />
+          {{ t("props.tieBeam") }}
+        </label>
+        <label v-for="j in junctionsOf(project, wall)" :key="j.end" class="check" :title="t('bonded.tip')">
+          <input
+            type="checkbox"
+            :checked="!!structuralData(wall).bonded?.[j.end]"
+            @change="emit('bonded', wall.id, j.end, ($event.target as HTMLInputElement).checked)"
+          />
+          {{ t(`props.bonded.${endSide(wall, j.end)}`, { other: wallLabel(j.others[0]) }) }}
+        </label>
       </template>
     </template>
 
@@ -286,6 +320,14 @@ function commitLength(w: Wall, ev: Event) {
             @change="emit('lintel', opening.id, ($event.target as HTMLInputElement).checked)"
           />
           {{ t("props.lintel") }}
+        </label>
+        <label v-if="opening.kind === 'window'" class="check" :title="t('contraverga.tip')">
+          <input
+            type="checkbox"
+            :checked="!!structuralData(opening).contraverga"
+            @change="emit('contraverga', opening.id, ($event.target as HTMLInputElement).checked)"
+          />
+          {{ t("props.contraverga") }}
         </label>
       </template>
     </template>

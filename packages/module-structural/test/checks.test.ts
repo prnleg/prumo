@@ -22,7 +22,14 @@ import {
   setWallRole,
   structuralManifest,
   type ConstructionSystem,
+  R_OPEN_001,
+  R_OPEN_NEW,
+  R_ROLE_001,
+  R_WALL_002,
 } from "../src";
+
+/** The first four rules (these tests predate R-OPEN-006 / R-RING-001 / R-JOINT-001, tested in more-rules). */
+const FIRST = [R_OPEN_001, R_ROLE_001, R_WALL_002, R_OPEN_NEW];
 
 const wall = (id: string, o: Partial<Wall> = {}): Wall => ({
   id,
@@ -61,7 +68,7 @@ const project = (els: Element[], system: ConstructionSystem = "structural-masonr
     }),
     els,
   );
-const ids = (p: Project) => runChecks(p, "l").findings.map((f) => `${f.ruleId}:${f.elementIds[0]}`);
+const ids = (p: Project) => runChecks(p, "l", { rules: FIRST }).findings.map((f) => `${f.ruleId}:${f.elementIds[0]}`);
 
 describe("construction system (ADR-042)", () => {
   it("reads the system from profileId; anything else = unknown", () => {
@@ -70,20 +77,20 @@ describe("construction system (ADR-042)", () => {
   });
 
   it("unknown → masonry rules run, and every finding says that's an assumption (E-01)", () => {
-    const r = runChecks(project([wall("w"), win("o", "w")], "unknown"), "l");
+    const r = runChecks(project([wall("w"), win("o", "w")], "unknown"), "l", { rules: FIRST });
     expect(r.checksRun.map((c) => c.id)).toEqual(["R-OPEN-001", "R-ROLE-001"]);
     expect(r.findings[0]!.assumptions.map((a) => a.id)).toEqual(["A-ROLE-2", "A-SYS-1"]);
   });
 
   it("RC frame: no rules yet (that pack comes later) → nothing checked, nothing found", () => {
-    const r = runChecks(project([wall("w"), win("o", "w")], "rc-frame"), "l");
+    const r = runChecks(project([wall("w"), win("o", "w")], "rc-frame"), "l", { rules: FIRST });
     expect([r.checksRun, r.findings]).toEqual([[], []]);
   });
 });
 
 describe("R-OPEN-001: opening in a load-bearing wall without a lintel", () => {
   it("masonry: an unmarked wall counts as load-bearing (ADR-017) → warning, assumption shown", () => {
-    const r = runChecks(project([wall("w"), win("o", "w")]), "l");
+    const r = runChecks(project([wall("w"), win("o", "w")]), "l", { rules: FIRST });
     expect(r.findings).toHaveLength(1);
     expect(r.findings[0]).toMatchObject({
       ruleId: "R-OPEN-001",
@@ -96,7 +103,9 @@ describe("R-OPEN-001: opening in a load-bearing wall without a lintel", () => {
   });
 
   it("same severity when the wall is marked load-bearing (E-07); the assumption changes, not the severity", () => {
-    const marked = runChecks(project([setWallRole(wall("w"), "bearing", "drawing"), win("o", "w")]), "l").findings[0]!;
+    const marked = runChecks(project([setWallRole(wall("w"), "bearing", "drawing"), win("o", "w")]), "l", {
+      rules: FIRST,
+    }).findings[0]!;
     expect(marked.severity).toBe("warning");
     expect(marked.assumptions[0]).toMatchObject({ id: "A-ROLE-1", params: { origin: { key: "origin.drawing" } } });
   });
@@ -110,7 +119,9 @@ describe("R-OPEN-001: opening in a load-bearing wall without a lintel", () => {
 
   it("an opening up to the top of the wall: the element above is its lintel (E-06 wording)", () => {
     const door = win("d", "w", { kind: "door", sillHeight: 0, height: 2700, handing: "left", swing: "in" });
-    expect(runChecks(project([wall("w"), door]), "l").findings[0]!.messageKey).toBe("rule.R-OPEN-001.messageToTop");
+    expect(runChecks(project([wall("w"), door]), "l", { rules: FIRST }).findings[0]!.messageKey).toBe(
+      "rule.R-OPEN-001.messageToTop",
+    );
   });
 
   it("fences, railings and room dividers never carry load", () => {
@@ -125,15 +136,17 @@ describe("R-OPEN-001: opening in a load-bearing wall without a lintel", () => {
       win("a", "w2"),
       win("b", "w1"),
     ];
-    expect(runChecks(project(els), "l")).toEqual(runChecks(project([...els].reverse()), "l"));
+    expect(runChecks(project(els), "l", { rules: FIRST })).toEqual(
+      runChecks(project([...els].reverse()), "l", { rules: FIRST }),
+    );
     expect(ids(project(els))).toEqual(["R-OPEN-001:a", "R-OPEN-001:b"]);
   });
 });
 
 describe("findings diff (change impact)", () => {
   it("adding a lintel resolves the finding; nothing new appears", () => {
-    const before = runChecks(project([wall("w"), win("o", "w")]), "l").findings;
-    const after = runChecks(project([wall("w"), setLintel(win("o", "w"), true)]), "l").findings;
+    const before = runChecks(project([wall("w"), win("o", "w")]), "l", { rules: FIRST }).findings;
+    const after = runChecks(project([wall("w"), setLintel(win("o", "w"), true)]), "l", { rules: FIRST }).findings;
     const d = diffFindings(before, after);
     expect([d.added.length, d.resolved.map((f) => f.fingerprint), d.unchanged.length]).toEqual([
       0,

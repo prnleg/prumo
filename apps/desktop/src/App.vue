@@ -61,14 +61,18 @@ import {
   diffFindings,
   profileIdFor,
   runChecks,
+  setBonded,
+  setContraverga,
   setLintel,
   setSystemCommand,
+  setTieBeam,
   setWallRole,
   structuralManifest,
   type CheckResult,
   type ConstructionSystem,
   type FindingsDiff,
   type RoleOrigin,
+  type WallEnd,
   type WallRole,
 } from "@prumo/module-structural";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
@@ -390,6 +394,15 @@ function setRole(wallId: string, role: WallRole | undefined, origin: RoleOrigin 
       e.type === "wall" ? setWallRole(e, role, role ? (origin ?? "own-judgement") : undefined) : e,
     ),
   );
+}
+function setOpeningContraverga(id: string, has: boolean) {
+  run(updateCommand({ key: "cmd.setContraverga" }, [id], (e) => (e.type === "opening" ? setContraverga(e, has) : e)));
+}
+function setWallTieBeam(id: string, has: boolean) {
+  run(updateCommand({ key: "cmd.setTieBeam" }, [id], (e) => (e.type === "wall" ? setTieBeam(e, has) : e)));
+}
+function setWallBonded(id: string, end: WallEnd, bonded: boolean) {
+  run(updateCommand({ key: "cmd.setBonded" }, [id], (e) => (e.type === "wall" ? setBonded(e, end, bonded) : e)));
 }
 function setOpeningLintel(id: string, has: boolean) {
   run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
@@ -946,6 +959,19 @@ if (demo === "shape") {
   sync();
   setTimeout(fitAll, 0);
 }
+if (demo === "structure-panel") {
+  const ex = EXAMPLES.find((e) => e.id === "problems");
+  if (ex)
+    void startExample(ex).then(() => {
+      setTool("select");
+      const w = Object.values(history.current.elements).find(
+        (e) => e.type === "wall" && e.start.x === 5000 && e.end.y === 7000,
+      );
+      if (w) selectTool.selection = [w.id];
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "renovation") {
   const house = EXAMPLES.find((e) => e.id === "house");
   if (house)
@@ -1159,6 +1185,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :structural="structuralOn ? (checks?.system ?? null) : null"
         @role="setRole"
         @lintel="setOpeningLintel"
+        @contraverga="setOpeningContraverga"
+        @tie-beam="setWallTieBeam"
+        @bonded="setWallBonded"
         @apply="run"
         @name="nameRoom"
         @paint-side="paintSide"

@@ -469,6 +469,7 @@ Status: **ACCEPTED (2026-11-17, owner: "use defaults")**.
   - wall → `{ role?: "bearing" | "non-bearing", origin?: "drawing" | "professional" | "own-judgement" }` — absent = not specified → the system's default (ADR-017: masonry = load-bearing).
   - opening → `{ lintel?: true }` — absent = not specified → R-OPEN-001 applies.
   - Unknown fields are kept; an empty component is removed (no clutter). Mirroring changes nothing.
+- **Additions (2026-11-17, owner: "yes, they make a lot of sense"):** opening `contraverga?: true` (windows); wall `tieBeam?: true`, `bonded?: { start?: true, end?: true }` (a junction counts as bonded when any wall END there is marked; a T's through-wall has no end there, so the stem decides). Chases (R-WALL-004) → a new element, later.
 - Findings: Spike B's shape + `review` (ADR-041 level, reviewer, date, question id). Rule strings live in the desktop catalogue for now (same as Architect's; module-owned catalogues later, ADR-021).
 
 ## ADR-043 — "The existing building" (baseline) for renovation checks

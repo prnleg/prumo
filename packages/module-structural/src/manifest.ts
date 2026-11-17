@@ -5,8 +5,9 @@ export const STRUCTURAL = "org.prumo.structural";
 /**
  * Structural Vision (ADR-019, Phase 2). Optional (not `required`): it can be switched off and its data
  * stays in the file untouched (MODULES rule 7). Component v1 (ADR-042):
- *   wall    → { role?: "bearing" | "non-bearing", origin?: "drawing" | "professional" | "own-judgement" }
- *   opening → { lintel?: true }
+ *   wall    → { role?: "bearing" | "non-bearing", origin?: "drawing" | "professional" | "own-judgement",
+ *               tieBeam?: true, bonded?: { start?: true, end?: true } }
+ *   opening → { lintel?: true, contraverga?: true }
  * Absent = not specified: the construction system's default applies (ADR-017).
  */
 export const structuralManifest: ModuleManifest = {
