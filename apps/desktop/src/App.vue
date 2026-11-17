@@ -37,6 +37,7 @@ import {
   setOutsideFacesCommand,
   type MirrorAxis,
   type Command,
+  type Wall,
   type Label,
   type Project,
 } from "@prumo/core";
@@ -55,8 +56,24 @@ import {
   WallTool,
   architectManifest,
 } from "@prumo/module-architect";
+import {
+  constructionSystem,
+  diffFindings,
+  profileIdFor,
+  runChecks,
+  setLintel,
+  setSystemCommand,
+  setWallRole,
+  structuralManifest,
+  type CheckResult,
+  type ConstructionSystem,
+  type FindingsDiff,
+  type RoleOrigin,
+  type WallRole,
+} from "@prumo/module-structural";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import FindingsPanel from "./FindingsPanel.vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
 import RecoveryPanel from "./RecoveryPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
@@ -75,7 +92,7 @@ const t = (key: string, params?: Params) => translate(locale.value, key, params)
 const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
-const MANIFESTS = [architectManifest];
+const MANIFESTS = [architectManifest, structuralManifest];
 const modules = new ModuleHost(MANIFESTS);
 const PROFILE = "br-nbr/structural-masonry";
 
@@ -138,7 +155,12 @@ async function startWith(op: () => Promise<Outcome> | Outcome) {
     return r;
   });
 }
-const startBlank = () => startWith(() => (session.begin(), { ok: true }));
+const startBlank = (system: ConstructionSystem) =>
+  startWith(() => {
+    const p = newProject();
+    session.begin({ ...p, profileId: profileIdFor(system) });
+    return { ok: true };
+  });
 const startExample = (ex: Example) =>
   startWith(() => {
     const p = ex.build({ ids: randomIds, t, now: new Date().toISOString(), profileId: PROFILE });
@@ -285,6 +307,8 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   prefsReady.value = true;
   if (prefs.prefs.locale) locale.value = prefs.prefs.locale;
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
+  if (prefs.prefs.structuralOff) structuralOn.value = false;
+  watch(structuralOn, (on) => savePrefs({ structuralOff: !on }));
   watch(locale, (l) => savePrefs({ locale: l }));
   watch(angleStep, (a) => savePrefs({ angleStepDeg: a }));
 });
@@ -297,6 +321,79 @@ const tooShort = ref(false);
 
 const geometry = computed(() => planGeometry(project.value, level.value));
 const walls = computed(() => wallsOnLevel(project.value, level.value));
+
+// --- Structural checks (Phase 2) ---------------------------------------------------------------
+// Module manager stage 1 (ADR-020): Structural can be switched off in Settings → Modules (no UI, no
+// checks; its data stays in the file). Quiet while creating (ADR-025): checks re-run only after an
+// edit settles (not during a drag), with a short delay so findings don't flicker while working.
+const structuralOn = ref(true);
+const checks = shallowRef<CheckResult | null>(null);
+const checksDiff = shallowRef<FindingsDiff | null>(null);
+const SETTLE_MS = 1500;
+let settleTimer: ReturnType<typeof setTimeout> | null = null;
+function recheck(keepDiff = true) {
+  if (!structuralOn.value) {
+    checks.value = null;
+    return;
+  }
+  const next = runChecks(history.current, level.value);
+  checksDiff.value = keepDiff && checks.value ? diffFindings(checks.value.findings, next.findings) : null;
+  checks.value = next;
+}
+function scheduleCheck(keepDiff: boolean) {
+  if (settleTimer) clearTimeout(settleTimer);
+  settleTimer = setTimeout(function fire() {
+    if (history.inGesture) settleTimer = setTimeout(fire, SETTLE_MS);
+    else recheck(keepDiff);
+  }, SETTLE_MS);
+}
+history.subscribe((e) => {
+  if (e.type === "commit") scheduleCheck(e.label.key !== "cmd.open");
+});
+watch(structuralOn, () => recheck(false));
+onBeforeUnmount(() => settleTimer && clearTimeout(settleTimer));
+recheck(false);
+
+/** A "!" over the element each finding is about (its first id). */
+const badges = computed(() => {
+  const c = checks.value;
+  if (!c) return [];
+  const p = project.value;
+  const seen = new Set<string>();
+  return c.findings.flatMap((f) => {
+    const id = f.elementIds[0] ?? "";
+    if (seen.has(id)) return [];
+    seen.add(id);
+    const e = p.elements[id];
+    const wallOf = (w: Wall | undefined, along: number) => {
+      if (!w) return null;
+      const L = wallLength(w) || 1;
+      return { x: w.start.x + ((w.end.x - w.start.x) * along) / L, y: w.start.y + ((w.end.y - w.start.y) * along) / L };
+    };
+    const at =
+      e?.type === "wall"
+        ? wallOf(e, wallLength(e) / 2)
+        : e?.type === "opening"
+          ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + e.width / 2)
+          : null;
+    return at ? [{ at, severity: f.severity, id }] : [];
+  });
+});
+function selectFromCheck(ids: string[]) {
+  setTool("select");
+  selectTool.selection = ids.filter((id) => history.current.elements[id]).slice(0, 1);
+  sync();
+}
+function setRole(wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined) {
+  run(
+    updateCommand({ key: "cmd.setRole" }, [wallId], (e) =>
+      e.type === "wall" ? setWallRole(e, role, role ? (origin ?? "own-judgement") : undefined) : e,
+    ),
+  );
+}
+function setOpeningLintel(id: string, has: boolean) {
+  run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
+}
 const detected = computed(() => {
   const rs = detectRooms(project.value, level.value);
   const tags = matchRoomTags(rs, roomTags(project.value, level.value));
@@ -1030,6 +1127,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :selected-ids="selection"
         :box="box"
         :labels="labels"
+        :badges="badges"
         :grid="gridSize"
         @pointer="onPointer"
         @resize="onResize"
@@ -1043,6 +1141,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :locale="locale"
         :rooms="panelRooms"
         :wall-sides="wallSideLabels"
+        :structural="structuralOn ? (checks?.system ?? null) : null"
+        @role="setRole"
+        @lintel="setOpeningLintel"
         @apply="run"
         @name="nameRoom"
         @paint-side="paintSide"
@@ -1079,12 +1180,25 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @discard="discardEntry"
         @later="recoveries = []"
       />
+      <FindingsPanel
+        v-if="structuralOn && checks"
+        :locale="locale"
+        :project="project"
+        :result="checks"
+        :diff="checksDiff"
+        @select="selectFromCheck"
+        @system="showSettings = true"
+      />
       <SettingsPanel
         v-if="showSettings"
         :locale="locale"
         :grid="gridSize"
         :angle="angleStep"
         :outside-faces="project.settings.outsideFaces === true"
+        :system="constructionSystem(project)"
+        :structural="structuralOn"
+        @system="(s) => run(setSystemCommand(s))"
+        @structural="(on) => (structuralOn = on)"
         @grid="setGrid"
         @angle="(a) => (angleStep = a)"
         @outside-faces="(on) => run(setOutsideFacesCommand(on))"

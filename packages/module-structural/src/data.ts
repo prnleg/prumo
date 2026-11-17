@@ -1,5 +1,5 @@
 // Structural data on walls and openings (ADR-042) + the construction system (project.profileId).
-import type { Element, Opening, Project, Wall } from "@prumo/core";
+import type { Command, Element, Opening, Project, Wall } from "@prumo/core";
 import { STRUCTURAL } from "./manifest";
 
 export type WallRole = "bearing" | "non-bearing";
@@ -57,3 +57,15 @@ export const profileIdFor = (s: ConstructionSystem, country = "br-nbr") => `${co
 
 /** The system whose rules run: "don't know" → structural masonry, the conservative side (E-01). */
 export const rulesSystem = (s: ConstructionSystem): ConstructionSystem => (s === "unknown" ? "structural-masonry" : s);
+
+/** Change the project's construction system (one undo step; walls and their marks are untouched). */
+export function setSystemCommand(s: ConstructionSystem): Command {
+  return {
+    label: { key: "cmd.setSystem" },
+    apply: (p) => {
+      const country = p.profileId.split("/")[0] || "br-nbr";
+      const id = profileIdFor(s, country);
+      return p.profileId === id ? p : { ...p, profileId: id };
+    },
+  };
+}

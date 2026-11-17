@@ -25,6 +25,12 @@ describe("UI i18n (ADR-021/034)", () => {
             time: "17 nov 2026 13:40",
             n: 1,
             total: 8,
+            wall: "a parede de 4,00 m",
+            opening: "a janela (1,20 m)",
+            origin: "o projeto",
+            system: "Alvenaria estrutural",
+            length: "4,00 m",
+            width: "1,20 m",
           }),
         ).not.toThrow();
     }

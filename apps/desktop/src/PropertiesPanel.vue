@@ -12,6 +12,14 @@ import {
   type Wall,
 } from "@prumo/core";
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
+import {
+  ROLE_ORIGINS,
+  canCarry,
+  structuralData,
+  type ConstructionSystem,
+  type RoleOrigin,
+  type WallRole,
+} from "@prumo/module-structural";
 import { computed, ref } from "vue";
 import { formatArea, formatCm, parseNumber, translate, type Locale, type Params } from "./i18n";
 
@@ -23,6 +31,8 @@ const props = defineProps<{
   rooms: readonly { key: string; name: string; area: number; floor: string; roomType: string }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
+  /** The project's construction system when the Structural module is on; null = module off. */
+  structural?: ConstructionSystem | null;
 }>();
 const emit = defineEmits<{
   apply: [cmd: Command];
@@ -34,6 +44,8 @@ const emit = defineEmits<{
   paintSide: [wallId: string, side: "left" | "right", finishId: string];
   paintFloor: [roomKey: string, finishId: string];
   roomType: [roomKey: string, typeId: string];
+  role: [wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined];
+  lintel: [openingId: string, has: boolean];
 }>();
 const wallFinishes = FINISHES.filter((f) => f.use === "wall");
 const floorFinishes = FINISHES.filter((f) => f.use === "floor");
@@ -190,6 +202,39 @@ function commitLength(w: Wall, ev: Event) {
           </select>
         </label>
       </template>
+      <!-- Structure (Phase 2, ADR-017/042): role + where the mark came from -->
+      <template v-if="structural && canCarry(wall)">
+        <h4>{{ t("props.structure") }}</h4>
+        <label class="stack" :title="t('role.tip')">
+          {{ t("props.role") }}
+          <select
+            :value="structuralData(wall).role ?? ''"
+            @change="
+              emit(
+                'role',
+                wall.id,
+                (($event.target as HTMLSelectElement).value || undefined) as WallRole | undefined,
+                structuralData(wall).origin,
+              )
+            "
+          >
+            <option value="">{{ t(`role.default.${structural}`) }}</option>
+            <option value="bearing">{{ t("role.bearing") }}</option>
+            <option value="non-bearing">{{ t("role.non-bearing") }}</option>
+          </select>
+        </label>
+        <label v-if="structuralData(wall).role" class="stack">
+          {{ t("props.roleOrigin") }}
+          <select
+            :value="structuralData(wall).origin ?? 'own-judgement'"
+            @change="
+              emit('role', wall.id, structuralData(wall).role, ($event.target as HTMLSelectElement).value as RoleOrigin)
+            "
+          >
+            <option v-for="o in ROLE_ORIGINS" :key="o" :value="o">{{ t(`origin.${o}`) }}</option>
+          </select>
+        </label>
+      </template>
     </template>
 
     <template v-else-if="opening">
@@ -232,6 +277,17 @@ function commitLength(w: Wall, ev: Event) {
           ⇅ {{ t("props.flipSwing") }}
         </button>
       </div>
+      <template v-if="structural">
+        <h4>{{ t("props.structure") }}</h4>
+        <label class="check" :title="t('lintel.tip')">
+          <input
+            type="checkbox"
+            :checked="!!structuralData(opening).lintel"
+            @change="emit('lintel', opening.id, ($event.target as HTMLInputElement).checked)"
+          />
+          {{ t("props.lintel") }}
+        </label>
+      </template>
     </template>
 
     <template v-else>
@@ -264,6 +320,13 @@ function commitLength(w: Wall, ev: Event) {
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
+}
+h4 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 h3 {
   margin: 0 0 8px;

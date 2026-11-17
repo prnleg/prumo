@@ -14,6 +14,7 @@
   "dependencies": {
     "@prumo/core": "workspace:*",
     "@prumo/module-architect": "workspace:*",
+    "@prumo/module-structural": "workspace:*",
     "@prumo/renderer-2d": "workspace:*",
     "@tauri-apps/api": "2.12.5",
     "@tauri-apps/plugin-dialog": "2.8.4",
