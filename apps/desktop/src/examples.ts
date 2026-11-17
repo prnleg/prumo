@@ -12,6 +12,7 @@ import {
   type Wall,
 } from "@prumo/core";
 import { DEFAULT_OPENING_SIZES, setRoomType, type RoomType } from "@prumo/module-architect";
+import { setLintel, setWallRole } from "@prumo/module-structural";
 
 type Translate = (key: string) => string;
 
@@ -31,8 +32,16 @@ export interface Example {
 }
 
 type Pt = [number, number];
-type DoorSpec = { wall: string; offset: number; width?: number; handing?: "left" | "right"; swing?: "in" | "out" };
-type WindowSpec = { wall: string; offset: number; width?: number; height?: number; sill?: number };
+/** `noLintel`: the "house with problems" example leaves the lintel out on purpose. */
+type DoorSpec = {
+  wall: string;
+  offset: number;
+  width?: number;
+  handing?: "left" | "right";
+  swing?: "in" | "out";
+  noLintel?: boolean;
+};
+type WindowSpec = { wall: string; offset: number; width?: number; height?: number; sill?: number; noLintel?: boolean };
 
 interface Plan {
   name: string;
@@ -40,6 +49,8 @@ interface Plan {
   doors: DoorSpec[];
   windows: WindowSpec[];
   rooms: { at: Pt; name: string; type: RoomType }[];
+  /** Walls the owner marked as partitions on their own judgement (shows R-ROLE-001). */
+  partitions?: string[];
 }
 
 const THICK = 140; // drawing default, same as the wall tool; not a structural value
@@ -76,32 +87,43 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
   };
   const D = DEFAULT_OPENING_SIZES.door,
     W = DEFAULT_OPENING_SIZES.window;
+  const lintel = <T extends Opening>(o: T, spec: { noLintel?: boolean }) => setLintel(o, !spec.noLintel);
   for (const d of plan.doors)
-    els.push({
-      id: a.ids(),
-      type: "opening",
-      levelId,
-      host: host(d.wall, d.offset),
-      width: d.width ?? D.width,
-      height: D.height,
-      sillHeight: D.sillHeight,
-      kind: "door",
-      handing: d.handing ?? "left",
-      swing: d.swing ?? "in",
-      components: {},
-    });
+    els.push(
+      lintel(
+        {
+          id: a.ids(),
+          type: "opening",
+          levelId,
+          host: host(d.wall, d.offset),
+          width: d.width ?? D.width,
+          height: D.height,
+          sillHeight: D.sillHeight,
+          kind: "door",
+          handing: d.handing ?? "left",
+          swing: d.swing ?? "in",
+          components: {},
+        },
+        d,
+      ),
+    );
   for (const w of plan.windows)
-    els.push({
-      id: a.ids(),
-      type: "opening",
-      levelId,
-      host: host(w.wall, w.offset),
-      width: w.width ?? W.width,
-      height: w.height ?? W.height,
-      sillHeight: w.sill ?? W.sillHeight,
-      kind: "window",
-      components: {},
-    });
+    els.push(
+      lintel(
+        {
+          id: a.ids(),
+          type: "opening",
+          levelId,
+          host: host(w.wall, w.offset),
+          width: w.width ?? W.width,
+          height: w.height ?? W.height,
+          sillHeight: w.sill ?? W.sillHeight,
+          kind: "window",
+          components: {},
+        },
+        w,
+      ),
+    );
   for (const r of plan.rooms)
     els.push(
       setRoomType(
@@ -109,6 +131,11 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
         r.type,
       ),
     );
+  for (const key of plan.partitions ?? []) {
+    const i = els.findIndex((e) => e.id === wallId.get(key));
+    const w = els[i];
+    if (w?.type === "wall") els[i] = setWallRole(w, "non-bearing", "own-judgement");
+  }
   return putElements(base, els);
 }
 
@@ -228,6 +255,19 @@ const apartment: Plan = {
   ],
 };
 
+/**
+ * "House with problems" (ROADMAP Phase 1/2, Q-125): the small house after a typical DIY renovation —
+ * the living-room window widened without a lintel, a new door cut without one, and the hall wall
+ * marked "partition" on the owner's own judgement. Teaches the checks; not a design.
+ */
+const problems: Plan = {
+  ...house,
+  name: "example.problems.name",
+  doors: house.doors.map((d) => (d.wall === "hallFront" ? { ...d, noLintel: true } : d)),
+  windows: house.windows.map((w) => (w.wall === "front" && w.offset === 3000 ? { ...w, noLintel: true } : w)),
+  partitions: ["hallBack"],
+};
+
 export const EXAMPLES: readonly Example[] = [
   {
     id: "house",
@@ -240,5 +280,11 @@ export const EXAMPLES: readonly Example[] = [
     title: "example.apartment.name",
     description: "example.apartment.desc",
     build: (a) => assemble(apartment, a),
+  },
+  {
+    id: "problems",
+    title: "example.problems.name",
+    description: "example.problems.desc",
+    build: (a) => assemble(problems, a),
   },
 ];

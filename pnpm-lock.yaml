@@ -41,6 +41,9 @@ importers:
       '@prumo/module-architect':
         specifier: workspace:*
         version: link:../../packages/module-architect
+      '@prumo/module-structural':
+        specifier: workspace:*
+        version: link:../../packages/module-structural
       '@prumo/renderer-2d':
         specifier: workspace:*
         version: link:../../packages/renderer-2d

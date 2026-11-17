@@ -1,12 +1,15 @@
 <script setup lang="ts">
 // Start screen (Q-119/Q-125): blank, examples, or open a file. Shown at launch and on New.
 import { counterIds, type Wall } from "@prumo/core";
-import { computed } from "vue";
+import { SYSTEMS, type ConstructionSystem } from "@prumo/module-structural";
+import { computed, ref } from "vue";
 import { EXAMPLES, type Example } from "./examples";
 import { translate, type Locale, type Params } from "./i18n";
 
 const props = defineProps<{ locale: Locale; closable: boolean }>();
-const emit = defineEmits<{ blank: []; example: [ex: Example]; open: []; close: [] }>();
+const emit = defineEmits<{ blank: [system: ConstructionSystem]; example: [ex: Example]; open: []; close: [] }>();
+/** Blank → first ask the construction system (engineer E-01: ask up front, with "don't know"). */
+const pickSystem = ref(false);
 const t = (key: string, params?: Params) => translate(props.locale, key, params);
 
 /** Tiny wall-line thumbnails (model Y up → SVG Y down). */
@@ -42,8 +45,21 @@ const previews = computed(() =>
           ×
         </button>
       </header>
-      <div class="choices">
-        <button class="choice" @click="emit('blank')">
+      <div v-if="pickSystem" class="system">
+        <h3>{{ t("start.system.title") }}</h3>
+        <p class="note">{{ t("start.system.why") }}</p>
+        <div class="choices">
+          <button v-for="s in SYSTEMS" :key="s" class="choice" @click="emit('blank', s)">
+            <strong>{{ t(`system.${s}`) }}</strong>
+            <span>{{ t(`system.${s}.desc`) }}</span>
+          </button>
+        </div>
+        <footer>
+          <button @click="pickSystem = false">{{ t("start.system.back") }}</button>
+        </footer>
+      </div>
+      <div v-else class="choices">
+        <button class="choice" @click="pickSystem = true">
           <svg viewBox="0 0 100 70" class="thumb" aria-hidden="true">
             <rect x="20" y="15" width="60" height="40" rx="2" class="dash" />
             <text x="50" y="40" text-anchor="middle">+</text>
@@ -59,8 +75,8 @@ const previews = computed(() =>
           <span>{{ t(pv.ex.description) }}</span>
         </button>
       </div>
-      <p class="note">{{ t("start.examples.note") }}</p>
-      <footer>
+      <p v-if="!pickSystem" class="note">{{ t("start.examples.note") }}</p>
+      <footer v-if="!pickSystem">
         <button @click="emit('open')">{{ t("start.open") }}</button>
       </footer>
     </section>
@@ -151,6 +167,10 @@ h2 {
 .thumb text {
   fill: var(--muted);
   font-size: 20px;
+}
+.system h3 {
+  margin: 14px 0 2px;
+  font-size: 15px;
 }
 .note {
   font-size: 12px;

@@ -14,6 +14,8 @@ const props = defineProps<{
   selectedIds?: readonly string[];
   /** Text bubbles near points (e.g. the length of the wall being drawn), already localized. */
   labels?: readonly { at: V; text: string }[];
+  /** Structural findings: a small "!" mark per element (severity colour; never green). */
+  badges?: readonly { at: V; severity: string; id: string }[];
   /** Grid step, mm. */
   grid?: number;
   /** Detected rooms: floor polygon + a localized label (e.g. area). Drawn under the walls. */
@@ -281,6 +283,12 @@ function wheel(e: WheelEvent) {
       />
       <circle v-else :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
     </g>
+    <g class="badges">
+      <g v-for="b in badges ?? []" :key="b.id" :class="['badge', b.severity]">
+        <circle :cx="S(b.at).x" :cy="S(b.at).y - 14" r="7" />
+        <text :x="S(b.at).x" :y="S(b.at).y - 10.5" text-anchor="middle">!</text>
+      </g>
+    </g>
     <g class="labels">
       <text v-for="(l, k) in labels ?? []" :key="k" :x="S(l.at).x + 12" :y="S(l.at).y - 12">{{ l.text }}</text>
     </g>
@@ -398,6 +406,27 @@ function wheel(e: WheelEvent) {
 .cursor.endpoint circle,
 .cursor.midpoint polygon {
   fill: var(--accent);
+}
+.badge circle {
+  fill: #5b8bd6;
+  stroke: var(--plan-bg);
+  stroke-width: 1.5;
+}
+.badge.warning circle {
+  fill: #e09a2b;
+}
+.badge.critical circle {
+  fill: #d64545;
+}
+.badge text {
+  fill: #fff;
+  font:
+    bold 10px system-ui,
+    sans-serif;
+  pointer-events: none;
+}
+.badges {
+  pointer-events: none;
 }
 .labels text {
   font:

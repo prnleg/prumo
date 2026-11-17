@@ -2,15 +2,25 @@
 // Settings (UX_PRINCIPLES 3b: discoverable; opened from the toolbar or by clicking the status bar).
 // Grid = this project's value (saved with it, undoable; Q-108 "Project → Drawing").
 // Angle step + language = app preferences, remembered across launches (ADR-037, prefs.ts).
+import { SYSTEMS, type ConstructionSystem } from "@prumo/module-structural";
 import { computed } from "vue";
 import { formatSmall, translate, type Locale, type Params } from "./i18n";
 import { ANGLE_CHOICES, GRID_CHOICES } from "./settings";
 
-const props = defineProps<{ locale: Locale; grid: number; angle: number; outsideFaces: boolean }>();
+const props = defineProps<{
+  locale: Locale;
+  grid: number;
+  angle: number;
+  outsideFaces: boolean;
+  system: ConstructionSystem;
+  structural: boolean;
+}>();
 const emit = defineEmits<{
   grid: [mm: number];
   angle: [deg: number];
   outsideFaces: [on: boolean];
+  system: [s: ConstructionSystem];
+  structural: [on: boolean];
   locale: [l: Locale];
   tour: [];
   close: [];
@@ -48,6 +58,31 @@ const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a
         <span>{{ t("settings.outsideFaces") }}</span>
       </label>
       <p class="tip">{{ t("settings.outsideFaces.tip") }}</p>
+      <h3>{{ t("settings.project") }}</h3>
+      <label>
+        <span>{{ t("settings.system") }}</span>
+        <select
+          :value="system"
+          @change="emit('system', ($event.target as HTMLSelectElement).value as ConstructionSystem)"
+        >
+          <option v-for="s in SYSTEMS" :key="s" :value="s">{{ t(`system.${s}`) }}</option>
+        </select>
+      </label>
+      <p class="tip">{{ t("settings.system.tip") }}</p>
+      <h3>{{ t("settings.modules") }}</h3>
+      <label class="check">
+        <input type="checkbox" checked disabled />
+        <span>{{ t("module.architect.name") }} · {{ t("settings.modules.required") }}</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          :checked="structural"
+          @change="emit('structural', ($event.target as HTMLInputElement).checked)"
+        />
+        <span>{{ t("module.structural.name") }}</span>
+      </label>
+      <p class="tip">{{ t("settings.modules.tip") }}</p>
       <h3>{{ t("settings.language") }}</h3>
       <label>
         <span>{{ t("settings.language") }}</span>

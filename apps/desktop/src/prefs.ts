@@ -15,6 +15,8 @@ export interface Prefs {
   gridSize?: number;
   /** The guided tour was finished or skipped (Q-080): don't show it at launch again. */
   tourDone?: boolean;
+  /** Module manager stage 1 (ADR-020): the Structural module switched off (no UI, no checks; data kept). */
+  structuralOff?: boolean;
 }
 
 export interface LoadedPrefs {
@@ -35,12 +37,13 @@ export function parsePrefs(text: string | null): LoadedPrefs {
     raw = {};
   }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) raw = {};
-  const { v, locale, angleStepDeg, gridSize, tourDone, ...rest } = raw as Record<string, unknown>;
+  const { v, locale, angleStepDeg, gridSize, tourDone, structuralOff, ...rest } = raw as Record<string, unknown>;
   const prefs: Prefs = {};
   if (typeof locale === "string" && (LOCALES as string[]).includes(locale)) prefs.locale = locale as Locale;
   if (isPositive(angleStepDeg) && angleStepDeg <= 90) prefs.angleStepDeg = angleStepDeg;
   if (isPositive(gridSize)) prefs.gridSize = gridSize;
   if (tourDone === true) prefs.tourDone = true;
+  if (structuralOff === true) prefs.structuralOff = true;
   return { prefs, rest, v: isPositive(v) && v > PREFS_VERSION ? v : PREFS_VERSION };
 }
 

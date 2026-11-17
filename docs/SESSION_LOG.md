@@ -681,3 +681,15 @@ Owner: ask the system on the start screen; data-name defaults OK → **ADR-042 a
 **Tests**: 351 (+13): system parsing; unknown → masonry + A-SYS-1; RC → nothing run; R-OPEN-001 default / marked same severity (E-07) / lintel / non-bearing → R-ROLE-001 / to-top wording / fences-railings-dividers; order independence; diff resolves; save → open keeps data, also with the module disabled.
 
 **Next**: slice 2 = UI (start-screen system choice, panel role/origin/lintel, findings panel "checked / not checked", canvas badges, Settings → Project system + Modules switch).
+
+### Session #11, part 38 — Phase 2 slice 2: structural UI, 2026-11-17
+
+Branch `phase2/structural-ui`, stacked on `phase2/structural-core`.
+
+**Done**: start-screen system step (owner choice); `setSystemCommand`; Settings → This project + Modules (stage 1: `structuralOff` pref hides tools + checks, data kept — the code is bundled anyway, ADR-020 stage 1); panel Structure section (role select with the system default spelled out, origin "how do you know?", lintel checkbox; hidden for fences/railings/dividers and when the module is off); `FindingsPanel.vue` + `structural-ui.ts` (typed params → words per language; one card per rule, Q-135; assumption lines merged into "these walls …" when several); checks re-run on History `commit` + 1.5 s settle (Q-073 default), never during a gesture; diff +new / −gone (reset on New/Open); PlanView `badges`; examples get lintels; **"House with problems"** example (ROADMAP Phase 1 item, now possible). 88 new strings pt-BR/en; banned-words test passes (avoided "safety"/"segurança": they contain the banned stems).
+
+**Tests**: 362 (+11): examples clean / problems = 2 × R-OPEN-001 + R-ROLE-001; findings text per language; one card per rule; plural assumption.
+
+**Lost and redone**: a script truncated App.vue (opened for write before reading); restored from git, the 4 lost edits redone. No harm, logged.
+
+**Next**: R-WALL-002 needs a baseline ("original plan") — design question (snapshot? Q-104); more presence rules need new data (contraverga flag, chases, tie beam) → small additions to ADR-042.

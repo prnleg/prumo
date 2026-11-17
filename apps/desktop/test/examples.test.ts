@@ -12,6 +12,7 @@ import {
   type Wall,
 } from "@prumo/core";
 import { architectManifest } from "@prumo/module-architect";
+import { runChecks, structuralManifest } from "@prumo/module-structural";
 import { describe, expect, it } from "vitest";
 import { EXAMPLES } from "../src/examples";
 import { translate } from "../src/i18n";
@@ -64,12 +65,27 @@ describe.each(EXAMPLES.map((e) => [e.id, e] as const))("example %s", (_, ex) => 
 
   it("is deterministic and survives save → open", () => {
     expect(ex.build(args("x"))).toEqual(p);
-    const host = new ModuleHost([architectManifest]);
+    const host = new ModuleHost([architectManifest, structuralManifest]);
     const back = openWithModules(saveProjectFile({ project: p, snapshots: [], extra: {} }, host), host);
     expect(back.status).toBe("ok");
     if (back.status !== "ok") return;
     // the save adds the usage record (room types are Architect data); everything else is identical
-    expect(Object.keys(back.file.project.modules)).toEqual(["org.prumo.architect"]);
+    expect(Object.keys(back.file.project.modules)).toEqual(["org.prumo.architect", "org.prumo.structural"]);
     expect({ ...back.file.project, modules: p.modules }).toEqual(p);
+  });
+});
+
+describe("structural checks on the examples (Phase 2)", () => {
+  const run = (id: string) => {
+    const ex = EXAMPLES.find((e) => e.id === id)!;
+    const p = ex.build(args("s"));
+    return runChecks(p, p.levels[0]!.id).findings.map((f) => f.ruleId);
+  };
+  it("the small house and the apartment: lintels everywhere → no possible issues from these checks", () => {
+    expect(run("house")).toEqual([]);
+    expect(run("apartment")).toEqual([]);
+  });
+  it("the house with problems: two openings without a lintel + one wall marked as a partition", () => {
+    expect(run("problems")).toEqual(["R-OPEN-001", "R-OPEN-001", "R-ROLE-001"]);
   });
 });
