@@ -61,6 +61,7 @@ import PropertiesPanel from "./PropertiesPanel.vue";
 import RecoveryPanel from "./RecoveryPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import StartScreen from "./StartScreen.vue";
+import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
@@ -252,6 +253,7 @@ function setGrid(mm: number) {
 }
 
 let prefsLoaded = false;
+const prefsReady = ref(false);
 function savePrefs(change: LoadedPrefs["prefs"]) {
   prefs = { ...prefs, prefs: { ...prefs.prefs, ...change } };
   if (!prefsLoaded) return; // don't overwrite the file before it was read
@@ -259,10 +261,28 @@ function savePrefs(change: LoadedPrefs["prefs"]) {
     // not being able to remember a preference is not worth interrupting the user (logged in ADR-037)
   });
 }
+// Guided tour (Q-080): once, after the start screen (and any recovery question) is out of the way.
+const TOUR: TourStep[] = ["room", "wall", "divider", "door", "select", "undo", "settings", "save"].map((id) => ({
+  target: id,
+  title: `tour.${id}.title`,
+  text: `tour.${id}.text`,
+}));
+const showTour = ref(false);
+function endTour() {
+  showTour.value = false;
+  savePrefs({ tourDone: true });
+}
+watch(
+  () => [showStart.value, recoveries.value.length, prefsReady.value] as const,
+  ([start, rec, ready]) => {
+    if (!start && !rec && ready && !prefs.prefs.tourDone && !devDemo) showTour.value = true;
+  },
+);
 void platform.readAppText(PREFS_FILE).then((text) => {
   const loaded = parsePrefs(text);
   prefs = { ...loaded, prefs: { ...loaded.prefs, ...prefs.prefs } }; // changes made while loading win
   prefsLoaded = true;
+  prefsReady.value = true;
   if (prefs.prefs.locale) locale.value = prefs.prefs.locale;
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
   watch(locale, (l) => savePrefs({ locale: l }));
@@ -698,6 +718,10 @@ const hint = computed(() => {
 });
 
 function onKey(e: KeyboardEvent) {
+  if (showTour.value && e.key === "Escape") {
+    endTour();
+    return;
+  }
   if (showStart.value || showSettings.value) {
     // a dialog is open: only Esc (close it); the plan's shortcuts wait
     if (e.key === "Escape") {
@@ -808,6 +832,7 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "tour") setTimeout(() => (showTour.value = true), 0);
 if (demo === "shape") {
   // any-shape room in progress: an L with the pointer near the last corner
   setTool("room");
@@ -928,15 +953,20 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <div class="group">
         <button :title="t('action.new.tip')" @click="doNew">{{ t("action.new") }}</button>
         <button :title="t('action.open.tip')" @click="doOpen">{{ t("action.open") }}</button>
-        <button :title="t('action.save.tip')" :disabled="!!readOnly" @click="doSave(false)">
+        <button data-tour="save" :title="t('action.save.tip')" :disabled="!!readOnly" @click="doSave(false)">
           {{ t("action.save") }}
         </button>
       </div>
       <div class="group">
-        <button :class="{ on: tool === 'select' }" :title="t('tool.select.tip')" @click="setTool('select')">
+        <button
+          data-tour="select"
+          :class="{ on: tool === 'select' }"
+          :title="t('tool.select.tip')"
+          @click="setTool('select')"
+        >
           {{ t("tool.select") }}
         </button>
-        <button :class="{ on: tool === 'room' }" :title="t('tool.room.tip')" @click="setTool('room')">
+        <button data-tour="room" :class="{ on: tool === 'room' }" :title="t('tool.room.tip')" @click="setTool('room')">
           {{ t("tool.room") }}
         </button>
         <span v-if="tool === 'room'" class="seg" role="group" :aria-label="t('roomShape.label')">
@@ -955,17 +985,23 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             ⬠ {{ t("roomShape.polygon") }}
           </button>
         </span>
-        <button :class="{ on: tool === 'wall' && !dividerMode }" :title="t('tool.wall.tip')" @click="setTool('wall')">
+        <button
+          data-tour="wall"
+          :class="{ on: tool === 'wall' && !dividerMode }"
+          :title="t('tool.wall.tip')"
+          @click="setTool('wall')"
+        >
           {{ t("tool.wall") }}
         </button>
         <button
           :class="{ on: tool === 'wall' && dividerMode }"
+          data-tour="divider"
           :title="t('tool.divider.tip')"
           @click="setTool('wall', true)"
         >
           {{ t("tool.divider") }}
         </button>
-        <button :class="{ on: tool === 'door' }" :title="t('tool.door.tip')" @click="setTool('door')">
+        <button data-tour="door" :class="{ on: tool === 'door' }" :title="t('tool.door.tip')" @click="setTool('door')">
           {{ t("tool.door") }}
         </button>
         <button :class="{ on: tool === 'window' }" :title="t('tool.window.tip')" @click="setTool('window')">
@@ -973,12 +1009,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </button>
       </div>
       <div class="group">
-        <button :disabled="!canUndo" :title="undoTip" @click="undo">↶ {{ t("action.undo") }}</button>
+        <button data-tour="undo" :disabled="!canUndo" :title="undoTip" @click="undo">↶ {{ t("action.undo") }}</button>
         <button :disabled="!canRedo" :title="redoTip" @click="redo">↷ {{ t("action.redo") }}</button>
       </div>
       <button @click="fitAll">{{ t("action.fit") }}</button>
       <span class="spacer" />
-      <button :title="t('action.settings.tip')" @click="showSettings = true">⚙ {{ t("action.settings") }}</button>
+      <button data-tour="settings" :title="t('action.settings.tip')" @click="showSettings = true">
+        ⚙ {{ t("action.settings") }}
+      </button>
     </header>
 
     <main class="canvas">
@@ -1032,6 +1070,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @open="startOpen"
         @close="showStart = false"
       />
+      <TourBubble v-if="showTour" :locale="locale" :steps="TOUR" @done="endTour" />
       <RecoveryPanel
         v-if="recoveries.length"
         :locale="locale"
@@ -1049,6 +1088,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @grid="setGrid"
         @angle="(a) => (angleStep = a)"
         @outside-faces="(on) => run(setOutsideFacesCommand(on))"
+        @tour="((showSettings = false), (showTour = true))"
         @locale="(l) => (locale = l)"
         @close="showSettings = false"
       />

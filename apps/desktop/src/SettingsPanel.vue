@@ -12,6 +12,7 @@ const emit = defineEmits<{
   angle: [deg: number];
   outsideFaces: [on: boolean];
   locale: [l: Locale];
+  tour: [];
   close: [];
 }>();
 const t = (key: string, params?: Params) => translate(props.locale, key, params);
@@ -60,6 +61,8 @@ const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a
         </select>
       </label>
       <p class="tip">{{ t("settings.remembered") }}</p>
+      <h3>{{ t("settings.help") }}</h3>
+      <button class="plain" @click="emit('tour')">{{ t("settings.tour") }}</button>
       <footer>
         <button @click="emit('close')">{{ t("settings.close") }}</button>
       </footer>
@@ -120,6 +123,15 @@ select {
   margin: 0 0 6px;
   font-size: 12px;
   color: var(--muted);
+}
+button.plain {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
 }
 footer {
   display: flex;

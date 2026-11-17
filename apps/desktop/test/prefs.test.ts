@@ -31,3 +31,12 @@ describe("remembered preferences (ADR-037)", () => {
     });
   });
 });
+
+describe("tour flag (Q-080)", () => {
+  it("only `true` counts; round-trips", () => {
+    expect(parsePrefs('{"tourDone":true}').prefs).toEqual({ tourDone: true });
+    expect(parsePrefs('{"tourDone":"yes"}').prefs).toEqual({});
+    const r = parsePrefs('{"tourDone":true,"locale":"en"}');
+    expect(parsePrefs(serializePrefs(r))).toEqual(r);
+  });
+});

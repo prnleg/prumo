@@ -40,7 +40,7 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 - **Q-072 🟠** Geometric impossibilities: block/clamp (default) or allow with a model-error marker?
 - **Q-073 🟠** When is an element "settled" for checks? Default: gesture ended + 1.5 s idle; open chains = draft.
 - **Q-075 🟡** Unofficial Linux CI build? Default: yes, build-only.
-- **Q-080 🟠** Starter template + skippable guided tour in Phase 1? Default: yes.
+- **Q-080 🟠** Starter template + skippable guided tour in Phase 1? Default: yes. **Implemented with the default (2026-11-17):** examples on the start screen = starter templates; 8-step quick tour, skippable, replayable from Settings.
 - **Q-081 🟡** Type exact measurements while drawing? Default: yes, inline input.
 - **Q-082 🟡** Setting to hide engineering alerts in the Architect Vision? Default: on for criticals only.
 - **Q-084 🟡** Repo hygiene: CONTRIBUTING (done) + Code of Conduct + issue templates? Default: yes.

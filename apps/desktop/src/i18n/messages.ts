@@ -90,6 +90,36 @@ export const en = {
   "tool.room.tip": "Draw rooms (Q)",
   "tool.wall": "Wall",
   "tool.wall.tip": "Draw walls (W)",
+  "tour.title": "Quick tour",
+  "tour.count": "{n} of {total}",
+  "tour.skip": "Skip tour",
+  "tour.back": "Back",
+  "tour.next": "Next",
+  "tour.finish": "Start drawing",
+  "tour.room.title": "Start with rooms",
+  "tour.room.text":
+    'Click one corner, then the opposite one: Prumo builds the four walls and shows the floor area. Choose "Any shape" for L-shaped and other rooms.',
+  "tour.wall.title": "Single walls",
+  "tour.wall.text":
+    "Draw walls one after another, at any angle. Click the first point again to close a room. Hold Alt to place freely.",
+  "tour.divider.title": "Open spaces",
+  "tour.divider.text":
+    "A divider is an invisible line that splits one open space into two rooms, like a living room and a kitchen.",
+  "tour.door.title": "Doors and windows",
+  "tour.door.text": "Move over a wall and click. They snap to the middle, the ends, and next to each other.",
+  "tour.select.title": "Change things",
+  "tour.select.text":
+    "Click anything to select it, drag to move it, and edit sizes on the right. Ctrl/⌘+C and V copy and paste.",
+  "tour.undo.title": "Nothing is final",
+  "tour.undo.text": "Every change can be undone (Ctrl/⌘+Z), so experiment freely.",
+  "tour.settings.title": "Settings",
+  "tour.settings.text":
+    "Grid size, angle steps, how outside walls line up, and the language. You can replay this tour here.",
+  "tour.save.title": "Save your work",
+  "tour.save.text":
+    "Save to a .prumo file. Prumo also keeps a recovery copy every 30 seconds in case it closes unexpectedly.",
+  "settings.help": "Help",
+  "settings.tour": "Show the quick tour again",
   "roomShape.label": "Room shape",
   "roomShape.rectangle": "Rectangle",
   "roomShape.rectangle.tip": "Two clicks: opposite corners",
@@ -333,6 +363,36 @@ export const ptBR: Record<MessageKey, string> = {
   "tool.room.tip": "Desenhar cômodos (Q)",
   "tool.wall": "Parede",
   "tool.wall.tip": "Desenhar paredes (W)",
+  "tour.title": "Tour rápido",
+  "tour.count": "{n} de {total}",
+  "tour.skip": "Pular tour",
+  "tour.back": "Voltar",
+  "tour.next": "Próximo",
+  "tour.finish": "Começar a desenhar",
+  "tour.room.title": "Comece pelos cômodos",
+  "tour.room.text":
+    'Clique em um canto e depois no canto oposto: o Prumo cria as quatro paredes e mostra a área do piso. Escolha "Qualquer formato" para cômodos em L e outros.',
+  "tour.wall.title": "Paredes avulsas",
+  "tour.wall.text":
+    "Desenhe paredes uma após a outra, em qualquer ângulo. Clique no primeiro ponto de novo para fechar um cômodo. Mantenha Alt pressionado para posicionar livremente.",
+  "tour.divider.title": "Espaços abertos",
+  "tour.divider.text":
+    "A divisória é uma linha invisível que separa um espaço aberto em dois cômodos, como sala e cozinha.",
+  "tour.door.title": "Portas e janelas",
+  "tour.door.text": "Passe sobre uma parede e clique. Elas se encaixam no meio, nas pontas e ao lado umas das outras.",
+  "tour.select.title": "Altere o que quiser",
+  "tour.select.text":
+    "Clique em algo para selecionar, arraste para mover e ajuste as medidas à direita. Ctrl/⌘+C e V copiam e colam.",
+  "tour.undo.title": "Nada é definitivo",
+  "tour.undo.text": "Toda alteração pode ser desfeita (Ctrl/⌘+Z), então experimente à vontade.",
+  "tour.settings.title": "Configurações",
+  "tour.settings.text":
+    "Tamanho da grade, passos de ângulo, alinhamento das paredes externas e idioma. Você pode rever este tour aqui.",
+  "tour.save.title": "Salve seu trabalho",
+  "tour.save.text":
+    "Salve em um arquivo .prumo. O Prumo também guarda uma cópia de recuperação a cada 30 segundos, caso feche de repente.",
+  "settings.help": "Ajuda",
+  "settings.tour": "Mostrar o tour rápido de novo",
   "roomShape.label": "Formato do cômodo",
   "roomShape.rectangle": "Retângulo",
   "roomShape.rectangle.tip": "Dois cliques: cantos opostos",

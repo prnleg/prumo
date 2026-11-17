@@ -637,3 +637,13 @@ Owner: do the remaining Phase 1 items least-blocked first, in sequence, one bran
 **Tests**: 292 (+5): L shape → 6 walls, 22,479,600 mm² (hand: 24 m² − 22 m × 70 mm + 4 × 70²), one undo; clockwise = same; triangle via close() with a double-click's repeated point ignored; bow-tie refused + Esc = no step; shared side reused (4 + 2 walls).
 
 **Defaults logged**: the shape choice isn't remembered across launches (cheap to add to prefs later); right-click closes when possible, else cancels (same spirit as the wall tool's "stop").
+
+### Session #11, part 33 — quick tour (Q-080 default), 2026-11-17
+
+Branch `phase1/tour`, stacked on `phase1/room-shape`.
+
+**Done**: `TourBubble.vue` (non-modal bubble + ring around a `data-tour` control; repositions on resize/language; Skip / Back / Next; Esc ends it), 8 steps (room, wall, divider, door, select, undo, settings, save) in pt-BR/en. Opens once at launch after the start screen and any recovery question are closed; `tourDone` in settings.json (ADR-037 prefs, unknown-key-safe); Settings → Help → "Show the quick tour again". Dev `?demo=tour`.
+
+**Tests**: 293 (+1: tourDone parsing). The i18n safety test caught "Segure Alt" (contains "segur", banned stem for "seguro") → reworded to "Mantenha Alt pressionado".
+
+**Defaults logged**: tour not shown in dev demos; never during a gesture (it only opens at launch / from Settings, ADR-025).
