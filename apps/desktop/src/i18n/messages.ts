@@ -212,6 +212,8 @@ export const en = {
   "problem.opening-outside-wall": "A door or window wouldn't fit in this wall anymore.",
   "problem.opening-above-wall": "A door or window would be taller than this wall.",
   "problem.openings-overlap": "Two doors or windows would overlap.",
+  "problem.walls-overlap":
+    "That wall would lie on top of another wall. Draw it next to it, or move the other one first.",
   "problem.wall-too-short": "That wall is too short.",
   "problem.non-positive-size": "Sizes must be bigger than zero.",
   "problem.host-missing": "A door or window lost its wall.",
@@ -435,6 +437,7 @@ export const ptBR: Record<MessageKey, string> = {
 
   "problem.opening-outside-wall": "Uma porta ou janela não caberia mais nesta parede.",
   "problem.opening-above-wall": "Uma porta ou janela ficaria mais alta que esta parede.",
+  "problem.walls-overlap": "Essa parede ficaria em cima de outra parede. Desenhe ao lado dela ou mova a outra antes.",
   "problem.openings-overlap": "Duas portas ou janelas ficariam uma sobre a outra.",
   "problem.wall-too-short": "Essa parede é curta demais.",
   "problem.non-positive-size": "As medidas precisam ser maiores que zero.",

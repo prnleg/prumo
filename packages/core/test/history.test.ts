@@ -76,7 +76,7 @@ describe("invariants (DATA_MODEL I-1…I-5) — Q-072: blocked", () => {
     ).toEqual(["host-other-level"]);
     expect(check([wall("w-2", 0, 0, 4000, 0, { levelId: "l-x" })])).toEqual(["level-missing:w-2"]);
     expect(check([wall("w-2", 5, 5, 5.5, 5)])).toEqual(["wall-too-short:w-2"]);
-    expect(check([wall("w-2", 0, 0, 10, 0, { thickness: 0 })])).toEqual(["non-positive-size:w-2"]);
+    expect(check([wall("w-2", 0, 500, 10, 500, { thickness: 0 })])).toEqual(["non-positive-size:w-2"]);
     expect(check([opening("o-1", "w-1", 1000, 0)])).toEqual(["non-positive-size:o-1"]);
   });
   it("shortening a wall re-checks the openings it hosts", () => {
