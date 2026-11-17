@@ -54,3 +54,35 @@ describe("planGeometry", () => {
     expect(g.nodes).toHaveLength(1);
   });
 });
+
+describe("gentle assists: wall midpoint, right angle (owner: 'an assurance, not instant')", () => {
+  // scale 0.1 px/mm → assist radius 8 px = 80 mm; endpoint radius 12 px = 120 mm
+  const segs = [
+    [
+      { x: 0, y: 0 },
+      { x: 4000, y: 3000 },
+    ],
+  ] as const; // slanted 3-4-5 wall, L = 5000, mid (2000, 1500)
+  const s = (x: number, y: number, o: Partial<SnapInput> = {}) =>
+    snap({ ...base, cursor: { x, y }, scale: 0.1, segments: segs, ...o });
+
+  it("midpoint only when the pointer is within 8 px (80 mm here)", () => {
+    expect(s(2050, 1540)).toEqual({ point: { x: 2000, y: 1500 }, kind: "midpoint" }); // 64 mm away
+    expect(s(2100, 1500).kind).not.toBe("midpoint"); // 100 mm away → plain grid
+  });
+
+  it("right angle: the foot of the perpendicular from the fixed end, on a slanted wall", () => {
+    // from (0, 5000): foot on the line through (0,0)-(4000,3000): t = (0·4000 + 5000·3000)/5000² = 0.6
+    // → (2400, 1800); pointer 50 mm off
+    const r = s(2430, 1840, { from: { x: 0, y: 5000 } });
+    expect(r).toEqual({ point: { x: 2400, y: 1800 }, kind: "perpendicular" });
+    // the new wall (0,5000)→(2400,1800) is at 90° to the old one: dot((2400,−3200),(4000,3000)) = 0
+    expect(2400 * 4000 + -3200 * 3000).toBe(0);
+    expect(s(2600, 1800, { from: { x: 0, y: 5000 } }).kind).toBe("angle"); // 200 mm off: no pull
+  });
+
+  it("endpoints still win; Alt still frees everything", () => {
+    expect(s(3950, 2960, { endpoints: [{ x: 4000, y: 3000 }] }).kind).toBe("endpoint");
+    expect(s(2050, 1540, { free: true }).kind).toBe("free");
+  });
+});

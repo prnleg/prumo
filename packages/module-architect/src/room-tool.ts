@@ -48,12 +48,11 @@ export class RoomTool {
   }
 
   private at(p: PointerInfo): V {
-    const endpoints = wallsOnLevel(this.gesture?.base ?? this.h.current, this.options.levelId).flatMap((w) => [
-      w.start,
-      w.end,
-    ]);
-    // grid/endpoint snapping only (a rectangle has no angle to snap)
-    return snap({ cursor: p.at, endpoints, scale: p.scale, free: p.free, settings: this.options.snap }).point;
+    const walls = wallsOnLevel(this.gesture?.base ?? this.h.current, this.options.levelId);
+    const endpoints = walls.flatMap((w) => [w.start, w.end]);
+    const segments = walls.map((w) => [w.start, w.end] as const);
+    // grid / endpoint / wall-midpoint snapping (a rectangle has no angle to snap)
+    return snap({ cursor: p.at, endpoints, segments, scale: p.scale, free: p.free, settings: this.options.snap }).point;
   }
 
   move(p: PointerInfo): void {

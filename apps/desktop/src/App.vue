@@ -789,6 +789,17 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "snap") {
+  // gentle assists: a slanted wall, then a new wall from (0, 5000) hovering near the right-angle point
+  setTool("wall");
+  wallTool.click({ at: { x: 0, y: 0 }, scale: 0.1, free: true });
+  wallTool.click({ at: { x: 4000, y: 3000 }, scale: 0.1, free: true });
+  wallTool.finish();
+  wallTool.click({ at: { x: 0, y: 5000 }, scale: 0.1, free: false });
+  wallTool.move({ at: { x: 2430, y: 1840 }, scale: 0.1, free: false });
+  sync();
+  setTimeout(fitAll, 0);
+}
 if (demo === "crash") setTimeout(() => void logCrash(new TypeError("demo: cannot read wall of undefined"), "error"), 0);
 if (demo === "recovery")
   recoveries.value = [
