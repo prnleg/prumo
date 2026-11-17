@@ -91,6 +91,16 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/module-structural:
+    dependencies:
+      '@prumo/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@prumo/module-architect':
+        specifier: workspace:*
+        version: link:../module-architect
+
   packages/renderer-2d:
     dependencies:
       '@prumo/core':

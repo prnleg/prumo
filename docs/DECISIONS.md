@@ -461,3 +461,12 @@ Decision — three levels per rule / value / validation case:
 - `VERIFIED-UNSIGNED` — an engineer reviewed the statement informally and agreed, **anonymously, without technical responsibility** (no ART/RRT). Recorded as `reviewer: owner's engineer contact (anonymous, unsigned)` + date + question id. Applies only to what they stated without a "check" mark. **No numeric threshold reaches this level from a value recalled from memory.**
 - `VERIFIED` — reviewed by a named professional who signs it. Not used now; would need its own ADR (liability).
 UI wording (pt-BR / en): *"Regra revisada informalmente por um engenheiro, sem assinatura técnica (sem ART)."* / *"Rule informally reviewed by an engineer; not a signed technical review."* It describes **the rule**, never the user's design; it never appears as a badge of approval, and the banned-words test keeps covering it.
+
+## ADR-042 — Structural data names: construction system, wall role, lintel
+Status: **ACCEPTED (2026-11-17, owner: "use defaults")**.
+- **Construction system** = the system part of `project.profileId` (ADR-004/009 "country/system"): `br-nbr/structural-masonry` | `br-nbr/rc-frame` | `br-nbr/unknown`. Anything unrecognised reads as `unknown`. `unknown` runs the structural-masonry rules (conservative, E-01) and every finding says so (assumption A-SYS-1). `rc-frame` runs no rules until its pack exists. Asked on the start screen when starting blank (owner); examples are masonry; changeable later.
+- **Module** `org.prumo.structural` (optional, depends on Architect), component v1 (ADR-022 namespacing):
+  - wall → `{ role?: "bearing" | "non-bearing", origin?: "drawing" | "professional" | "own-judgement" }` — absent = not specified → the system's default (ADR-017: masonry = load-bearing).
+  - opening → `{ lintel?: true }` — absent = not specified → R-OPEN-001 applies.
+  - Unknown fields are kept; an empty component is removed (no clutter). Mirroring changes nothing.
+- Findings: Spike B's shape + `review` (ADR-041 level, reviewer, date, question id). Rule strings live in the desktop catalogue for now (same as Architect's; module-owned catalogues later, ADR-021).
