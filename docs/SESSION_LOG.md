@@ -647,3 +647,13 @@ Branch `phase1/tour`, stacked on `phase1/room-shape`.
 **Tests**: 293 (+1: tourDone parsing). The i18n safety test caught "Segure Alt" (contains "segur", banned stem for "seguro") → reworded to "Mantenha Alt pressionado".
 
 **Defaults logged**: tour not shown in dev demos; never during a gesture (it only opens at launch / from Settings, ADR-025).
+
+### Session #11, part 34 — module manager deferred; EDITING_OPERATIONS test matrix, 2026-11-17
+
+**Module manager (stage 1)**: not built. ADR-020 stage 1 = "shipped but not loaded unless enabled"; today the only module (Architect) is required, so a Modules page would have nothing to enable — plumbing without a feature (golden rule 12). Deferred to the start of Phase 2 with `module-structural` (ROADMAP note).
+
+**Done instead** (Phase 1 exit criterion): `test/ops-matrix.test.ts`, branch `phase1/ops-matrix` stacked on `phase1/tour`: 9 operations × 5 cases = 45 tests (do / invariants / undo = exact snapshot / redo = exact result / save → open identical). All passed first run. ROADMAP exit criteria: undo/redo + round trip checked.
+
+**Tests**: 338.
+
+**Remaining for Phase 1 exit**: owner G-1 usability test; EDITING_OPERATIONS edge cases still marked ❓ in the doc (e.g. Figma-style last-offset duplicate, copied override findings — those need Phase 2 data).

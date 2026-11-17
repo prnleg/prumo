@@ -85,3 +85,5 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 ## Tests matrix (minimum)
 
 For each op × {single wall, wall with 2 openings, L junction, T junction, multi-select incl. slab}: do, undo, redo, save/load round-trip after the op.
+
+> **Implemented (2026-11-17, `packages/core/test/ops-matrix.test.ts`):** 9 ops (move, move detached, duplicate, copy + paste, mirror in place, mirror copy, rotate 90°, delete, type a length) × 5 cases (single, 2 openings, L, T, closed room + door + name; no slabs in the model yet) = 45 tests: op applies cleanly, invariants clean, one undo = the exact previous snapshot, redo = the exact result, save → open = identical.
