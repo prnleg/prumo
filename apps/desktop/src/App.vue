@@ -21,6 +21,13 @@ import {
   roomTags,
   wallLength,
   duplicateCommand,
+  copyToClipboard,
+  hitTest,
+  offsetAlong,
+  pasteCommand,
+  pasteOpeningsCommand,
+  type Clipboard,
+  type V,
   mirrorCommand,
   rotateCommand,
   selectionBounds,
@@ -377,13 +384,14 @@ function endTools() {
 }
 
 /** Run a command from the panel/keyboard; show why if the core refuses it (Q-072: blocked). */
-function run(cmd: Command) {
+function run(cmd: Command): boolean {
   endTools();
   notice.value = "";
   const r = history.execute(cmd);
   blocked.value = r.ok ? [] : [...new Set(r.problems.map((p) => p.code))];
   selectTool.prune();
   selection.value = [...selectTool.selection];
+  return r.ok;
 }
 function deleteSelection() {
   if (!selectTool.realIds().length) return;
@@ -425,7 +433,53 @@ function duplicateSelection() {
   sync();
 }
 
+// Copy / Cut / Paste (EDITING_OPERATIONS "Copy"): app-internal clipboard, paste at the cursor.
+let clipboard: Clipboard | null = null;
+/** Last pointer position over the plan (model mm); null after it leaves → paste uses a fixed offset. */
+let cursorAt: V | null = null;
+function copySelection(cut: boolean) {
+  // Cut takes only real elements (like Delete: cutting a room's walls would cut its neighbours too).
+  const ids = cut ? selectTool.realIds() : selectTool.elementIds();
+  if (!ids.length) return;
+  clipboard = copyToClipboard(history.current, ids);
+  if (cut) run(deleteCommand(history.current, ids));
+  notice.value = t(cut ? "clip.cut" : "clip.copied", { count: ids.length });
+}
+function paste() {
+  const clip = clipboard;
+  if (!clip) return;
+  endTools();
+  if (clip.anchor) {
+    const g = gridSize.value;
+    const raw = cursorAt ? { x: cursorAt.x - clip.anchor.x, y: cursorAt.y - clip.anchor.y } : { x: 500, y: -500 };
+    const delta = { x: Math.round(raw.x / g) * g + 0, y: Math.round(raw.y / g) * g + 0 };
+    const r = pasteCommand(clip, delta, level.value, randomIds);
+    if (run(r.command)) {
+      setTool("select");
+      selectTool.selection = r.newIds;
+    }
+  } else if (clip.loose.length) {
+    // doors/windows alone: onto the wall under the cursor
+    const hit = cursorAt ? hitTest(geometry.value, cursorAt, 8 / view.value.scale) : null;
+    const w = hit ? history.current.elements[hit] : undefined;
+    if (!cursorAt || w?.type !== "wall") {
+      notice.value = t("clip.needWall");
+      return;
+    }
+    const first = clip.loose[0]?.width ?? 0;
+    const g = gridSize.value;
+    const offset = Math.max(0, Math.round((offsetAlong(w, cursorAt) - first / 2) / g) * g);
+    const r = pasteOpeningsCommand(clip, w, offset, randomIds);
+    if (run(r.command)) {
+      setTool("select");
+      selectTool.selection = r.newIds;
+    }
+  }
+  sync();
+}
+
 function onPointer(e: PlanPointer) {
+  cursorAt = e.at;
   const info = { at: e.at, scale: e.scale, free: e.free };
   if (tool.value === "door" || tool.value === "window") {
     if (e.type === "move") openingTool.move(info);
@@ -509,6 +563,7 @@ function setTool(n: ToolName) {
   sync();
 }
 function onLeave() {
+  cursorAt = null;
   if (tool.value === "door" || tool.value === "window") openingTool.finish();
   sync();
 }
@@ -559,6 +614,12 @@ function onKey(e: KeyboardEvent) {
   } else if (mod && e.key.toLowerCase() === "n") {
     e.preventDefault();
     void doNew();
+  } else if (mod && (e.key.toLowerCase() === "c" || e.key.toLowerCase() === "x") && tool.value === "select") {
+    e.preventDefault();
+    copySelection(e.key.toLowerCase() === "x");
+  } else if (mod && e.key.toLowerCase() === "v") {
+    e.preventDefault();
+    paste();
   } else if (mod && e.key.toLowerCase() === "d") {
     e.preventDefault();
     duplicateSelection();
@@ -636,6 +697,18 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "paste") {
+  const house = EXAMPLES.find((e) => e.id === "house");
+  if (house)
+    void startExample(house).then(() => {
+      setTool("select");
+      selectTool.selectAll();
+      copySelection(false);
+      cursorAt = { x: 16000, y: 3500 };
+      paste();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo?.startsWith("example-")) {
   const ex = EXAMPLES.find((e) => `example-${e.id}` === demo);
   if (ex) void startExample(ex);

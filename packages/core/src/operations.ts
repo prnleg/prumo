@@ -6,6 +6,7 @@ import type { Command } from "./history";
 import type { IdSource } from "./ids";
 import type { Element, Id, Opening, Project, RoomTag, Wall } from "./model";
 import { detectRooms, matchRoomTags, roomTags } from "./geometry/rooms";
+import { copyToClipboard, pasteCommand } from "./clipboard";
 
 export interface MoveOptions {
   /** Q-022 default: walls joined to a moved wall stretch to keep the junction. Off = detach (modifier key). */
@@ -125,27 +126,9 @@ export interface DuplicateResult {
  * Ids are drawn now, so redo reproduces the same copies.
  */
 export function duplicateCommand(p: Project, ids: readonly Id[], delta: V, newId: IdSource): DuplicateResult {
-  const walls = [...new Set(ids)]
-    .map((id) => p.elements[id])
-    .filter(isWall)
-    .sort((a, b) => (a.id < b.id ? -1 : 1));
-  const pairs = walls.map((w) => [w, newId()] as const);
-  const map = new Map(pairs.map(([w, id]) => [w.id, id]));
-  const copies: Element[] = pairs.map(([w, id]) => ({
-    ...structuredClone(w),
-    id,
-    start: add(w.start, delta),
-    end: add(w.end, delta),
-  }));
-  const hosted = Object.values(p.elements)
-    .filter((e): e is Opening => isOpening(e) && map.has(e.host.elementId))
-    .sort((a, b) => (a.id < b.id ? -1 : 1));
-  for (const op of hosted) {
-    const host = map.get(op.host.elementId);
-    if (host) copies.push({ ...structuredClone(op), id: newId(), host: { ...op.host, elementId: host } });
-  }
-  const label: Label = { key: "cmd.duplicate", params: { count: copies.length } };
-  return { command: { label, apply: (q) => putElements(q, copies) }, newIds: pairs.map(([, id]) => id) };
+  const clip = copyToClipboard(p, ids);
+  const count = clip.walls.length + clip.hosted.length;
+  return pasteCommand(clip, delta, undefined, newId, { key: "cmd.duplicate", params: { count } });
 }
 
 // --- rotate & mirror (EDITING_OPERATIONS "Rotate", "Mirror") ------------------------------------
