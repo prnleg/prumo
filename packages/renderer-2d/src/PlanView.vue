@@ -3,6 +3,7 @@
 // events in MODEL coordinates. No model edits, no tool logic, no strings of its own (labels come in).
 import type { PlanGeometry, SnapKind, V, Wall } from "@prumo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { fitLabel, roomSpace } from "./label-fit";
 import { toModel, toScreen, zoomAt, type PlanPointer, type ViewState } from "./view";
 
 const props = defineProps<{
@@ -16,7 +17,15 @@ const props = defineProps<{
   /** Grid step, mm. */
   grid?: number;
   /** Detected rooms: floor polygon + a localized label (e.g. area). Drawn under the walls. */
-  rooms?: readonly { key: string; floor: readonly V[]; at: V; label: string; selected?: boolean; fill?: string }[];
+  /** `label` = parts, e.g. [name, area]: shown on one line, two lines, smaller, or name only — whatever fits. */
+  rooms?: readonly {
+    key: string;
+    floor: readonly V[];
+    at: V;
+    label: readonly string[];
+    selected?: boolean;
+    fill?: string;
+  }[];
   /** Painted wall faces: a strip along `line`, clipped to the wall's drawn shape (clean corners). */
   faces?: readonly { key: string; wallId: string; line: readonly [V, V]; color: string }[];
   /** Rubber band (model coords); "touching" draws dashed (CAD convention). */
@@ -73,6 +82,17 @@ const gridLines = computed(() => {
 });
 
 const kindOf = computed(() => new Map(props.walls.map((w) => [w.id, w.kind])));
+const roomLabels = computed(() =>
+  (props.rooms ?? []).flatMap((r) => {
+    const room = roomSpace(r.floor, r.at);
+    const fit = fitLabel(r.label, room.w * props.view.scale, room.h * props.view.scale);
+    if (!fit) return [];
+    const at = S(r.at);
+    // centre the block vertically on the label point (text baseline is "middle")
+    const dy0 = -((fit.lines.length - 1) * fit.size * 1.25) / 2;
+    return [{ key: r.key, x: at.x, y: at.y, dy0, ...fit }];
+  }),
+);
 const selected = computed(() => new Set(props.selectedIds ?? []));
 
 // --- input -----------------------------------------------------------------------------------
@@ -169,7 +189,11 @@ function wheel(e: WheelEvent) {
         :class="{ selected: r.selected }"
         :style="r.fill && !r.selected ? { fill: r.fill } : undefined"
       />
-      <text v-for="r in rooms ?? []" :key="r.key + 't'" :x="S(r.at).x" :y="S(r.at).y">{{ r.label }}</text>
+      <template v-for="r in roomLabels" :key="r.key + 't'">
+        <text :x="r.x" :y="r.y" :style="{ fontSize: `${r.size}px` }">
+          <tspan v-for="(line, i) in r.lines" :key="i" :x="r.x" :dy="i === 0 ? r.dy0 : r.size * 1.25">{{ line }}</tspan>
+        </text>
+      </template>
     </g>
     <g class="walls">
       <polygon

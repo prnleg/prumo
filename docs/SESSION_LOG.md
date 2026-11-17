@@ -467,3 +467,15 @@ Owner: "Merged" (PR #12), "continue". Branch `phase1/start` from `main`.
 
 **Next**: ADR-037 answer → 8c autosave + recovery + remembered settings + crash log.
 
+### Session #11, part 18 — room types + room labels that fit (owner away), 2026-11-16
+
+Owner: "Go coding with default decision only if your confidence on them are high … if they're blocking each other you can stop them." Owner merging `phase1/start`; work stacked on it in `phase1/room-types`. ADR-037 (medium-high) → **not** implemented; 8c waits.
+
+**Done**: Architect `room-types.ts` (the 14 types of Q-115, ids stable; `setRoomType`, `roomTypeKey`; unknown ids → no label, no crash). Architect component **v1 → v2** (identity migration): the bump makes an older build open files with room types read-only instead of dropping the type on save (rule 13). `withArchitectData` now keeps unknown Architect fields on edit (the old helper rebuilt the object from known fields: a latent data-drop). App: "Type" picker in the room panel; label = name, else the localized type; name placeholder shows the type; examples carry types. Renderer: `label-fit.ts` (`roomSpace` = free width/height around the label point; `fitLabel` = one line → two lines → 10 px → name only → nothing); `PlanView` rooms take label **parts**; renderer-2d got a test script.
+
+**Tests**: 229. List = 14 unique, type + floor coexist and clear independently, unknown Architect fields survive an edit, v1 file migrates to v2 unchanged, a v1-only app opens a v2 file read-only. Label fit hand cases (18 chars × 12 px × 0.6 = 129.6 px; one px less → two lines; L-shape space). Screenshot at 640 × 480: labels stack/hide instead of overlapping walls.
+
+**Inferences/defaults logged** (high confidence): types owned by Architect (Q-114 default, MODULES §Q-128); no type → no label text beyond area; character-count width estimate (0.6 em) instead of DOM measuring (deterministic, testable; may leave a little slack). Noticed, not fixed: toolbar overflows in narrow windows.
+
+**Next**: copy/paste (`phase1/clipboard`).
+
