@@ -8,6 +8,7 @@ export * from "./history";
 export * from "./commands";
 export * from "./operations";
 export * from "./clipboard";
+export * from "./outside-faces";
 export * from "./modules";
 export * from "./module-data";
 export * from "./persistence";

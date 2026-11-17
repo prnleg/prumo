@@ -205,6 +205,6 @@ describe("cross-machine determinism", () => {
     const hash = createHash("sha256")
       .update(save(file(withWall())))
       .digest("hex");
-    expect(hash).toMatchInlineSnapshot(`"6f58b1e59568384e15b70a5f94454cf86dc863f8809672544fc5bd68a2c4b242"`);
+    expect(hash).toMatchInlineSnapshot(`"f0d32c9f3fc24a15e1c5de693892586a2389e618a4d904e11c820cee13f68a72"`);
   });
 });

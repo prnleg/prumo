@@ -420,3 +420,13 @@ Options:
 - **B) WebView `localStorage` for settings, app-data folder only for recovery.** (+) settings need no file code. (−) two storage places; WebView storage is per-OS-engine (WebView2 / WKWebView) and can be wiped by updates or "clear browsing data"-like actions we don't control.
 - **C) `tauri-plugin-store`** (official key-value plugin) for settings + fs for recovery. (+) ready-made. (−) one more dependency (JS + Rust) for ~40 lines of code.
 Lean: **A**. Confidence: medium-high (same plugin, smallest new surface; the scope widening is to Prumo's own folder only). What would change my mind: if you want settings to sync between machines later (then neither A nor B is enough anyway).
+
+## ADR-038 — Outside walls drawn by their outside face (project setting)
+Status: **ACCEPTED (2026-11-17, owner: "Yes. In any case we can tweak those items in the future")** — resolves Q-134 for outside junctions.
+Context: walls are drawn by their centre line, so two walls of different thickness meeting on the outside leave a step or a cut wedge (Q-134). Owner: inside junctions may stay mismatched; outside faces should line up; "outside" = the outside of each block (connected group of walls closing loops), even a block inside another; it should be a setting.
+Decision:
+- Project setting `settings.outsideFaces: boolean` (saved in the file; missing = off, so older files and the examples don't change). New blank projects: on. Settings → Drawing → "Line up outside walls by their outer face"; changing it is an undoable command.
+- When on, a wall that **first becomes part of a closed block** and lies on that block's outside switches from `center` to `left`/`right` alignment, so the drawn line is its outside face and the body goes inward (core `anchorOutsideWalls`, run by `History` on every change and preview through the `normalize` option; same undo step as the edit that closed the block).
+- Never touched: walls already in a loop before the change (deleting a neighbour moves nothing), walls whose alignment isn't `center` (the user's choice wins), copies (paste/duplicate/mirror copy: `Command.exact`), and every wall when the setting is turned on later.
+- Consequence (told to the owner): a free-drawn shape gets ~half a wall thickness smaller inside when it closes; the outside size stays what was drawn. The room tool closes in one step, so its walls never appear centred.
+Inside junctions with mixed thickness keep today's mitre (small wedge, Q-134 option C for those); a general polygon fix stays possible later (Q-134 B).

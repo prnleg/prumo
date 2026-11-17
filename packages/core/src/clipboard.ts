@@ -84,7 +84,7 @@ export function pasteCommand(
         host: { ...o.host, elementId: host },
       });
   }
-  return { command: { label, apply: (q) => putElements(q, copies) }, newIds: [...map.values()] };
+  return { command: { label, apply: (q) => putElements(q, copies), exact: true }, newIds: [...map.values()] };
 }
 
 /**

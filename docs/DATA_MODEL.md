@@ -18,7 +18,7 @@ Project {
   levels: Level[]
   materials: Material[]        // project-local copy of library materials (so files are self-contained)
   elements: Record<Id, Element>
-  settings: { gridSize, snapTolerance, displayUnits }
+  settings: { gridSize, outsideFaces?, snapTolerance, displayUnits }   // outsideFaces: ADR-038 (missing = off)
 }
 
 Level { id, name, elevation /*mm*/, defaultWallHeight /*mm*/ }

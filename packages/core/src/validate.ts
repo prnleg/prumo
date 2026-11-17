@@ -15,6 +15,8 @@ export function validateProject(p: Project): string[] {
   if (!isObj(p.elements)) errs.push("project.elements must be an object");
   if (!isObj(p.modules)) errs.push("project.modules must be an object");
   if (!isObj(p.settings) || !isNum(p.settings.gridSize)) errs.push("project.settings.gridSize must be a number");
+  else if (p.settings.outsideFaces !== undefined && typeof p.settings.outsideFaces !== "boolean")
+    errs.push("project.settings.outsideFaces must be a boolean");
   if (errs.length) return errs;
 
   const levels = new Set<string>();

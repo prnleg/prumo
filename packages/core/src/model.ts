@@ -109,7 +109,11 @@ export interface Project {
   elements: Record<Id, Element>;
   /** Modules that have ever written data into this project, with the version that last wrote it. */
   modules: Record<ModuleId, { version: string }>;
-  settings: { gridSize: number };
+  settings: {
+    gridSize: number;
+    /** Outside walls keep their drawn line as the outside face (ADR-038). Missing = off (older files). */
+    outsideFaces?: boolean;
+  };
 }
 
 const CORE_TYPES = new Set(["wall", "opening", "room"]);
@@ -139,7 +143,7 @@ export function emptyProject(a: NewProjectArgs): Project {
     levels: [{ id: a.levelId, name: null, elevation: 0, defaultWallHeight: 2700 }],
     elements: {},
     modules: {},
-    settings: { gridSize: 100 },
+    settings: { gridSize: 100, outsideFaces: true },
   };
 }
 

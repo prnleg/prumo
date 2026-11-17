@@ -308,7 +308,7 @@ export function mirrorCommand(
       copies.push({ ...mirrorOpening(structuredClone(o)), id: mode.newId(), host: { ...o.host, elementId: id } });
   }
   const label: Label = { key: "cmd.mirrorCopy", params: { count: newIds.length } };
-  return { command: { label, apply: (q) => putElements(q, copies) }, newIds, skipped };
+  return { command: { label, apply: (q) => putElements(q, copies), exact: true }, newIds, skipped };
 }
 
 // --- room names --------------------------------------------------------------------------------
