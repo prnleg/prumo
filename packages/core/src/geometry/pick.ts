@@ -30,6 +30,7 @@ export function hitTest(g: PlanGeometry, p: V, tol: number): Id | null {
   for (const o of g.openings) consider(o.id, o.cover);
   if (best) return (best as { id: Id }).id;
   for (const w of g.walls) consider(w.id, w.polygon);
+  for (const d of g.dividers) consider(d.id, d.polygon);
   return best ? (best as { id: Id }).id : null;
 }
 
@@ -65,6 +66,7 @@ export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching"
   const ids = [
     ...g.walls.filter((w) => test(w.polygon)).map((w) => w.id),
     ...g.openings.filter((o) => test(o.cover)).map((o) => o.id),
+    ...g.dividers.filter((d) => test(d.polygon)).map((d) => d.id),
   ];
   return ids.sort();
 }

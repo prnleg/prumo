@@ -165,7 +165,7 @@ export function checkInvariants(p: Project, scope?: readonly Id[]): Problem[] {
     if (!(o.width > 0) || !(o.height > 0)) out.push({ code: "non-positive-size", elementIds: [oid] });
     const h = p.elements[o.host.elementId];
     if (!h) out.push({ code: "host-missing", elementIds: [oid] });
-    else if (h.type !== "wall") out.push({ code: "host-not-wall", elementIds: [oid, h.id] });
+    else if (h.type !== "wall" || h.kind === "separator") out.push({ code: "host-not-wall", elementIds: [oid, h.id] }); // dividers have no body (ADR-040)
   }
   const key = (x: Problem) => `${x.code}|${x.elementIds.join(",")}`;
   const seen = new Set<string>();

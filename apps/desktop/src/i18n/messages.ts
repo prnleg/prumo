@@ -90,6 +90,14 @@ export const en = {
   "tool.room.tip": "Draw rooms (Q)",
   "tool.wall": "Wall",
   "tool.wall.tip": "Draw walls (W)",
+  "tool.divider": "Divider",
+  "tool.divider.tip": "Draw an invisible line that splits an open area into two rooms, e.g. living room | kitchen (L)",
+  "hint.divider.idle": "Click to start a room divider: an invisible line between two rooms that share one open space.",
+  "hint.divider.active":
+    "Click to place the end. It needs to touch walls or other dividers to close a room. Esc to stop.",
+  "wallKind.separator": "Room divider",
+  "props.divider": "Room divider",
+  "props.divider.note": "Invisible line between two rooms. No doors, windows or paint.",
   "tool.select.tip": "Select (V)",
   "tool.door": "Door",
   "tool.door.tip": "Place doors (D)",
@@ -316,6 +324,16 @@ export const ptBR: Record<MessageKey, string> = {
   "tool.room.tip": "Desenhar cômodos (Q)",
   "tool.wall": "Parede",
   "tool.wall.tip": "Desenhar paredes (W)",
+  "tool.divider": "Divisória",
+  "tool.divider.tip":
+    "Desenhar uma linha invisível que divide um espaço aberto em dois cômodos, ex.: sala | cozinha (L)",
+  "hint.divider.idle":
+    "Clique para começar uma divisória: uma linha invisível entre dois cômodos no mesmo espaço aberto.",
+  "hint.divider.active":
+    "Clique para marcar o fim. Ela precisa tocar paredes ou outras divisórias para fechar um cômodo. Esc para parar.",
+  "wallKind.separator": "Divisória",
+  "props.divider": "Divisória de cômodo",
+  "props.divider.note": "Linha invisível entre dois cômodos. Sem portas, janelas ou pintura.",
   "tool.select.tip": "Selecionar (V)",
   "tool.door": "Porta",
   "tool.door.tip": "Colocar portas (D)",

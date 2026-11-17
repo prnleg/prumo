@@ -203,6 +203,17 @@ function wheel(e: WheelEvent) {
         :class="['wall', kindOf.get(g.id), { selected: selected.has(g.id) }]"
       />
     </g>
+    <g class="dividers">
+      <line
+        v-for="d in geometry.dividers"
+        :key="d.id"
+        :x1="S(d.a).x"
+        :y1="S(d.a).y"
+        :x2="S(d.b).x"
+        :y2="S(d.b).y"
+        :class="['divider', { selected: selected.has(d.id) }]"
+      />
+    </g>
     <defs>
       <clipPath v-for="g in geometry.walls" :id="`clip-${g.id}`" :key="g.id">
         <polygon :points="pts(g.polygon)" />
@@ -366,6 +377,15 @@ function wheel(e: WheelEvent) {
 .openings .arc {
   stroke-width: 1;
   stroke-dasharray: 4 3;
+}
+.divider {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.divider.selected {
+  stroke: var(--accent);
+  stroke-width: 2.5;
 }
 .cursor circle,
 .cursor polygon,

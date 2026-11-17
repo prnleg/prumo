@@ -26,7 +26,7 @@ export function anchorOutsideWalls(before: Project, after: Project): Project {
     const was = wallSides(before, level).looped;
     for (const [id, side] of wallSides(after, level).outside) {
       const w = after.elements[id] as Wall;
-      if (was.has(id) || w.alignment !== "center") continue;
+      if (was.has(id) || w.alignment !== "center" || w.kind === "separator") continue;
       // outside on the left → body to the right of the line, and vice versa
       elements ??= { ...after.elements };
       elements[id] = { ...w, alignment: side === "left" ? "right" : "left" };

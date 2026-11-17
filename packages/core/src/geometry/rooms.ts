@@ -29,7 +29,7 @@ export interface Room {
   labelAt: V;
 }
 
-const CLOSES = new Set(["full", "half"]);
+const CLOSES = new Set(["full", "half", "separator"]); // + room dividers (ADR-040)
 
 interface Edge {
   a: number;
@@ -222,7 +222,7 @@ function floorPolygon(loop: HalfEdge[], P: (n: number) => V): V[] {
       b = P(h.to);
     const u = norm(sub(b, a));
     const w = h.edge.wall;
-    const { l, r } = faceOffsets(w);
+    const { l, r } = w.kind === "separator" ? { l: 0, r: 0 } : faceOffsets(w); // a divider is just a line
     const wu = norm(sub(w.end, w.start));
     const same = dot(u, wu) > 0;
     const d = same ? l : -r; // distance from the centre line to the room-side face
@@ -274,7 +274,8 @@ function labelPoint(poly: V[], inner: readonly Wall[] = []): V {
         const t = Math.max(0, Math.min(1, dot(sub(q, a), e) / dot(e, e)));
         d = Math.min(d, dist(q, add(a, mul(e, t))));
       }
-      for (const w of inner) d = Math.min(d, segDist(q, w.start, w.end) - w.thickness / 2);
+      for (const w of inner)
+        d = Math.min(d, segDist(q, w.start, w.end) - (w.kind === "separator" ? 0 : w.thickness / 2));
       if (d > bestD) {
         bestD = d;
         best = q;

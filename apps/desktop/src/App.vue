@@ -648,9 +648,13 @@ function redo() {
   history.redo();
   sync();
 }
-function setTool(n: ToolName) {
+/** The Divider button = the wall tool drawing room dividers (ADR-040: wall kind "separator"). */
+const dividerMode = ref(false);
+function setTool(n: ToolName, divider = false) {
   endTools();
   tool.value = n;
+  dividerMode.value = n === "wall" && divider;
+  wallTool.options = { ...wallTool.options, kind: dividerMode.value ? "separator" : "full" };
   if (n === "door" || n === "window") openingTool.options = { ...openingTool.options, kind: n };
   sync();
 }
@@ -676,6 +680,7 @@ const hint = computed(() => {
   if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
   if (tool.value === "door" || tool.value === "window")
     return tooShort.value ? t("hint.opening.tooShort", { kind: tool.value }) : t("hint.opening", { kind: tool.value });
+  if (dividerMode.value) return wallTool.active ? t("hint.divider.active") : t("hint.divider.idle");
   return wallTool.active ? t("hint.wall.active") : t("hint.wall.idle");
 });
 
@@ -737,6 +742,7 @@ function onKey(e: KeyboardEvent) {
     sync();
   } else if (!mod && e.key.toLowerCase() === "w") setTool("wall");
   else if (!mod && e.key.toLowerCase() === "q") setTool("room");
+  else if (!mod && e.key.toLowerCase() === "l") setTool("wall", true);
   else if (!mod && e.key.toLowerCase() === "v") setTool("select");
   else if (!mod && e.key.toLowerCase() === "d") setTool("door");
   else if (!mod && e.key.toLowerCase() === "j") setTool("window");
@@ -789,6 +795,28 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "divider") {
+  // open living room + kitchen: one 8 × 4 m box split by a divider at 5 m
+  const P = (x: number, y: number) => ({ at: { x, y }, scale: 0.1, free: false });
+  for (const [x, y] of [
+    [0, 0],
+    [8000, 0],
+    [8000, 4000],
+    [0, 4000],
+    [0, 0],
+  ] as const)
+    wallTool.click(P(x, y));
+  wallTool.finish();
+  setTool("wall", true);
+  wallTool.click(P(5000, 0));
+  wallTool.click(P(5000, 4000));
+  wallTool.finish();
+  setTool("select");
+  selectTool.down({ ...P(5000, 2000), additive: false });
+  selectTool.up({ ...P(5000, 2000), additive: false });
+  sync();
+  setTimeout(fitAll, 0);
+}
 if (demo === "snap") {
   // gentle assists: a slanted wall, then a new wall from (0, 5000) hovering near the right-angle point
   setTool("wall");
@@ -882,8 +910,15 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button :class="{ on: tool === 'room' }" :title="t('tool.room.tip')" @click="setTool('room')">
           {{ t("tool.room") }}
         </button>
-        <button :class="{ on: tool === 'wall' }" :title="t('tool.wall.tip')" @click="setTool('wall')">
+        <button :class="{ on: tool === 'wall' && !dividerMode }" :title="t('tool.wall.tip')" @click="setTool('wall')">
           {{ t("tool.wall") }}
+        </button>
+        <button
+          :class="{ on: tool === 'wall' && dividerMode }"
+          :title="t('tool.divider.tip')"
+          @click="setTool('wall', true)"
+        >
+          {{ t("tool.divider") }}
         </button>
         <button :class="{ on: tool === 'door' }" :title="t('tool.door.tip')" @click="setTool('door')">
           {{ t("tool.door") }}
@@ -981,7 +1016,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <button class="link" :title="t('status.snap.tip')" @click="showSettings = true">
         {{ t("status.snap", { grid: formatSmall(gridSize, locale), angle: angleStep }) }}
       </button>
-      <span>{{ t("status.walls", { count: walls.length }) }}</span>
+      <span>{{ t("status.walls", { count: walls.filter((w) => w.kind !== "separator").length }) }}</span>
     </footer>
     <div class="disclaimer">{{ t("footer") }}</div>
   </div>

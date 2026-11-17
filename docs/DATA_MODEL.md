@@ -72,7 +72,7 @@ Material {
 ```ts
 // Wall kinds (ADR-031, UX_PRINCIPLES §3)
 Wall.kind: "full" | "half" | "fence" | "railing"
-RoomSeparator { id, type:"room-separator", levelId, start, end }   // invisible room boundary
+// Room divider: implemented as Wall.kind = "separator" (ADR-040), not a separate element.
 
 // Rooms: DERIVED from closed loops of full walls + separators (not stored),
 // Implemented s#11 (core/geometry/rooms.ts): full + half walls (Q-088), fences/railings open; floor area to inner faces;
