@@ -36,4 +36,14 @@ export const webPlatform: Platform = {
   onCloseRequested() {
     // Browsers can't await a custom dialog on close; the dev build doesn't guard (desktop does).
   },
+  async readAppText(name) {
+    try {
+      return localStorage.getItem(`prumo:${name}`);
+    } catch {
+      return null;
+    }
+  },
+  async writeAppText(name, text) {
+    localStorage.setItem(`prumo:${name}`, text);
+  },
 };

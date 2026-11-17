@@ -43,6 +43,8 @@ function fakePlatform(o: { savePath?: string | null; open?: OpenedFile | null; a
     ask: async (m) => (asked.push(m), answers.shift() ?? false),
     setTitle: async () => {},
     onCloseRequested: () => {},
+    readAppText: async () => null,
+    writeAppText: async () => {},
   };
   return { p, writes, asked };
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "ADR-036: dialogs + read/write of user-picked files only (no fs scope beyond what the dialog grants).",
+  "description": "ADR-036: dialogs + read/write of user-picked files. ADR-037: plus Prumo's own app-data folder ($APPDATA/**: settings, recovery copies). Nothing else.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -12,6 +12,8 @@
     "dialog:allow-ask",
     "dialog:allow-message",
     "fs:allow-read-file",
-    "fs:allow-write-file"
+    "fs:allow-write-file",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive"
   ]
 }

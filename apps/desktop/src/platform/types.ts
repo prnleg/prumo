@@ -17,6 +17,12 @@ export interface Platform {
   setTitle(title: string): Promise<void>;
   /** `allow()` resolves false to keep the window open (e.g. unsaved changes). */
   onCloseRequested(allow: () => Promise<boolean>): void;
+  /**
+   * Prumo's own small files (ADR-037): desktop = the OS app-data folder, browser = localStorage.
+   * `name` is a plain relative name like "settings.json". Missing → null. Never throws on read.
+   */
+  readAppText(name: string): Promise<string | null>;
+  writeAppText(name: string, text: string): Promise<void>;
 }
 
 export const PRUMO_EXT = "prumo";

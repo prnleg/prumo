@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Settings (UX_PRINCIPLES 3b: discoverable; opened from the toolbar or by clicking the status bar).
 // Grid = this project's value (saved with it, undoable; Q-108 "Project → Drawing").
-// Angle step + language = app preferences for now (not remembered across launches yet: ADR-037).
+// Angle step + language = app preferences, remembered across launches (ADR-037, prefs.ts).
 import { computed } from "vue";
 import { formatSmall, translate, type Locale, type Params } from "./i18n";
 import { ANGLE_CHOICES, GRID_CHOICES } from "./settings";
@@ -44,7 +44,7 @@ const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a
           <option value="en">English</option>
         </select>
       </label>
-      <p class="tip">{{ t("settings.notRemembered") }}</p>
+      <p class="tip">{{ t("settings.remembered") }}</p>
       <footer>
         <button @click="emit('close')">{{ t("settings.close") }}</button>
       </footer>
