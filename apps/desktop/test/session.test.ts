@@ -31,10 +31,14 @@ const wall: Wall = {
 };
 
 /** A scripted platform: answers queued up front, writes captured. */
-function fakePlatform(o: { savePath?: string | null; open?: OpenedFile | null; answers?: boolean[] } = {}) {
+function fakePlatform(
+  o: { savePath?: string | null; open?: OpenedFile | null; answers?: boolean[]; app?: Map<string, Uint8Array> } = {},
+) {
   const writes: { path: string; bytes: Uint8Array }[] = [];
   const asked: string[] = [];
   const answers = [...(o.answers ?? [])];
+  /** The app-data folder (recovery copies), shared when passed in: "the next launch". */
+  const app = o.app ?? new Map<string, Uint8Array>();
   const p: Platform = {
     kind: "desktop",
     pickSavePath: async () => (o.savePath === undefined ? "/tmp/casa.prumo" : o.savePath),
@@ -45,8 +49,13 @@ function fakePlatform(o: { savePath?: string | null; open?: OpenedFile | null; a
     onCloseRequested: () => {},
     readAppText: async () => null,
     writeAppText: async () => {},
+    readAppBytes: async (n) => app.get(n) ?? null,
+    writeAppBytes: async (n, b) => void app.set(n, b),
+    listAppFiles: async (dir) =>
+      [...app.keys()].filter((n) => n.startsWith(`${dir}/`)).map((n) => n.slice(dir.length + 1)),
+    removeAppFile: async (n) => void app.delete(n),
   };
-  return { p, writes, asked };
+  return { p, writes, asked, app };
 }
 
 function setup(plat: Platform, modules = new ModuleHost([architectManifest])) {
@@ -158,5 +167,84 @@ describe("file session (New / Open / Save)", () => {
     await yes.s.save();
     const { unzipSync } = await import("fflate");
     expect(Object.keys(unzipSync(f.writes[0]!.bytes)).sort()).toEqual(["project.json", "snapshots/s-1.json"]);
+  });
+});
+
+describe("autosave + recovery (Q-111/126/129)", () => {
+  const files = (app: Map<string, Uint8Array>) => [...app.keys()].sort();
+
+  it("copies only unsaved changes, once per change; nothing while saved", async () => {
+    const f = fakePlatform();
+    const { h, s } = setup(f.p);
+    expect(await s.autosave()).toBe(false); // clean
+    h.execute(putCommand({ key: "x" }, [wall]));
+    expect(await s.autosave()).toBe(true);
+    expect(files(f.app)).toEqual(["recovery/p.json", "recovery/p.prumo"]);
+    expect(await s.autosave()).toBe(false); // same model: no rewrite
+    const meta = JSON.parse(new TextDecoder().decode(f.app.get("recovery/p.json")));
+    expect(meta).toEqual({ v: 1, name: "project.untitled.prumo", path: null, savedAt: NOW });
+  });
+
+  it("not during a drag", async () => {
+    const f = fakePlatform();
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    const g = h.beginGesture({ key: "x" });
+    expect(await s.autosave()).toBe(false);
+    g.cancel();
+    expect(await s.autosave()).toBe(true);
+  });
+
+  it("saving removes the copy (resolved)", async () => {
+    const f = fakePlatform();
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    await s.autosave();
+    await s.save();
+    expect(files(f.app)).toEqual([]);
+  });
+
+  it("discarding the changes (New → 'don't save') removes the copy; cancelling keeps it", async () => {
+    const f = fakePlatform({ answers: [false, true] });
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    await s.autosave();
+    expect(await s.confirmDiscard()).toBe(false);
+    expect(files(f.app)).toHaveLength(2);
+    expect(await s.confirmDiscard()).toBe(true);
+    expect(files(f.app)).toEqual([]);
+  });
+
+  it("after a crash: listed at the next launch, recovered as unsaved work, kept until saved", async () => {
+    const app = new Map<string, Uint8Array>();
+    const before = setup(fakePlatform({ app }).p);
+    before.h.execute(putCommand({ key: "x" }, [wall]));
+    await before.s.autosave(); // …and the app crashes here
+
+    const f = fakePlatform({ app });
+    const { h, s } = setup(f.p);
+    const list = await s.listRecovery();
+    expect(list).toEqual([{ key: "p", name: "project.untitled.prumo", path: null, savedAt: NOW }]);
+    expect(await s.recover(list[0]!)).toEqual({ ok: true });
+    expect(Object.keys(h.current.elements)).toEqual(["w"]);
+    expect([h.dirty, s.path, s.fileName]).toEqual([true, null, "project.untitled.prumo"]);
+    expect(files(app)).toHaveLength(2); // still there: not resolved yet
+    await s.save();
+    expect(files(app)).toEqual([]);
+  });
+
+  it("discarding a copy asks first; a damaged copy is reported and kept", async () => {
+    const app = new Map<string, Uint8Array>([["recovery/bad.prumo", new Uint8Array([1, 2, 3])]]);
+    const f = fakePlatform({ app, answers: [false, true] });
+    const { s } = setup(f.p);
+    const [e] = await s.listRecovery();
+    expect(e).toEqual({ key: "bad", name: "bad.prumo", path: null, savedAt: "" });
+    const r = await s.recover(e!);
+    expect(r.ok).toBe(false);
+    expect(files(app)).toEqual(["recovery/bad.prumo"]);
+    expect(await s.discardRecovery(e!)).toBe(false);
+    expect(files(app)).toEqual(["recovery/bad.prumo"]);
+    expect(await s.discardRecovery(e!)).toBe(true);
+    expect(files(app)).toEqual([]);
   });
 });

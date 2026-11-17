@@ -3,10 +3,23 @@
 import { appDataDir } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
-import { BaseDirectory, mkdir, readFile, readTextFile, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import {
+  BaseDirectory,
+  exists,
+  mkdir,
+  readDir,
+  readFile,
+  readTextFile,
+  remove,
+  rename,
+  writeFile,
+  writeTextFile,
+} from "@tauri-apps/plugin-fs";
 import { PRUMO_EXT, baseName, type Platform } from "./types";
 
 const filters = [{ name: "Prumo", extensions: [PRUMO_EXT] }];
+const AppData = { baseDir: BaseDirectory.AppData };
+const dirOf = (name: string) => name.split("/").slice(0, -1).join("/");
 
 export const tauriPlatform: Platform = {
   kind: "desktop",
@@ -42,5 +55,31 @@ export const tauriPlatform: Platform = {
   async writeAppText(name, text) {
     await mkdir(await appDataDir(), { recursive: true }); // first launch: the folder doesn't exist yet
     await writeTextFile(name, text, { baseDir: BaseDirectory.AppData });
+  },
+  async readAppBytes(name) {
+    try {
+      return await readFile(name, AppData);
+    } catch {
+      return null;
+    }
+  },
+  async writeAppBytes(name, bytes) {
+    const dir = dirOf(name);
+    if (dir) await mkdir(dir, { ...AppData, recursive: true });
+    else await mkdir(await appDataDir(), { recursive: true });
+    const tmp = `${name}.tmp`;
+    await writeFile(tmp, bytes, AppData);
+    await rename(tmp, name, { oldPathBaseDir: BaseDirectory.AppData, newPathBaseDir: BaseDirectory.AppData });
+  },
+  async listAppFiles(dir) {
+    try {
+      if (!(await exists(dir, AppData))) return [];
+      return (await readDir(dir, AppData)).filter((e) => e.isFile).map((e) => e.name);
+    } catch {
+      return [];
+    }
+  },
+  async removeAppFile(name) {
+    if (await exists(name, AppData)) await remove(name, AppData);
   },
 };

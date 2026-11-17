@@ -325,3 +325,14 @@ describe("History.load (New / Open)", () => {
     }).toThrow(HistoryError);
   });
 });
+
+describe("markUnsaved (recovered work)", () => {
+  it("is dirty right away, clean again after markSaved", () => {
+    const h = new History(blank());
+    expect(h.dirty).toBe(false);
+    h.markUnsaved();
+    expect(h.dirty).toBe(true);
+    h.markSaved();
+    expect(h.dirty).toBe(false);
+  });
+});

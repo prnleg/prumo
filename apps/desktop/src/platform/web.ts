@@ -46,4 +46,9 @@ export const webPlatform: Platform = {
   async writeAppText(name, text) {
     localStorage.setItem(`prumo:${name}`, text);
   },
+  // No recovery copies in the browser build (ADR-037).
+  readAppBytes: async () => null,
+  async writeAppBytes() {},
+  listAppFiles: async () => [],
+  async removeAppFile() {},
 };

@@ -13,6 +13,7 @@ import {
   type ProjectFile,
 } from "@prumo/core";
 import { PRUMO_EXT, baseName, type Platform } from "./platform/types";
+import { RecoveryStore, recoveryKey, type RecoveryEntry } from "./recovery";
 
 export type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -27,6 +28,9 @@ export class Session {
   readOnly: string | null = null;
   private snapshots: ProjectFile["snapshots"] = [];
   private extra: ProjectFile["extra"] = {};
+  /** Last model written as a recovery copy (skip identical copies). */
+  private autosaved: Project | null = null;
+  private readonly recovery: RecoveryStore;
 
   constructor(
     private readonly history: History,
@@ -38,6 +42,7 @@ export class Session {
     private readonly now: () => string,
   ) {
     this.fileName = this.untitled();
+    this.recovery = new RecoveryStore(platform);
   }
 
   get title(): string {
@@ -51,11 +56,63 @@ export class Session {
   /** True when it's fine to drop the current document (saved, or the user said so). */
   async confirmDiscard(): Promise<boolean> {
     if (!this.history.dirty) return true;
-    return this.platform.ask(this.t("file.discard.message", { name: this.fileName }), {
+    const yes = await this.platform.ask(this.t("file.discard.message", { name: this.fileName }), {
       title: this.t("file.discard.title"),
       ok: this.t("file.discard.ok"),
       cancel: this.t("file.discard.cancel"),
     });
+    if (yes) await this.dropRecovery(); // the user chose to lose these changes: resolved (Q-129)
+    return yes;
+  }
+
+  // --- autosave + recovery (Q-111/126/129) ---------------------------------------------------
+
+  /** Write a recovery copy if there are unsaved changes not yet copied. Never interrupts the user. */
+  async autosave(): Promise<boolean> {
+    const p = this.history.current;
+    if (!this.history.dirty || this.history.inGesture || this.readOnly || p === this.autosaved) return false;
+    try {
+      const bytes = saveProjectFile({ project: p, snapshots: this.snapshots, extra: this.extra }, this.modules);
+      await this.recovery.write(p.id, bytes, { name: this.fileName, path: this.path, savedAt: this.now() });
+      this.autosaved = p;
+      return true;
+    } catch {
+      return false; // e.g. disk full: try again next time; the document itself is untouched
+    }
+  }
+
+  listRecovery(): Promise<RecoveryEntry[]> {
+    return this.recovery.list();
+  }
+
+  /**
+   * Open a recovery copy as unsaved work (Save asks where, suggesting the old name). The copy stays
+   * until this work is saved or discarded, and autosave keeps refreshing it.
+   */
+  async recover(entry: RecoveryEntry): Promise<Outcome> {
+    if (!(await this.confirmDiscard())) return { ok: false, reason: "cancelled" };
+    const bytes = await this.recovery.read(entry.key);
+    if (!bytes) return { ok: false, reason: "error", message: this.t("recovery.unreadable", { name: entry.name }) };
+    const r = await this.openBytes(bytes, entry.name, null);
+    if (r.ok) this.history.markUnsaved();
+    else if (r.reason === "error") r.message = this.t("recovery.unreadable", { name: entry.name });
+    return r;
+  }
+
+  /** Delete a recovery copy after the user confirms (Q-129: only when they say so). */
+  async discardRecovery(entry: RecoveryEntry): Promise<boolean> {
+    const yes = await this.platform.ask(this.t("recovery.discard.message", { name: entry.name }), {
+      title: this.t("recovery.discard.title"),
+      ok: this.t("recovery.discard.ok"),
+      cancel: this.t("file.discard.cancel"),
+    });
+    if (yes) await this.recovery.clear(entry.key).catch(() => {});
+    return yes;
+  }
+
+  private async dropRecovery() {
+    this.autosaved = null;
+    await this.recovery.clear(recoveryKey(this.history.current.id)).catch(() => {});
   }
 
   async newProject(): Promise<Outcome> {
@@ -91,6 +148,7 @@ export class Session {
     if (this.platform.kind === "desktop") this.path = path;
     this.fileName = baseName(path);
     this.history.markSaved();
+    await this.dropRecovery(); // saved: resolved (Q-129)
     return { ok: true };
   }
 
@@ -99,7 +157,12 @@ export class Session {
     if (!confirmed && !(await this.confirmDiscard())) return { ok: false, reason: "cancelled" };
     const f = await this.platform.pickOpenFile();
     if (!f) return { ok: false, reason: "cancelled" };
-    const r = openWithModules(f.bytes, this.modules);
+    return this.openBytes(f.bytes, f.name, f.path);
+  }
+
+  private async openBytes(bytes: Uint8Array, name: string, path: string | null): Promise<Outcome> {
+    const f = { name, path };
+    const r = openWithModules(bytes, this.modules);
     switch (r.status) {
       case "ok":
         this.reset(r.file.project, f.path, f.name, r.file);
@@ -145,5 +208,6 @@ export class Session {
     this.snapshots = file.snapshots;
     this.extra = file.extra;
     this.readOnly = null;
+    this.autosaved = null;
   }
 }
