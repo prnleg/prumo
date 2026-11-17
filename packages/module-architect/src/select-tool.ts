@@ -3,6 +3,7 @@
 //   click empty              → clear (Shift: keep)
 //   drag from an element     → move the selection (one History gesture = one undo step);
 //                              delta snapped to the grid, Alt = free, `detach` = don't stretch neighbours
+//   drag ONE door/window     → slides along its wall; over ANOTHER wall → re-host there (own undo label)
 //   drag from empty space    → box select: left→right = fully inside, right→left = touching
 import {
   boxSelect,
@@ -12,13 +13,17 @@ import {
   hitTest,
   moveCommand,
   planGeometry,
+  rehostCommand,
+  wallLength,
   type Box,
   type Gesture,
   type History,
   type Id,
+  type Label,
   type Problem,
   type V,
 } from "@prumo/core";
+import { pickWall } from "./opening-tool";
 import type { PointerInfo } from "./wall-tool";
 
 /** Selection ids for detected rooms (rooms aren't elements; their key = sorted wall ids). */
@@ -49,6 +54,8 @@ export class SelectTool {
   blocked: Problem[] = [];
   private press: { at: V; hit: Id | null; additive: boolean; dragging: boolean } | null = null;
   private gesture: Gesture | null = null;
+  /** Set while the last valid preview is a re-host: the gesture commits under that label. */
+  private rehostLabel: Label | null = null;
 
   constructor(
     private readonly h: History,
@@ -84,7 +91,9 @@ export class SelectTool {
       const raw = { x: p.at.x - pr.at.x, y: p.at.y - pr.at.y };
       const delta = p.free ? raw : { x: Math.round(raw.x / g) * g + 0, y: Math.round(raw.y / g) * g + 0 };
       this.gesture ??= this.h.beginGesture({ key: "cmd.move", params: { count: this.selection.length } });
-      const r = this.gesture.preview(moveCommand(this.elementIds(), delta, { stretch: !p.detach }));
+      const rehost = this.rehost(this.gesture.base, p);
+      const r = this.gesture.preview(rehost ?? moveCommand(this.elementIds(), delta, { stretch: !p.detach }));
+      if (r.ok) this.rehostLabel = rehost?.label ?? null;
       this.blocked = r.ok ? [] : r.problems;
     } else {
       this.box = {
@@ -102,8 +111,9 @@ export class SelectTool {
     this.press = null;
     if (!pr) return;
     if (this.gesture) {
-      this.gesture.commit();
+      this.gesture.commit(this.rehostLabel ?? undefined);
       this.gesture = null;
+      this.rehostLabel = null;
       this.blocked = [];
       return;
     }
@@ -125,9 +135,27 @@ export class SelectTool {
   cancel(): void {
     this.gesture?.cancel();
     this.gesture = null;
+    this.rehostLabel = null;
     this.press = null;
     this.box = null;
     this.blocked = [];
+  }
+
+  /**
+   * One door/window dragged over a wall that isn't its own → re-host command, centred on the pointer,
+   * near edge on the grid, clamped inside the wall. Otherwise null (normal slide along its wall).
+   */
+  private rehost(base: Gesture["base"], p: SelectPointer) {
+    const ids = this.elementIds();
+    const o = ids.length === 1 && ids[0] ? base.elements[ids[0]] : undefined;
+    if (o?.type !== "opening") return null;
+    const pick = pickWall(base, this.options.levelId, p);
+    if (!pick || pick.wall.id === o.host.elementId) return null;
+    const g = this.options.grid;
+    const max = wallLength(pick.wall) - o.width;
+    const raw = pick.along - o.width / 2;
+    const offset = Math.max(0, Math.min(max, p.free ? raw : Math.round(raw / g) * g));
+    return rehostCommand(base, o.id, pick.wall.id, offset + 0);
   }
 
   /** Drop ids that no longer exist (after undo, delete, …); rooms survive while still detected. */

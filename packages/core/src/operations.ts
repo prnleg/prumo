@@ -131,6 +131,22 @@ export function duplicateCommand(p: Project, ids: readonly Id[], delta: V, newId
   return pasteCommand(clip, delta, undefined, newId, { key: "cmd.duplicate", params: { count } });
 }
 
+/**
+ * Move an opening onto another wall (EDITING_OPERATIONS "Move": dragging onto another wall = re-host,
+ * a separate command with its own label). `offset` = near edge from the new wall's start. Fit and
+ * overlaps are checked by the invariants like any edit.
+ */
+export function rehostCommand(p: Project, openingId: Id, wallId: Id, offset: number): Command {
+  const o = p.elements[openingId];
+  const w = p.elements[wallId];
+  const label: Label = { key: "cmd.rehost", params: { kind: isOpening(o) ? o.kind : "door" } };
+  if (!isOpening(o) || !isWall(w)) return { label, apply: (q) => q };
+  return {
+    label,
+    apply: (q) => putElements(q, [{ ...o, levelId: w.levelId, host: { elementId: wallId, offset } }]),
+  };
+}
+
 // --- rotate & mirror (EDITING_OPERATIONS "Rotate", "Mirror") ------------------------------------
 
 /** 1 nm quantization (same as snapping): no float drift, deterministic. Not a tolerance (ADR-006). */

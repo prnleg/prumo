@@ -491,3 +491,15 @@ Branch `phase1/clipboard`, stacked on `phase1/room-types`.
 
 **Next**: re-host a door/window by dragging it onto another wall (`phase1/rehost`).
 
+### Session #11, part 20 — re-host a door/window by dragging (owner away), 2026-11-16
+
+Branch `phase1/rehost`, stacked on `phase1/clipboard`.
+
+**Done**: core `rehostCommand(p, openingId, wallId, offset)` (label `cmd.rehost` with the kind) and `Gesture.commit(label?)` (a drag can end as something other than what it started as). Architect `SelectTool`: one opening dragged over a wall that isn't its host → re-host preview via the opening tool's `pickWall`; commit uses the re-host label; back over its own wall → normal slide. i18n strings.
+
+**Tests**: 239. Re-host centred on the pointer (hand: along 1500 − 400 = 1100), clamped (3000 − 800 = 2200), one undo restores the original host/offset, over-and-back = slide labelled "move"; `commit(label)` in core.
+
+**Inferences/defaults logged** (high confidence, spec): no magnets for re-host (grid only; the opening tool's magnets could be shared later); label names no wall (ids aren't user-facing).
+
+**Next**: Q-134 unequal-thickness step (`phase1/thickness-step`) if the geometry is clear enough; otherwise stop.
+
