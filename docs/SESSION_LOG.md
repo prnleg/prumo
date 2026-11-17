@@ -577,3 +577,13 @@ Owner accepted the v1 crash reporting default ("Yes, I like this. Easy and direc
 **Inferences/defaults logged**: no opt-in question since nothing leaves the computer unless the user clicks and submits on GitHub themselves; the issue body asks "what were you doing?" first.
 
 **Next (owner)**: merge app-data → outside-faces → recovery → crash-log; ADR-039.
+
+### Session #11, part 27 — ADR-039 accepted: open links in the browser, 2026-11-17
+
+Owner merged app-data, outside-faces, recovery, crash-log (PRs #18–#21) and accepted ADR-039 A. Branch `phase1/opener` from main.
+
+**Done**: `tauri-plugin-opener` 2.7.2 (JS exact, Rust locked with `cargo update --precise`; 2.7.3 was released 2026-11-10, too new), registered in `main.rs`, capability `opener:allow-open-url` limited to `https://github.com/prnleg/prumo/*`; platform `openUrl` uses it (falls back to copying the link). Cargo.lock +~500 lines (opener's platform crates).
+
+**Tests**: 268 unchanged (platform adapter isn't unit-tested; logic is). `cargo check` ok. Not click-tested.
+
+**Next**: see CURRENT_STATE next steps.

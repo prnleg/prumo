@@ -8,6 +8,8 @@ fn main() {
         // (the dialog plugin adds each picked path to the fs scope; no broad file access).
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // ADR-039: open web links in the user's browser; capability scope = Prumo's GitHub repo only.
+        .plugin(tauri_plugin_opener::init())
         .run(tauri::generate_context!())
         .expect("error while running Prumo");
 }

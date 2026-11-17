@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "ADR-036: dialogs + read/write of user-picked files. ADR-037: plus Prumo's own app-data folder ($APPDATA/**: settings, recovery copies). Nothing else.",
+  "description": "ADR-036: dialogs + read/write of user-picked files. ADR-037: plus Prumo's own app-data folder ($APPDATA/**: settings, recovery copies). ADR-039: open links to Prumo's GitHub repo in the browser. Nothing else.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -14,6 +14,10 @@
     "fs:allow-read-file",
     "fs:allow-write-file",
     "fs:allow-appdata-read-recursive",
-    "fs:allow-appdata-write-recursive"
+    "fs:allow-appdata-write-recursive",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/prnleg/prumo/*" }]
+    }
   ]
 }
