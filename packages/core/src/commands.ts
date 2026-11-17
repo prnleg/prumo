@@ -33,3 +33,12 @@ export function deleteCommand(p: Project, ids: readonly Id[]): Command {
     : { key: "cmd.delete", params: { count: asked.size } };
   return { label, apply: (q) => removeElements(q, [...asked]) };
 }
+
+/** Project → Drawing grid (Q-108: the project's own value; saved with it). Undoable like any edit. */
+export function setGridCommand(gridSize: number): Command {
+  if (!(gridSize > 0) || !Number.isFinite(gridSize)) throw new RangeError(`grid must be > 0, got ${gridSize}`);
+  return {
+    label: { key: "cmd.setGrid" },
+    apply: (p) => (p.settings.gridSize === gridSize ? p : { ...p, settings: { ...p.settings, gridSize } }),
+  };
+}

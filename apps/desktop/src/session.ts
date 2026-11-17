@@ -64,6 +64,14 @@ export class Session {
     return { ok: true };
   }
 
+  /**
+   * Start screen: replace the document with `p` (blank or an example) as a new, never-saved file.
+   * No question here: the caller already got the user's OK (confirmDiscard) before showing the screen.
+   */
+  begin(p: Project = this.makeNew(), name?: string): void {
+    this.reset(p, null, name ? `${name}.${PRUMO_EXT}` : this.untitled(), { snapshots: [], extra: {} });
+  }
+
   async save(as = false): Promise<Outcome> {
     if (this.readOnly) return { ok: false, reason: "error", message: this.t("file.readOnlyNoSave") };
     let path = as ? null : this.path;
@@ -86,8 +94,9 @@ export class Session {
     return { ok: true };
   }
 
-  async open(): Promise<Outcome> {
-    if (!(await this.confirmDiscard())) return { ok: false, reason: "cancelled" };
+  /** `confirmed`: the user already agreed to drop unsaved changes (start screen). */
+  async open(confirmed = false): Promise<Outcome> {
+    if (!confirmed && !(await this.confirmDiscard())) return { ok: false, reason: "cancelled" };
     const f = await this.platform.pickOpenFile();
     if (!f) return { ok: false, reason: "cancelled" };
     const r = openWithModules(f.bytes, this.modules);
