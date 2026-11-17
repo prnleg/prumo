@@ -223,6 +223,14 @@ const roomTool = new RoomTool(history, {
   minSide: 500, // smaller = probably a mis-click; drawing value, not a rule
 });
 const roomHover = shallowRef(roomTool.hover);
+/** Room tool shape: rectangle (2 corners) or any shape (click every corner). */
+const roomShape = ref<"rectangle" | "polygon">("rectangle");
+function setRoomShape(s: "rectangle" | "polygon") {
+  roomTool.finish();
+  roomShape.value = s;
+  roomTool.options = { ...roomTool.options, shape: s };
+  sync();
+}
 
 // Snap settings: grid = the project's (Q-108, saved + undoable); angle step = app preference.
 const angleStep = ref(DEFAULT_SNAP.angleStepDeg);
@@ -591,7 +599,8 @@ function onPointer(e: PlanPointer) {
   if (tool.value === "room") {
     if (e.type === "move") roomTool.move(info);
     else if (e.type === "down" && e.button === 0) roomTool.click(info);
-    else if (e.type === "down" && e.button === 2) roomTool.finish();
+    else if (e.type === "down" && e.button === 2 && !roomTool.close()) roomTool.finish();
+    else if (e.type === "dblclick") roomTool.close();
     sync();
     return;
   }
@@ -677,6 +686,10 @@ const hint = computed(() => {
   void tick.value;
   void hover.value;
   if (tool.value === "select") return t("hint.select");
+  if (tool.value === "room" && roomShape.value === "polygon") {
+    if (roomTool.crossing) return t("hint.roomShape.crossing");
+    return roomTool.active ? t("hint.roomShape.active") : t("hint.roomShape.idle");
+  }
   if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
   if (tool.value === "door" || tool.value === "window")
     return tooShort.value ? t("hint.opening.tooShort", { kind: tool.value }) : t("hint.opening", { kind: tool.value });
@@ -736,7 +749,7 @@ function onKey(e: KeyboardEvent) {
     sync();
   } else if (e.key === "Escape" || e.key === "Enter") {
     if (wallTool.active) wallTool.finish();
-    else if (roomTool.active) roomTool.finish();
+    else if (roomTool.active && !(e.key === "Enter" && roomTool.close())) roomTool.finish();
     else if (e.key === "Escape") setTool("select");
     openingTool.finish();
     sync();
@@ -795,6 +808,22 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "shape") {
+  // any-shape room in progress: an L with the pointer near the last corner
+  setTool("room");
+  setRoomShape("polygon");
+  for (const [x, y] of [
+    [0, 0],
+    [6000, 0],
+    [6000, 3000],
+    [3000, 3000],
+    [3000, 5000],
+  ] as const)
+    roomTool.click({ at: { x, y }, scale: 0.1, free: false });
+  roomTool.move({ at: { x: 0, y: 5000 }, scale: 0.1, free: false });
+  sync();
+  setTimeout(fitAll, 0);
+}
 if (demo === "divider") {
   // open living room + kitchen: one 8 × 4 m box split by a divider at 5 m
   const P = (x: number, y: number) => ({ at: { x, y }, scale: 0.1, free: false });
@@ -910,6 +939,22 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button :class="{ on: tool === 'room' }" :title="t('tool.room.tip')" @click="setTool('room')">
           {{ t("tool.room") }}
         </button>
+        <span v-if="tool === 'room'" class="seg" role="group" :aria-label="t('roomShape.label')">
+          <button
+            :class="{ on: roomShape === 'rectangle' }"
+            :title="t('roomShape.rectangle.tip')"
+            @click="setRoomShape('rectangle')"
+          >
+            ▭ {{ t("roomShape.rectangle") }}
+          </button>
+          <button
+            :class="{ on: roomShape === 'polygon' }"
+            :title="t('roomShape.polygon.tip')"
+            @click="setRoomShape('polygon')"
+          >
+            ⬠ {{ t("roomShape.polygon") }}
+          </button>
+        </span>
         <button :class="{ on: tool === 'wall' && !dividerMode }" :title="t('tool.wall.tip')" @click="setTool('wall')">
           {{ t("tool.wall") }}
         </button>
@@ -1080,6 +1125,21 @@ button.on {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+/* room shape toggle: a compact pair next to the Room button */
+.seg {
+  display: inline-flex;
+}
+.seg button {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+.seg button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.seg button:last-child {
+  border-radius: 0 6px 6px 0;
+  border-left: none;
 }
 button.link {
   border: none;

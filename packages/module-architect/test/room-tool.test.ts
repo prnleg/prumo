@@ -76,3 +76,83 @@ describe("room tool", () => {
     expect(h.inGesture).toBe(false);
   });
 });
+
+describe("room tool, any shape", () => {
+  const poly = () => {
+    const s = setup();
+    s.tool.options = { ...s.tool.options, shape: "polygon" };
+    return s;
+  };
+  const L = [
+    [0, 0],
+    [6000, 0],
+    [6000, 3000],
+    [3000, 3000],
+    [3000, 5000],
+    [0, 5000],
+  ] as const;
+
+  it("L shape: click 6 corners, click the first again → 6 walls, one undo step, one room", () => {
+    const { h, tool, at, walls } = poly();
+    for (const [x, y] of L) tool.click(at(x, y));
+    expect([h.inGesture, h.canUndo, walls().length]).toEqual([true, false, 6]); // preview of the closed room
+    tool.click(at(0, 0));
+    expect([h.inGesture, walls().length]).toEqual([false, 6]);
+    expect(tool.active).toBe(false);
+    // centred 140 mm walls → inner faces 70 mm in. Area 24 m², perimeter 22 m, 5 convex + 1 reflex corner:
+    // 24,000,000 − 22,000 × 70 + (5 − 1) × 70² = 24,000,000 − 1,540,000 + 19,600 = 22,479,600 mm²
+    expect(detectRooms(h.current, "l-1")[0]!.floorArea).toBeCloseTo(22_479_600, 3);
+    h.undo();
+    expect(walls()).toHaveLength(0);
+  });
+
+  it("drawn clockwise: same room (walls normalised counter-clockwise)", () => {
+    const { h, tool, at } = poly();
+    for (const [x, y] of [...L].reverse()) tool.click(at(x, y));
+    expect(tool.close()).toBe(true);
+    expect(detectRooms(h.current, "l-1")[0]!.floorArea).toBeCloseTo(22_479_600, 3);
+  });
+
+  it("a triangle closes with Enter / double-click (close()); the double-click's repeated point is ignored", () => {
+    const { tool, at, walls } = poly();
+    tool.click(at(0, 0, true));
+    tool.click(at(4000, 0, true));
+    tool.click(at(0, 3000, true));
+    tool.click(at(0, 3000, true)); // second press of a double-click
+    expect(tool.points).toHaveLength(3);
+    expect(tool.close()).toBe(true);
+    expect(walls()).toHaveLength(3);
+  });
+
+  it("sides that cross can't close; Esc cancels without an undo step", () => {
+    const { h, tool, at, walls } = poly();
+    for (const [x, y] of [
+      [0, 0],
+      [4000, 3000],
+      [4000, 0],
+      [0, 3000],
+    ] as const)
+      tool.click(at(x, y, true));
+    expect(tool.crossing).toBe(true);
+    expect(tool.close()).toBe(false);
+    tool.finish();
+    expect(walls()).toHaveLength(0);
+    expect(h.canUndo).toBe(false);
+  });
+
+  it("sides already covered by walls are reused (no doubled walls)", () => {
+    const { tool, at, walls } = poly();
+    tool.options = { ...tool.options, shape: "rectangle" };
+    tool.click(at(0, 0));
+    tool.click(at(4000, 3000));
+    tool.options = { ...tool.options, shape: "polygon" };
+    for (const [x, y] of [
+      [4000, 0],
+      [7000, 0],
+      [4000, 3000],
+    ] as const)
+      tool.click(at(x, y, true));
+    expect(tool.close()).toBe(true);
+    expect(walls()).toHaveLength(4 + 2); // the side on x = 4000 already existed
+  });
+});

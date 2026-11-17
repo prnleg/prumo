@@ -627,3 +627,13 @@ Owner chose A (wall kind "separator") + toolbar button and panel. Branch `phase1
 **Done**: core `WallKind` + `"separator"`, `isDivider`; plan geometry keeps dividers out of joins/outline and lists them (`dividers`, 1 mm pick strip; hit test + box select); room detection closes on them with 0-offset faces; label obstacles use 0 thickness; openings refused on them; outside-faces rule skips them; opening tool won't pick them. Renderer: dashed line (accent when selected). App: Divider button + L shortcut (= wall tool in divider mode), hints, panel title/note, Type list entry, body fields and paint hidden; status-bar wall count excludes dividers. Dev `?demo=divider`.
 
 **Tests**: 287 (+5): 8 × 4 m split at 5 m → 19,029,800 + 11,309,800 = 30,339,600 mm² = the undivided floor (hand); not in joins/outline, pickable; alone / dangling = no room; door refused; outside-faces ignores it. Screenshot (new project, outside faces on): 4860 × 3720 = 18.08 m², 2860 × 3720 = 10.64 m² (hand).
+
+### Session #11, part 32 — rooms of any shape, 2026-11-17
+
+Owner: do the remaining Phase 1 items least-blocked first, in sequence, one branch each. Order chosen: any-shape rooms (clear defaults) → onboarding tour (Q-080 default) → module manager (depends on ADR-020 revision). Branch `phase1/room-shape`, stacked on `phase1/divider`.
+
+**Done**: `RoomTool` option `shape: "rectangle" | "polygon"`; any-shape mode: clicks add corners (grid / endpoint / midpoint snaps + 15° from the last corner), the gesture previews the CLOSED room the whole time, closes on the first corner / `close()` (double-click, Enter, right-click), needs ≥ 3 corners and an area ≥ minSide²; crossing sides refused (`selfCrossing`, hint); normalised CCW; covered sides reused (`uncoveredPieces`); one undo step; Esc cancels. App: "▭ Rectangle | ⬠ Any shape" toggle next to Room (only while the room tool is on), hints pt-BR/en, dev `?demo=shape`.
+
+**Tests**: 292 (+5): L shape → 6 walls, 22,479,600 mm² (hand: 24 m² − 22 m × 70 mm + 4 × 70²), one undo; clockwise = same; triangle via close() with a double-click's repeated point ignored; bow-tie refused + Esc = no step; shared side reused (4 + 2 walls).
+
+**Defaults logged**: the shape choice isn't remembered across launches (cheap to add to prefs later); right-click closes when possible, else cancels (same spirit as the wall tool's "stop").
