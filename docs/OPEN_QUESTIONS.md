@@ -87,7 +87,7 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 - **Q-134** — Outside junctions: outside walls are drawn by their outside face (ADR-038, project setting, on for new projects). Inside junctions: mismatch is fine (owner). — 2026-11-17
 
 - **Q-135** — Same check on many elements → **one card per rule listing the elements** (expandable per element); badges stay on each element. — 2026-11-16 (owner: defaults fine) — R-57
-- **Q-136** — Default assumptions (e.g. wall treated as load-bearing because unmarked) → **shown up front on the card**, same severity, plus a one-click "mark this wall" action. Severity question still goes to the engineer (E-07). — 2026-11-16 (owner: defaults fine)
+- **Q-136** — Default assumptions (e.g. wall treated as load-bearing because unmarked) → **shown up front on the card**, same severity, plus a one-click "mark this wall" action. Severity question still goes to the engineer (E-07). — 2026-11-16 (owner: defaults fine) **Engineer (E-07, 2026-11-17): same severity confirmed; a `non-bearing` mark in a masonry project gets its own warning.**
 - **Q-001** — For the owner first, but **open source, modular, beginner-friendly, for everyone**; multiple Visions. — 2026-11-15 — VISION, ADR-019, ADR-014
 - **Q-002** — Senior SWE (.NET, Angular/Vue; Rust/C#/Python/WPF/Flutter/Tauri 2). Easiest cross-platform install. — 2026-11-15 — ADR-001/002
 - **Q-003** — Not real engineering now; basics are enough. — 2026-11-15 — SAFETY tone

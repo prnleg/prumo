@@ -6,7 +6,7 @@
 
 ## Position
 
-This app is an **educational and exploratory** tool. Its structural checks are **simplified, partial, and unverified by a licensed professional** (unless a specific rule says otherwise, with the reviewer's name and date).
+This app is an **educational and exploratory** tool. Its structural checks are **simplified, partial, and not signed by a licensed professional**. Review levels per rule (ADR-041): `UNVERIFIED`, `VERIFIED-UNSIGNED` (informally reviewed by an engineer, anonymous, no ART), `VERIFIED` (signed; not used).
 
 Real structural decisions (removing walls, adding openings to load-bearing walls, changing materials) need a qualified professional. In Brazil that typically means an engineer/architect with an ART (CREA) or RRT (CAU); other countries have equivalents. *(Verify for the owner's country.)*
 
@@ -19,7 +19,7 @@ Real structural decisions (removing walls, adding openings to load-bearing walls
 **pt-BR equivalents (proposed, session #11 — Spike B tests already enforce them):** "seguro/segura", "aprovado", "certificado", "em conformidade", "estruturalmente sólido", "pode construir", "garantido", "sem risco". (Plain "conforme" is allowed: it also means "according to".)
 
 **Required phrasing:**
-- No findings → *"No issues detected by the {N} checks implemented. These checks are simplified and don't cover {list}. They don't replace a structural engineer."*
+- No findings → **show what was checked AND what wasn't** (engineer E-05, 2026-11-17: a single "no issues detected" sentence reads as "approved" to a beginner even with the disclaimer). Shape: *"Checked ({N}): {list of checks} — no possible issues found by these. Not checked: {list}. These checks are simplified and don't replace a structural engineer."* Never a green tick or an "OK" colour.
 - Finding → *"Possible issue: …"* / *"This check suggests …"*, never *"This will fail."*
 
 **No green "pass" state.** Use neutral grey for "no findings from this check".
@@ -30,9 +30,9 @@ Real structural decisions (removing walls, adding openings to load-bearing walls
 2. Severity: `critical` / `warning` / `advisory` / `info`
 3. Plain-language explanation (≤ 3 sentences)
 4. Elements involved (clickable)
-5. **Assumptions used** (e.g. "Wall W-12 assumed load-bearing because slab S-2 spans onto it")
+5. **Assumptions used** (e.g. "Wall W-12 treated as load-bearing: default for structural masonry" — ADR-017; the assumption is a separate tag, it does **not** lower the severity, E-07)
 6. **Confidence of the check**: `rule-of-thumb` / `simplified-calc` / `analysis`
-7. Source: code clause, textbook, or `UNVERIFIED`
+7. Source: code clause, textbook, or `UNVERIFIED`; plus the review level (ADR-041)
 8. "What this check does not consider"
 
 ## Persistent UI elements

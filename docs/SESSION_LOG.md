@@ -661,3 +661,13 @@ Branch `phase1/tour`, stacked on `phase1/room-shape`.
 ### Session #11, part 35 — engineer brief (batch 1 + ADR-017), 2026-11-17
 
 Owner merged everything through PR #29 and asked for the engineer questions to send right away. Wrote a Portuguese brief as a shared Claude doc ("Prumo — perguntas para o engenheiro (lote 1)"): how to answer (clause numbers only, no standards text), P1 = ADR-017 options A–D + E-04 + E-07, scope (E-01, E-03), candidate rules table + E-02 + E-06, simplifications (E-05), validation cases VC-001…005 (E-22). E-01…07 and E-22 marked ⏳ 2026-11-17. Answers get recorded here with date + reviewer when they come back.
+
+### Session #11, part 36 — engineer batch 1 answered; ADR-017 accepted; ADR-041 review levels, 2026-11-17
+
+Owner received the engineer contact's answers (a Markdown file, probably AI-assisted in the writing, reviewed by the engineer per the owner; titled "respostas simuladas"). Owner: don't name the engineer (signing would make Prumo an engineering product) → **ADR-041**: review levels UNVERIFIED → **VERIFIED-UNSIGNED** (informal, anonymous, no ART) → VERIFIED (signed; unused). Values recalled from memory or marked "check" stay UNVERIFIED. CLAUDE.md rule 17 + SAFETY updated; UI wording describes the rule, never the user's design.
+
+**Recorded**: E-01…E-07 + E-22 answers (summaries, no standards text). **ADR-017 accepted** (D default + A recorded exception; B explains only; RC later). Q-136 confirmed (same severity). STRUCTURAL_ANALYSIS: `br-nbr` standards list (editions, "check" marks, 15961/15812 replaced, 16280 for renovations); rule catalogue reordered to the engineer's ranking with a Review column, 7 new rules (R-OPEN-NEW, R-WALL-004/005/006, R-OPEN-006 contraverga, R-JOINT-001, R-RING-001; old R-OPEN-006 → R-OPEN-007, an invariant not a finding); construction system with "não sei"; validation cases: VC-001a/b "formula test only", VC-002 = one-way joist slab + **new VC-002b** two-way (hand: 6.667 / 5.0 kN/m, Σ 120 kN), VC-003/004 premise notes; values register with 5 memory hints (UNVERIFIED); §7 simplifications rewritten (13 items). SAFETY: "no findings" = list checked AND not checked. ENGINEER_QUESTIONS batch 2b (E-30…E-38: clause numbers for what was recalled).
+
+**My error, logged**: the batch-1 brief renumbered the validation cases (brief VC-001…005 = repo VC-001a, 001b, 002, 003, 004); the repo's VC-005 (self-weight minus an opening) was never sent → E-32. Answers mapped to repo ids.
+
+**Next**: Phase 2 start (see CURRENT_STATE).

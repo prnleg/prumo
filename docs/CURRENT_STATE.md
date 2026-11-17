@@ -57,7 +57,8 @@ All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details 
 2. Owner: try Save / Open in the native app (`cd apps/desktop && pnpm tauri dev`, or the `desktop` workflow's installers) — dialogs aren't click-tested by me.
 3. Owner: merge `phase1/snap-assist`, then `phase1/divider`, then `phase1/room-shape`, then `phase1/tour`, then `phase1/ops-matrix`. Try in the desktop app: autosave/recovery (draw, wait 30 s, force-quit, reopen), "Report on GitHub", outside walls closing a shape.
 4. Phase 1 exit: owner G-1 usability test (the remaining unchecked criterion besides "every EDITING_OPERATIONS edge case"). Module manager deferred to Phase 2 start (golden rule 12; ROADMAP note).
-5. Owner (whenever): engineer batch 1 + E-06/E-07/E-22; Q-137 default ok?
+5. Engineer batch 1 answered 2026-11-17 (anonymous, VERIFIED-UNSIGNED, ADR-041); ADR-017 accepted. Batch 2b (clause numbers, E-30…E-38) to send whenever. Q-137 default ok?
+6. Me, Phase 2 start (no thresholds needed): construction-system question with "não sei" · per-wall bearing mark + origin · rule engine + findings panel in the "checked / not checked" format (no green) · R-OPEN-001 presence rule (VERIFIED-UNSIGNED) · module manager stage 1 with `module-structural`.
 
 ## Older next steps
 
