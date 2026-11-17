@@ -95,6 +95,8 @@ Project.handoff: { holder: string, since, message, history: HandoffEvent[] }  //
 HandoffEvent { from, to, at, message, snapshotId }
 Snapshot { id, name, createdAt, author, model /* full or delta ❓ */ }        // for the compare view (Q-104)
 Room { id, seedPoint, name, roomType? /* Q-107 ✅; list owner → Q-114 */, floorFinishId? }
+// Implemented: core RoomTag { seed, name }; roomType + floor finish live in the Architect component
+// (org.prumo.architect v2: { sides?, floor?, roomType? }); type ids in module-architect/src/room-types.ts.
 // Implemented s#11 as core element `RoomTag { type: "room", levelId, seed, name }`: matched to the detected room
 // whose centre-line polygon contains the seed (lowest id wins if several); unmatched tags are kept (rule 13).
 // Split: the part containing the seed keeps the name (simpler than DATA_MODEL's "larger part" lean; predictable).

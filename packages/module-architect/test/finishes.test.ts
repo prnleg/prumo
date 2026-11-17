@@ -19,7 +19,7 @@ const w0: Wall = {
 describe("finishes (Architect component)", () => {
   it("set and clear a side; an empty component disappears (no clutter in files)", () => {
     const w1 = setWallSide(w0, "left", "paint-blue");
-    expect(w1.components[ARCHITECT]).toEqual({ v: 1, data: { sides: { left: "paint-blue" } } });
+    expect(w1.components[ARCHITECT]).toEqual({ v: 2, data: { sides: { left: "paint-blue" } } });
     expect(architectData(setWallSide(w1, "right", "tile-white")).sides).toEqual({
       left: "paint-blue",
       right: "tile-white",

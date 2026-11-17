@@ -11,7 +11,7 @@ import {
   type RoomTag,
   type Wall,
 } from "@prumo/core";
-import { DEFAULT_OPENING_SIZES } from "@prumo/module-architect";
+import { DEFAULT_OPENING_SIZES, setRoomType, type RoomType } from "@prumo/module-architect";
 
 type Translate = (key: string) => string;
 
@@ -39,7 +39,7 @@ interface Plan {
   walls: Record<string, [Pt, Pt]>;
   doors: DoorSpec[];
   windows: WindowSpec[];
-  rooms: { at: Pt; name: string }[];
+  rooms: { at: Pt; name: string; type: RoomType }[];
 }
 
 const THICK = 140; // drawing default, same as the wall tool; not a structural value
@@ -101,14 +101,12 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
       components: {},
     });
   for (const r of plan.rooms)
-    els.push({
-      id: a.ids(),
-      type: "room",
-      levelId,
-      seed: { x: r.at[0], y: r.at[1] },
-      name: a.t(r.name),
-      components: {},
-    });
+    els.push(
+      setRoomType(
+        { id: a.ids(), type: "room", levelId, seed: { x: r.at[0], y: r.at[1] }, name: a.t(r.name), components: {} },
+        r.type,
+      ),
+    );
   return putElements(base, els);
 }
 
@@ -167,11 +165,11 @@ const house: Plan = {
     { wall: "back", offset: 4000, width: 600, height: 600, sill: 1500 },
   ],
   rooms: [
-    { at: [2500, 3500], name: "example.room.livingKitchen" },
-    { at: [7500, 1650], name: "example.room.bedroom1" },
-    { at: [7500, 3900], name: "example.room.hall" },
-    { at: [6000, 5750], name: "example.room.bathroom" },
-    { at: [8500, 5750], name: "example.room.bedroom2" },
+    { at: [2500, 3500], name: "example.room.livingKitchen", type: "living" },
+    { at: [7500, 1650], name: "example.room.bedroom1", type: "bedroom" },
+    { at: [7500, 3900], name: "example.room.hall", type: "hallway" },
+    { at: [6000, 5750], name: "example.room.bathroom", type: "bathroom" },
+    { at: [8500, 5750], name: "example.room.bedroom2", type: "bedroom" },
   ],
 };
 
@@ -221,10 +219,10 @@ const apartment: Plan = {
     { wall: "back", offset: 1000, width: 600, height: 600, sill: 1500 },
   ],
   rooms: [
-    { at: [2500, 1750], name: "example.room.living" },
-    { at: [6500, 1750], name: "example.room.kitchen" },
-    { at: [2750, 4750], name: "example.room.bedroom" },
-    { at: [6750, 4750], name: "example.room.bathroom" },
+    { at: [2500, 1750], name: "example.room.living", type: "living" },
+    { at: [6500, 1750], name: "example.room.kitchen", type: "kitchen" },
+    { at: [2750, 4750], name: "example.room.bedroom", type: "bedroom" },
+    { at: [6750, 4750], name: "example.room.bathroom", type: "bathroom" },
   ],
 };
 

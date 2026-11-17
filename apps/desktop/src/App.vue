@@ -39,6 +39,8 @@ import {
   architectData,
   finishById,
   setRoomFloor,
+  setRoomType,
+  roomTypeKey,
   setWallSide,
   SelectTool,
   WallTool,
@@ -215,7 +217,11 @@ const detected = computed(() => {
   const tags = matchRoomTags(rs, roomTags(project.value, level.value));
   return rs.map((r) => {
     const tag = tags.get(r.key);
-    return { ...r, name: tag?.name ?? "", floorFinish: tag ? architectData(tag).floor : undefined };
+    const data = tag ? architectData(tag) : {};
+    // Label: the user's name, else the room type ("Quarto"), else nothing (area only).
+    const typeKey = roomTypeKey(data.roomType);
+    const label = tag?.name || (typeKey ? t(typeKey) : "");
+    return { ...r, name: tag?.name ?? "", label, roomType: data.roomType ?? "", floorFinish: data.floor };
   });
 });
 
@@ -255,7 +261,7 @@ const wallSideLabels = computed(() => {
   const look = (off: number) => {
     const q = { x: m.x + n.x * off, y: m.y + n.y * off };
     const room = detected.value.find((x) => inside(q, x.floor));
-    return room ? room.name || formatArea(room.floorArea, locale.value) : t("finish.outside");
+    return room ? room.label || formatArea(room.floorArea, locale.value) : t("finish.outside");
   };
   return { left: look(l + 200), right: look(r - 200) };
 });
@@ -264,7 +270,7 @@ const rooms = computed(() =>
     key: r.key,
     floor: r.floor,
     at: r.labelAt,
-    label: r.name ? `${r.name} · ${formatArea(r.floorArea, locale.value)}` : formatArea(r.floorArea, locale.value),
+    label: [r.label, formatArea(r.floorArea, locale.value)],
     selected: selection.value.includes(ROOM_PREFIX + r.key),
     ...(() => {
       const f = finishById(r.floorFinish);
@@ -273,7 +279,13 @@ const rooms = computed(() =>
   })),
 );
 const panelRooms = computed(() =>
-  detected.value.map((r) => ({ key: r.key, name: r.name, area: r.floorArea, floor: r.floorFinish ?? "" })),
+  detected.value.map((r) => ({
+    key: r.key,
+    name: r.name,
+    area: r.floorArea,
+    floor: r.floorFinish ?? "",
+    roomType: r.roomType,
+  })),
 );
 function paintSide(wallId: string, side: "left" | "right", finishId: string) {
   run(
@@ -290,6 +302,18 @@ function paintFloor(key: string, finishId: string) {
       key,
       { key: "cmd.paint" },
       (tg) => setRoomFloor(tg, finishId || undefined),
+      randomIds,
+    ),
+  );
+}
+function typeRoom(key: string, typeId: string) {
+  run(
+    editRoomCommand(
+      history.current,
+      level.value,
+      key,
+      { key: "cmd.roomType" },
+      (tg) => setRoomType(tg, typeId || undefined),
       randomIds,
     ),
   );
@@ -723,6 +747,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @name="nameRoom"
         @paint-side="paintSide"
         @paint-floor="paintFloor"
+        @room-type="typeRoom"
         @delete="deleteSelection"
         @duplicate="duplicateSelection"
         @rotate="rotateSelection"

@@ -29,20 +29,38 @@ export const FINISHES: readonly Finish[] = [
 
 export const finishById = (id: string | undefined) => FINISHES.find((f) => f.id === id);
 
-/** Architect component (v1). `sides` = the wall's left/right faces (looking start → end). */
+/**
+ * Architect component. `sides` = the wall's left/right faces (looking start → end).
+ * v1 = { sides?, floor? }; v2 adds `roomType?` (room-types.ts). Unknown fields are kept on edit.
+ */
 export interface ArchitectData {
   sides?: { left?: string; right?: string };
   floor?: string;
+  roomType?: string;
+  [more: string]: unknown;
 }
+export const ARCHITECT_DATA_VERSION = 2;
+/** Input to `withArchitectData`: `undefined` / "" fields are dropped. */
+export type ArchitectInput = { [K in keyof ArchitectData]?: ArchitectData[K] | undefined };
 
 export function architectData(e: Element): ArchitectData {
   return (e.components[ARCHITECT]?.data as ArchitectData | undefined) ?? {};
 }
 
-function withData<T extends Element>(e: T, data: ArchitectData): T {
-  const empty = !data.floor && !data.sides?.left && !data.sides?.right;
+/** Replace the element's Architect data; an empty component is removed (no clutter in files). */
+export function withArchitectData<T extends Element>(e: T, data: ArchitectInput): T {
+  const { sides, ...rest } = data;
+  const keepSides = sides && (sides.left || sides.right);
+  const clean: ArchitectData = Object.fromEntries(
+    Object.entries({ ...rest, ...(keepSides ? { sides } : {}) }).filter(([, v]) => v !== undefined && v !== ""),
+  );
   const others = Object.fromEntries(Object.entries(e.components).filter(([m]) => m !== ARCHITECT));
-  return { ...e, components: empty ? others : { ...others, [ARCHITECT]: { v: 1, data } } };
+  return {
+    ...e,
+    components: Object.keys(clean).length
+      ? { ...others, [ARCHITECT]: { v: ARCHITECT_DATA_VERSION, data: clean } }
+      : others,
+  };
 }
 
 /** New wall with `finishId` on one side (undefined = remove). */
@@ -52,13 +70,12 @@ export function setWallSide(w: Wall, side: "left" | "right", finishId: string | 
   const sides: NonNullable<ArchitectData["sides"]> = {};
   if (d.sides?.[other]) sides[other] = d.sides[other];
   if (finishId) sides[side] = finishId;
-  return withData(w, { ...d, sides });
+  return withArchitectData(w, { ...d, sides });
 }
 
 /** New room tag with a floor finish (undefined = remove). */
 export function setRoomFloor(t: RoomTag, finishId: string | undefined): RoomTag {
-  const { sides } = architectData(t);
-  return withData(t, { ...(sides ? { sides } : {}), ...(finishId ? { floor: finishId } : {}) });
+  return withArchitectData(t, { ...architectData(t), floor: finishId });
 }
 
 /** Mirror rule for the Architect component: a mirrored wall's left face is the old right face. */

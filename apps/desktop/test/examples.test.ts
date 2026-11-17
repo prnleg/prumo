@@ -67,6 +67,9 @@ describe.each(EXAMPLES.map((e) => [e.id, e] as const))("example %s", (_, ex) => 
     const host = new ModuleHost([architectManifest]);
     const back = openWithModules(saveProjectFile({ project: p, snapshots: [], extra: {} }, host), host);
     expect(back.status).toBe("ok");
-    if (back.status === "ok") expect(back.file.project).toEqual(p);
+    if (back.status !== "ok") return;
+    // the save adds the usage record (room types are Architect data); everything else is identical
+    expect(Object.keys(back.file.project.modules)).toEqual(["org.prumo.architect"]);
+    expect({ ...back.file.project, modules: p.modules }).toEqual(p);
   });
 });

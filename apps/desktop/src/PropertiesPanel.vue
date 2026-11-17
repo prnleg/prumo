@@ -10,7 +10,7 @@ import {
   type Project,
   type Wall,
 } from "@prumo/core";
-import { FINISHES, ROOM_PREFIX, architectData } from "@prumo/module-architect";
+import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import { computed, ref } from "vue";
 import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 
@@ -19,7 +19,7 @@ const props = defineProps<{
   selection: readonly string[];
   locale: Locale;
   /** Detected rooms with their current name (for a selected room). */
-  rooms: readonly { key: string; name: string; area: number; floor: string }[];
+  rooms: readonly { key: string; name: string; area: number; floor: string; roomType: string }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
 }>();
@@ -32,6 +32,7 @@ const emit = defineEmits<{
   name: [roomKey: string, name: string];
   paintSide: [wallId: string, side: "left" | "right", finishId: string];
   paintFloor: [roomKey: string, finishId: string];
+  roomType: [roomKey: string, typeId: string];
 }>();
 const wallFinishes = FINISHES.filter((f) => f.use === "wall");
 const floorFinishes = FINISHES.filter((f) => f.use === "floor");
@@ -85,9 +86,16 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
           :key="room.key + room.name"
           class="text"
           :value="room.name"
-          :placeholder="t('props.namePlaceholder')"
+          :placeholder="roomTypeKey(room.roomType) ? t(roomTypeKey(room.roomType)!) : t('props.namePlaceholder')"
           @change="emit('name', room.key, ($event.target as HTMLInputElement).value)"
         />
+      </label>
+      <label>
+        {{ t("props.roomType") }}
+        <select :value="room.roomType" @change="emit('roomType', room.key, ($event.target as HTMLSelectElement).value)">
+          <option value="">{{ t("finish.none") }}</option>
+          <option v-for="rt in ROOM_TYPES" :key="rt" :value="rt">{{ t(`roomType.${rt}`) }}</option>
+        </select>
       </label>
       <label>
         {{ t("finish.floor") }}
