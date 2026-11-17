@@ -411,3 +411,12 @@ Options:
 - **B) Own Rust commands** (`save_file`, `open_file`) using the `rfd` crate for native dialogs + `std::fs`. (+) one Rust dep, no JS dep, full control. (−) more own code to maintain and secure.
 - **C) Browser-style** (download link + `<input type="file">`): no new deps. (−) no "save in place" (always a new file in Downloads), poor UX for a desktop app.
 Lean: **A**. Confidence: high (Tauri's documented way; plugin 2.x matches Tauri 2.12; v3 is alpha — stay on 2.x). Imports stay in `apps/desktop/src/platform/` (rule 16). Autosave/recovery (Q-111) later reuses the same fs plugin with the app-data directory.
+
+## ADR-037 — App data folder: preferences, autosave and recovery copies (desktop)
+Status: **PROPOSED (2026-11-16)** — blocks remembering settings across launches (8b) and autosave/recovery (8c).
+Context: settings (angle step, language, later the user's default grid) are forgotten when Prumo restarts. Autosave + crash recovery (Q-111/126/129) need a place outside the user's project file. Both are new persisted data and widen the app's file access (today: only files the user picks, ADR-036).
+Options:
+- **A) One Prumo folder in the OS app-data directory** (`%APPDATA%\org.prumo.desktop\` / `~/Library/Application Support/org.prumo.desktop/`), reached with the **fs plugin we already have** (ADR-036), capability scope limited to `$APPDATA/**`. Inside: `settings.json` (`{ "v": 1, "locale", "angleStepDeg", "gridSize" }`) and `recovery/<project-id>.prumo` (autosave copies, removed only when resolved, Q-129). Browser dev build: `localStorage` for settings, no recovery. (+) no new dependency; one rule for "where Prumo keeps its own things"; easy to show the user ("open the folder"). (−) we write the small read/merge/versioning code ourselves.
+- **B) WebView `localStorage` for settings, app-data folder only for recovery.** (+) settings need no file code. (−) two storage places; WebView storage is per-OS-engine (WebView2 / WKWebView) and can be wiped by updates or "clear browsing data"-like actions we don't control.
+- **C) `tauri-plugin-store`** (official key-value plugin) for settings + fs for recovery. (+) ready-made. (−) one more dependency (JS + Rust) for ~40 lines of code.
+Lean: **A**. Confidence: medium-high (same plugin, smallest new surface; the scope widening is to Prumo's own folder only). What would change my mind: if you want settings to sync between machines later (then neither A nor B is enough anyway).

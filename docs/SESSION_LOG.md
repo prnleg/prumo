@@ -454,3 +454,16 @@ Owner: "Then let's go with Option A. I already merged, you can continue" (PR #11
 **Inferences/defaults logged**: a file from a *newer app version* is refused with "update Prumo" instead of opening read-only (MODULES §7 default) — today's code can't safely display an unknown future schema; newer *module data* (valid schema) does open read-only. The browser dev build saves by download and has no close guard. Native dialogs not click-tested (no GUI access here) → owner check.
 
 **Next**: 8b start screen + examples + settings; 8c autosave/recovery + crash log.
+
+### Session #11, part 17 — Phase 1 slice 8b (start screen, examples, settings), 2026-11-16
+
+Owner: "Merged" (PR #12), "continue". Branch `phase1/start` from `main`.
+
+**Done**: `apps/desktop/src/examples.ts` (examples built in code from plain elements → always match the current model; names localized when opened; fresh ids each time): small house 10 × 7 m (living + kitchen, hall, bathroom, 2 bedrooms; 5 doors, 5 windows) and apartment 8 × 6 m (living, kitchen, bedroom, bathroom). `StartScreen.vue` (blank / examples with wall thumbnails / open a file; shown at launch and on New after the unsaved-changes question; Esc or × keeps the current document). `Session.begin(project?, name?)` (replace without asking again; never-saved, so the first Save asks where) and `open(confirmed)`. Core `setGridCommand` (project grid, Q-108 "Project → Drawing", undoable, saved). `SettingsPanel.vue` (grid 1/5/10/25/50 cm, angle steps 5–90°, language) opened from the toolbar ⚙ or by clicking the status-bar snap text (UX_PRINCIPLES 3b). Tools follow the grid/angle live. Language select moved from the toolbar into Settings. Dev paths `?demo=example-house|example-apartment|settings`.
+
+**Tests**: 220. Per example: schema + invariants clean, every name translated, every detected room has exactly one name tag, no door/window cut into a joining wall (mutation-checked: moving a door onto a T and moving a name tag out of its room both fail), deterministic, save → open round trip. Session `begin` (no question, untitled, undo empty). Grid command undo + refusal of 0/negative/NaN/∞. Areas in the house screenshot re-checked by hand (bathroom 1.86 × 2.36 = 4.39 m², hall 4.86 × 1.06 = 5.15 m², bedroom 1 4.86 × 3.16 = 15.36 m²). First house draft had a 1.2 m bathroom whose label overflowed and a window crossing a wall (caught by the test) → redrawn with a horizontal hall.
+
+**Inferences/defaults logged**: "house with problems" deferred to Phase 2 (no checks yet, nothing to show); the "reference example — no warnings from current checks" label is not shown yet (with 0 checks it would be empty words); the example note says "not designs for a real building, not checked by an engineer" (SAFETY). Duplicate offset stays a fixed 50 cm (EDITING_OPERATIONS), not tied to the grid. Angle step is an app preference only (the model has no project angle field; adding one = schema change, later if wanted). Settings aren't remembered across launches → **ADR-037 PROPOSED** (app-data folder for settings + autosave copies). Known cosmetic limit: labels in very narrow rooms overflow (renderer; later).
+
+**Next**: ADR-037 answer → 8c autosave + recovery + remembered settings + crash log.
+

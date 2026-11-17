@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// App shell (Phase 1): one level, room/wall/door/window/select tools, undo/redo, pan/zoom. No file I/O yet.
+// App shell (Phase 1): one level, room/wall/door/window/select tools, undo/redo, pan/zoom, files,
+// start screen + examples, settings.
 import {
   DEFAULT_SNAP,
   History,
@@ -24,6 +25,7 @@ import {
   rotateCommand,
   selectionBounds,
   selectionCentre,
+  setGridCommand,
   type MirrorAxis,
   type Command,
   type Label,
@@ -43,8 +45,11 @@ import {
   architectManifest,
 } from "@prumo/module-architect";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
+import SettingsPanel from "./SettingsPanel.vue";
+import StartScreen from "./StartScreen.vue";
+import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { Session, type Outcome } from "./session";
 import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
@@ -55,6 +60,7 @@ const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
 const modules = new ModuleHost([architectManifest]);
+const PROFILE = "br-nbr/structural-masonry";
 
 const firstLevelId = randomIds();
 const history = new History(
@@ -63,7 +69,7 @@ const history = new History(
     levelId: firstLevelId,
     name: t("project.untitled"),
     now: new Date().toISOString(),
-    profileId: "br-nbr/structural-masonry",
+    profileId: PROFILE,
   }),
   { freeze: import.meta.env.DEV },
 );
@@ -75,7 +81,7 @@ const newProject = () =>
     levelId: randomIds(),
     name: t("project.untitled"),
     now: new Date().toISOString(),
-    profileId: "br-nbr/structural-masonry",
+    profileId: PROFILE,
   });
 const session = new Session(history, modules, platform, t, newProject, randomIds, () => new Date().toISOString());
 const fileTick = ref(0);
@@ -94,8 +100,30 @@ async function file(op: () => Promise<Outcome>) {
   sync();
   if (r.ok) setTimeout(fitAll, 0);
 }
-const doNew = () => file(() => session.newProject());
+// Start screen (Q-119): at launch, and on New after the unsaved-changes question.
+const devDemo = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
+const showStart = ref(!devDemo);
+const showSettings = ref(false);
+async function doNew() {
+  endTools();
+  if (await session.confirmDiscard()) showStart.value = true;
+}
 const doOpen = () => file(() => session.open());
+async function startWith(op: () => Promise<Outcome> | Outcome) {
+  await file(async () => {
+    const r = await op();
+    if (r.ok) showStart.value = false;
+    return r;
+  });
+}
+const startBlank = () => startWith(() => (session.begin(), { ok: true }));
+const startExample = (ex: Example) =>
+  startWith(() => {
+    const p = ex.build({ ids: randomIds, t, now: new Date().toISOString(), profileId: PROFILE });
+    session.begin(p, t(ex.title));
+    return { ok: true };
+  });
+const startOpen = () => startWith(() => session.open(true));
 const doSave = (as = false) => file(() => session.save(as));
 /** The level being edited (UI shows one level until Phase 5, ADR-015). Follows New/Open. */
 const level = ref(firstLevelId);
@@ -155,6 +183,24 @@ const roomTool = new RoomTool(history, {
   minSide: 500, // smaller = probably a mis-click; drawing value, not a rule
 });
 const roomHover = shallowRef(roomTool.hover);
+
+// Snap settings: grid = the project's (Q-108, saved + undoable); angle step = app preference.
+const angleStep = ref(DEFAULT_SNAP.angleStepDeg);
+const gridSize = computed(() => project.value.settings.gridSize);
+const snap = computed(() => ({ ...DEFAULT_SNAP, grid: gridSize.value, angleStepDeg: angleStep.value }));
+watch(
+  snap,
+  (s) => {
+    wallTool.options = { ...wallTool.options, snap: s };
+    roomTool.options = { ...roomTool.options, snap: s };
+    openingTool.options = { ...openingTool.options, grid: s.grid };
+    selectTool.options = { ...selectTool.options, grid: s.grid };
+  },
+  { immediate: true },
+);
+function setGrid(mm: number) {
+  if (mm !== gridSize.value) run(setGridCommand(mm));
+}
 
 type ToolName = "select" | "room" | "wall" | "door" | "window";
 const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
@@ -321,7 +367,7 @@ function deleteSelection() {
 }
 function rotateSelection(deg: number) {
   const ids = selectTool.elementIds();
-  const pivot = selectionCentre(history.current, ids, DEFAULT_SNAP.grid);
+  const pivot = selectionCentre(history.current, ids, gridSize.value);
   if (pivot) run(rotateCommand(ids, pivot, deg));
 }
 const keepOriginal = ref(true); // EDITING_OPERATIONS default: mirror copy
@@ -334,7 +380,7 @@ function mirrorSelection(axis: MirrorAxis) {
   // In place: about the centre.
   const through = keepOriginal.value
     ? { x: b.maxX, y: b.maxY }
-    : (selectionCentre(history.current, ids, DEFAULT_SNAP.grid) ?? { x: 0, y: 0 });
+    : (selectionCentre(history.current, ids, gridSize.value) ?? { x: 0, y: 0 });
   const r = mirrorCommand(history.current, ids, axis, through, {
     copy: keepOriginal.value,
     newId: randomIds,
@@ -348,7 +394,7 @@ function mirrorSelection(axis: MirrorAxis) {
 function duplicateSelection() {
   const ids = selectTool.elementIds();
   if (!ids.length) return;
-  const g = DEFAULT_SNAP.grid * 5; // 50 cm down-right (EDITING_OPERATIONS "fixed offset" default)
+  const g = 500; // 50 cm down-right (EDITING_OPERATIONS "fixed offset" default)
   const d = duplicateCommand(history.current, ids, { x: g, y: -g }, randomIds);
   run(d.command);
   if (d.newIds.length) selectTool.selection = d.newIds;
@@ -463,6 +509,14 @@ const hint = computed(() => {
 });
 
 function onKey(e: KeyboardEvent) {
+  if (showStart.value || showSettings.value) {
+    // a dialog is open: only Esc (close it); the plan's shortcuts wait
+    if (e.key === "Escape") {
+      showSettings.value = false;
+      showStart.value = false;
+    }
+    return;
+  }
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === "z") {
@@ -557,6 +611,11 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   }
   sync();
 }
+if (demo === "settings") showSettings.value = true;
+if (demo?.startsWith("example-")) {
+  const ex = EXAMPLES.find((e) => `example-${e.id}` === demo);
+  if (ex) void startExample(ex);
+}
 if (demo === "room" || demo === "select" || demo === "mirror") {
   const pts = [
     [0, 0],
@@ -633,10 +692,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       </div>
       <button @click="fitAll">{{ t("action.fit") }}</button>
       <span class="spacer" />
-      <select v-model="locale" aria-label="Language">
-        <option value="pt-BR">Português</option>
-        <option value="en">English</option>
-      </select>
+      <button :title="t('action.settings.tip')" @click="showSettings = true">⚙ {{ t("action.settings") }}</button>
     </header>
 
     <main class="canvas">
@@ -650,7 +706,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :selected-ids="selection"
         :box="box"
         :labels="labels"
-        :grid="DEFAULT_SNAP.grid"
+        :grid="gridSize"
         @pointer="onPointer"
         @resize="onResize"
         @leave="onLeave"
@@ -675,15 +731,34 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <p v-if="readOnly" class="blocked">{{ readOnly }}</p>
       <p v-if="notice" class="blocked">{{ notice }}</p>
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
+      <StartScreen
+        v-if="showStart"
+        :locale="locale"
+        :closable="true"
+        @blank="startBlank"
+        @example="startExample"
+        @open="startOpen"
+        @close="showStart = false"
+      />
+      <SettingsPanel
+        v-if="showSettings"
+        :locale="locale"
+        :grid="gridSize"
+        :angle="angleStep"
+        @grid="setGrid"
+        @angle="(a) => (angleStep = a)"
+        @locale="(l) => (locale = l)"
+        @close="showSettings = false"
+      />
     </main>
 
     <footer class="status">
       <span :title="hint">{{ hint }}</span>
       <span class="spacer" />
       <span class="muted">{{ t("hint.pan") }}</span>
-      <span>{{
-        t("status.snap", { grid: formatSmall(DEFAULT_SNAP.grid, locale), angle: DEFAULT_SNAP.angleStepDeg })
-      }}</span>
+      <button class="link" :title="t('status.snap.tip')" @click="showSettings = true">
+        {{ t("status.snap", { grid: formatSmall(gridSize, locale), angle: angleStep }) }}
+      </button>
       <span>{{ t("status.walls", { count: walls.length }) }}</span>
     </footer>
     <div class="disclaimer">{{ t("footer") }}</div>
@@ -743,6 +818,15 @@ button.on {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+  cursor: pointer;
 }
 button:disabled {
   opacity: 0.45;

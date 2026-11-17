@@ -74,6 +74,20 @@ describe("file session (New / Open / Save)", () => {
     expect(f.writes.map((w) => w.path)).toEqual(["/tmp/casa.prumo", "/tmp/casa.prumo"]);
   });
 
+  it("start screen: begin() replaces the document without asking; the first Save still asks where", async () => {
+    const f = fakePlatform({ answers: [] });
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    await s.save();
+    const ex = putCommand({ key: "x" }, [{ ...wall, id: "e" }]).apply(blank());
+    s.begin(ex, "Casa pequena");
+    expect(f.asked).toEqual([]);
+    expect([s.path, s.fileName, h.dirty, h.canUndo]).toEqual([null, "Casa pequena.prumo", false, false]);
+    expect(Object.keys(h.current.elements)).toEqual(["e"]);
+    s.begin();
+    expect([s.fileName, Object.keys(h.current.elements)]).toEqual(["project.untitled.prumo", []]);
+  });
+
   it("cancelling the save dialog changes nothing", async () => {
     const f = fakePlatform({ savePath: null });
     const { h, s } = setup(f.p);
