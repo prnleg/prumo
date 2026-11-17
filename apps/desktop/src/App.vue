@@ -4,6 +4,7 @@
 import {
   DEFAULT_SNAP,
   History,
+  anchorOutsideWalls,
   ModuleHost,
   dist,
   emptyProject,
@@ -33,6 +34,7 @@ import {
   selectionBounds,
   selectionCentre,
   setGridCommand,
+  setOutsideFacesCommand,
   type MirrorAxis,
   type Command,
   type Label,
@@ -81,7 +83,7 @@ const history = new History(
     now: new Date().toISOString(),
     profileId: PROFILE,
   }),
-  { freeze: import.meta.env.DEV },
+  { freeze: import.meta.env.DEV, normalize: anchorOutsideWalls }, // ADR-038
 );
 
 const project = shallowRef<Project>(history.current);
@@ -868,8 +870,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :locale="locale"
         :grid="gridSize"
         :angle="angleStep"
+        :outside-faces="project.settings.outsideFaces === true"
         @grid="setGrid"
         @angle="(a) => (angleStep = a)"
+        @outside-faces="(on) => run(setOutsideFacesCommand(on))"
         @locale="(l) => (locale = l)"
         @close="showSettings = false"
       />

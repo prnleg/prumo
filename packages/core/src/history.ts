@@ -8,6 +8,8 @@ import type { Project } from "./model";
 export interface Command {
   label: Label;
   apply(p: Project): Project;
+  /** Copies (paste, duplicate, mirror copy): skip `normalize`, so a copy stays exactly like its source. */
+  exact?: boolean;
 }
 
 /** Several commands as one undo step (multi-element operations, removals with cascades). */
@@ -35,6 +37,11 @@ interface Entry {
 export interface HistoryOptions {
   /** Deep-freeze every snapshot so an accidental mutation throws (tests, dev builds). */
   freeze?: boolean;
+  /**
+   * Derived follow-up applied to every change (execute and gesture previews) before invariants are
+   * checked, e.g. `anchorOutsideWalls`. Must be pure and deterministic; undo/redo/load don't run it.
+   */
+  normalize?: (before: Project, after: Project) => Project;
 }
 
 export class HistoryError extends Error {}
@@ -182,8 +189,9 @@ export class History {
   // --- internals (also used by Gesture) ---------------------------------------------------
 
   private tryApply(base: Project, cmd: Command): Result {
-    const next = cmd.apply(base);
-    if (next === base) return { ok: true, project: base };
+    const applied = cmd.apply(base);
+    if (applied === base) return { ok: true, project: base };
+    const next = this.opts.normalize && !cmd.exact ? this.opts.normalize(base, applied) : applied;
     const problems = checkInvariants(next, changedIds(base, next));
     if (problems.length) return { ok: false, problems };
     return { ok: true, project: this.prepare(next) };

@@ -537,3 +537,17 @@ Branch `phase1/app-data`.
 Owner: "outside" = the outside of each block (connected wall group), even inside another block; option A (move geometry, not only drawing); settings belong in a settings area; a menu bar (File, Toolbox, …, later Modules/Plugins) will be needed → **Q-138** (not now).
 
 **Follow-up asked (not implemented):** today walls are drawn by their centre line, so "outer faces flush" can't be kept by alignment alone when thicknesses differ. Proposal: outside walls are anchored by their **outside face** (the line you draw = the outside face, thickness grows inward); room tool does it from the first click; free-drawn walls switch when their block closes (body shifts inward by half the thickness at that moment). Lean medium.
+
+### Session #11, part 24 — outside walls by their outside face (ADR-038), 2026-11-17
+
+Owner approved the proposal ("Yes. In any case we can tweak those items in the future"). Branch `phase1/outside-faces`, stacked on `phase1/app-data`.
+
+**Done**: core `wallSides` (face tracing shared with `detectRooms`, refactored into `traceFaces`; outside = CW face loop of each block), `anchorOutsideWalls(before, after)`, `History` option `normalize` (runs on execute + previews before invariants; not on undo/redo/load), `Command.exact` (paste, duplicate, mirror copy skip it), `setOutsideFacesCommand`, `settings.outsideFaces` (validated as boolean). App: History uses it; Settings checkbox; examples set it off; strings pt-BR/en.
+
+**Golden file hash changed on purpose**: new blank projects now carry `settings.outsideFaces: true` (persistence determinism snapshot updated).
+
+**Tests**: 254 (+10): CCW/CW rectangles (floor (4000 − 280)·(3000 − 280) = 10.1184 m²), chain closes on the last wall (one undo reverts both), Q-134 straight 140/190 junction (both outside faces on r = 0), inside wall stays centred, deleting a neighbour moves nothing, setting turned on later moves nothing, block inside a room, fences don't close, preview = commit, paste keeps a centred block centred. Screenshot of the L-shaped demo: 21.00 m² = 24 − 22 × 0.14 + 4 × 0.14² (hand).
+
+**Inferences/defaults logged**: a wall with outside on both sides (bridge) is left alone; a long wall partly outside is aligned as a whole; label of the setting command "change how outside walls line up".
+
+**Next**: 8c autosave + recovery.

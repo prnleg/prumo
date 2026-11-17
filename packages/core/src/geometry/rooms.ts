@@ -37,7 +37,14 @@ interface Edge {
   wall: Wall;
 }
 
-export function detectRooms(p: Project, levelId: Id, tol = DEFAULTS.joinTol): Room[] {
+interface HalfEdge {
+  from: number;
+  to: number;
+  edge: Edge;
+}
+
+/** Steps 1–4: every face loop of the wall graph (rooms CCW, each block's outside CW). */
+function traceFaces(p: Project, levelId: Id, tol: number): { P: (n: number) => V; loops: HalfEdge[][] } {
   const walls = wallsOnLevel(p, levelId)
     .filter((w) => CLOSES.has(w.kind) && dist(w.start, w.end) > tol)
     .sort((a, b) => (a.id < b.id ? -1 : 1));
@@ -134,30 +141,69 @@ export function detectRooms(p: Project, levelId: Id, tol = DEFAULTS.joinTol): Ro
   };
 
   const used = new Set<number>();
-  const rooms: Room[] = [];
+  const loops: HalfEdge[][] = [];
   for (let s = 0; s < he.length; s++) {
     if (used.has(s)) continue;
-    const loop: number[] = [];
+    const loop: HalfEdge[] = [];
     for (let i = s; !used.has(i); i = nextOf(i)) {
       used.add(i);
-      loop.push(i);
+      loop.push(he[i]!);
     }
-    const poly = loop.map((i) => P(he[i]!.from));
+    loops.push(loop);
+  }
+  return { P, loops };
+}
+
+export function detectRooms(p: Project, levelId: Id, tol = DEFAULTS.joinTol): Room[] {
+  const { P, loops } = traceFaces(p, levelId, tol);
+  const rooms: Room[] = [];
+  for (const loop of loops) {
+    const poly = loop.map((h) => P(h.from));
     if (area(poly) <= 0) continue; // outer boundary (or degenerate)
-    const floor = floorPolygon(
-      loop.map((i) => he[i]!),
-      P,
-    );
+    const floor = floorPolygon(loop, P);
     const floorArea = Math.max(0, area(floor));
     if (floorArea < 1e4) continue; // < 0.01 m²: sliver between parallel walls, not a room
-    const wallIds = [...new Set(loop.map((i) => he[i]!.edge.wall.id))].sort();
+    const wallIds = [...new Set(loop.map((h) => h.edge.wall.id))].sort();
     rooms.push({ key: wallIds.join(","), polygon: poly, floor, floorArea, wallIds, labelAt: labelPoint(floor) });
   }
   return rooms.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.floorArea - b.floorArea));
 }
 
+export interface WallSides {
+  /** Walls on the outside of a block (Q-134): which side of start→end faces out. */
+  outside: Map<Id, "left" | "right">;
+  /** Every wall that bounds some closed loop (a room or a block's outside). */
+  looped: Set<Id>;
+}
+
+/**
+ * Which walls face the outside of their block (Q-134, owner 2026-11-17: "the outside of a block, even
+ * if it's inside another one"): a block = walls connected into closed loops; its outside = the CW face
+ * loop around it. A wall with outside on both sides (a bridge between two loops) isn't listed.
+ */
+export function wallSides(p: Project, levelId: Id, tol = DEFAULTS.joinTol): WallSides {
+  const { P, loops } = traceFaces(p, levelId, tol);
+  const seen = new Map<Id, Set<"left" | "right">>();
+  const looped = new Set<Id>();
+  for (const loop of loops) {
+    for (const h of loop) looped.add(h.edge.wall.id);
+    if (area(loop.map((h) => P(h.from))) >= 0) continue; // a room, not an outside
+    for (const h of loop) {
+      // the face is on the LEFT of each half-edge; relative to the wall's own direction:
+      const w = h.edge.wall;
+      const same = dot(sub(P(h.to), P(h.from)), sub(w.end, w.start)) > 0;
+      const side = same ? "left" : "right";
+      seen.set(w.id, (seen.get(w.id) ?? new Set()).add(side));
+    }
+  }
+  const outside = new Map<Id, "left" | "right">();
+  for (const [id, sides] of [...seen].sort((a, b) => (a[0] < b[0] ? -1 : 1)))
+    if (sides.size === 1) outside.set(id, [...sides][0]!);
+  return { outside, looped };
+}
+
 /** Offset each boundary edge to the wall face that looks into the room (room = left of the half-edge). */
-function floorPolygon(loop: { from: number; to: number; edge: Edge }[], P: (n: number) => V): V[] {
+function floorPolygon(loop: HalfEdge[], P: (n: number) => V): V[] {
   const lines = loop.map((h) => {
     const a = P(h.from),
       b = P(h.to);

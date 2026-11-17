@@ -46,7 +46,9 @@ const THICK = 140; // drawing default, same as the wall tool; not a structural v
 
 function assemble(plan: Plan, a: ExampleArgs): Project {
   const levelId = a.ids();
-  const base = emptyProject({ id: a.ids(), levelId, name: a.t(plan.name), now: a.now, profileId: a.profileId });
+  const made = emptyProject({ id: a.ids(), levelId, name: a.t(plan.name), now: a.now, profileId: a.profileId });
+  // drawn by centre lines; keep it that way when the user edits them (ADR-038 setting off)
+  const base: Project = { ...made, settings: { ...made.settings, outsideFaces: false } };
   const height = base.levels[0]?.defaultWallHeight ?? 2700;
   const wallId = new Map<string, Id>();
   const els: (Wall | Opening | RoomTag)[] = [];

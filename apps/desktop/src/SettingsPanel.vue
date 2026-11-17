@@ -6,8 +6,14 @@ import { computed } from "vue";
 import { formatSmall, translate, type Locale, type Params } from "./i18n";
 import { ANGLE_CHOICES, GRID_CHOICES } from "./settings";
 
-const props = defineProps<{ locale: Locale; grid: number; angle: number }>();
-const emit = defineEmits<{ grid: [mm: number]; angle: [deg: number]; locale: [l: Locale]; close: [] }>();
+const props = defineProps<{ locale: Locale; grid: number; angle: number; outsideFaces: boolean }>();
+const emit = defineEmits<{
+  grid: [mm: number];
+  angle: [deg: number];
+  outsideFaces: [on: boolean];
+  locale: [l: Locale];
+  close: [];
+}>();
 const t = (key: string, params?: Params) => translate(props.locale, key, params);
 /** Keep an odd grid from an opened file selectable. */
 const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a, b) => a - b));
@@ -32,6 +38,15 @@ const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a
         </select>
       </label>
       <p class="tip">{{ t("settings.angle.tip") }}</p>
+      <label class="check">
+        <input
+          type="checkbox"
+          :checked="outsideFaces"
+          @change="emit('outsideFaces', ($event.target as HTMLInputElement).checked)"
+        />
+        <span>{{ t("settings.outsideFaces") }}</span>
+      </label>
+      <p class="tip">{{ t("settings.outsideFaces.tip") }}</p>
       <h3>{{ t("settings.language") }}</h3>
       <label>
         <span>{{ t("settings.language") }}</span>
@@ -89,6 +104,9 @@ label {
   align-items: center;
   gap: 8px;
   margin: 6px 0 2px;
+}
+label.check {
+  justify-content: flex-start;
 }
 select {
   font: inherit;
