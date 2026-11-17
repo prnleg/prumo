@@ -18,14 +18,15 @@
     "@tauri-apps/api": "2.12.5",
     "@tauri-apps/plugin-dialog": "2.8.4",
     "@tauri-apps/plugin-fs": "2.7.1",
+    "@tauri-apps/plugin-opener": "2.7.2",
     "intl-messageformat": "12.1.5",
     "vue": "3.5.45"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.5",
     "@vitejs/plugin-vue": "6.0.11",
+    "fflate": "0.8.3",
     "vite": "8.3.8",
-    "vue-tsc": "3.3.14",
-    "fflate": "0.8.3"
+    "vue-tsc": "3.3.14"
   }
 }

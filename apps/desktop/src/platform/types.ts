@@ -32,10 +32,7 @@ export interface Platform {
   removeAppFile(name: string): Promise<void>;
   /** e.g. "0.1.0"; "dev" in the browser build. */
   appVersion(): Promise<string>;
-  /**
-   * Open a web link in the user's browser. false = this build can't (desktop until ADR-039 adds the
-   * opener plugin): the caller copies the link instead.
-   */
+  /** Open a web link in the user's browser (ADR-039). false = couldn't: the caller copies the link. */
   openUrl(url: string): Promise<boolean>;
 }
 

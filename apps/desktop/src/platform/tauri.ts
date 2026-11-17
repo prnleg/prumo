@@ -3,6 +3,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import {
   BaseDirectory,
@@ -84,6 +85,13 @@ export const tauriPlatform: Platform = {
     if (await exists(name, AppData)) await remove(name, AppData);
   },
   appVersion: () => getVersion(),
-  // Opening the system browser needs tauri-plugin-opener → ADR-039 (PROPOSED). Until then: copy the link.
-  openUrl: async () => false,
+  // ADR-039: system browser via the opener plugin; the capability only allows Prumo's GitHub repo.
+  async openUrl(url) {
+    try {
+      await openUrl(url);
+      return true;
+    } catch {
+      return false; // refused by the scope or no browser: the caller copies the link
+    }
+  },
 };
