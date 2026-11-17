@@ -56,7 +56,7 @@ import {
   architectManifest,
 } from "@prumo/module-architect";
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
 import RecoveryPanel from "./RecoveryPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
@@ -64,6 +64,7 @@ import StartScreen from "./StartScreen.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
+import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
 import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
@@ -73,7 +74,8 @@ const t = (key: string, params?: Params) => translate(locale.value, key, params)
 const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
-const modules = new ModuleHost([architectManifest]);
+const MANIFESTS = [architectManifest];
+const modules = new ModuleHost(MANIFESTS);
 const PROFILE = "br-nbr/structural-masonry";
 
 const firstLevelId = randomIds();
@@ -452,6 +454,48 @@ function rotateSelection(deg: number) {
 }
 const keepOriginal = ref(true); // EDITING_OPERATIONS default: mirror copy
 const notice = ref("");
+
+// Crash log (ADR-028 v1): errors go to a local log (scrubbed: no file names/paths/content); a quiet
+// banner offers "Report on GitHub" with a pre-filled issue. Nothing is sent automatically.
+const crash = ref<CrashEntry | null>(null);
+const appVersion = ref("dev");
+platform.appVersion().then(
+  (v) => (appVersion.value = v),
+  () => {},
+);
+let crashWrites = 0;
+let lastCrash = "";
+async function logCrash(err: unknown, kind: CrashEntry["kind"]) {
+  try {
+    const e = makeEntry(err, kind, {
+      now: new Date().toISOString(),
+      version: appVersion.value,
+      os: osName(navigator.userAgent),
+      modules: MANIFESTS.map((m) => `${m.id}@${m.version}`),
+    });
+    crash.value = e;
+    if (e.message === lastCrash || ++crashWrites > 20) return; // a repeating error is written once
+    lastCrash = e.message;
+    await platform.writeAppText(CRASH_LOG_FILE, appendEntry(await platform.readAppText(CRASH_LOG_FILE), e));
+  } catch {
+    // the crash handler must never crash
+  }
+}
+window.addEventListener("error", (ev) => void logCrash(ev.error ?? ev.message, "error"));
+window.addEventListener("unhandledrejection", (ev) => void logCrash(ev.reason, "rejection"));
+const vueApp = getCurrentInstance()?.appContext.config;
+if (vueApp) vueApp.errorHandler = (err) => void logCrash(err, "vue");
+async function reportCrash() {
+  if (!crash.value) return;
+  const url = issueUrl(crash.value);
+  if (await platform.openUrl(url)) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    notice.value = t("crash.linkCopied");
+  } catch {
+    notice.value = t("crash.copyFailed");
+  }
+}
 function mirrorSelection(axis: MirrorAxis) {
   const ids = selectTool.elementIds();
   const b = selectionBounds(history.current, ids);
@@ -745,6 +789,7 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "crash") setTimeout(() => void logCrash(new TypeError("demo: cannot read wall of undefined"), "error"), 0);
 if (demo === "recovery")
   recoveries.value = [
     { key: "a", name: "Casa da praia.prumo", path: null, savedAt: "2026-11-17T16:40:00.000Z" },
@@ -879,6 +924,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @rotate="rotateSelection"
         @mirror="mirrorSelection"
       />
+      <div v-if="crash" class="crash" role="status">
+        <span>{{ t("crash.message") }}</span>
+        <button @click="reportCrash">{{ t("crash.report") }}</button>
+        <button @click="crash = null">{{ t("crash.dismiss") }}</button>
+      </div>
       <p v-if="readOnly" class="blocked">{{ readOnly }}</p>
       <p v-if="notice" class="blocked">{{ notice }}</p>
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
@@ -1001,6 +1051,32 @@ button:disabled {
 .canvas {
   position: relative;
   min-height: 0;
+}
+.crash {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--warn);
+  font-size: 13px;
+  z-index: 5;
+}
+.crash button {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
 }
 .blocked {
   position: absolute;

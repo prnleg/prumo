@@ -565,3 +565,15 @@ Branch `phase1/recovery`, stacked on `phase1/outside-faces`. Spec from ROADMAP (
 **Not done**: crash log (ADR-028 details PROPOSED, Q-095 default not confirmed). Native app not click-tested.
 
 **Next (owner)**: merge app-data → outside-faces → recovery; try a force-quit recovery; ADR-028/Q-095.
+
+### Session #11, part 26 — crash log (ADR-028 v1), 2026-11-17
+
+Owner accepted the v1 crash reporting default ("Yes, I like this. Easy and direct."). Branch `phase1/crash-log`, stacked on `phase1/recovery`.
+
+**Done**: `crashlog.ts` (scrub, entry, JSON-lines log capped at 50, GitHub new-issue URL with title + body only), window `error` / `unhandledrejection` + Vue `errorHandler` → log + quiet banner (Report on GitHub / Dismiss; doesn't take focus). Same message written once per run, max 20 writes per run. Platform `appVersion()` (Tauri `getVersion`, core:app is in core:default) and `openUrl()` (browser build: `window.open`; desktop: returns false → link copied to the clipboard, until **ADR-039** (PROPOSED: `tauri-plugin-opener`)). pt-BR/en. Dev `?demo=crash`.
+
+**Tests**: 268 (+5): scrubbing (macOS/Windows/file:// paths, `.prumo` names, e-mails; app-bundle frames kept; 4000-char cap), entries from Errors/strings/objects/cyclic values, cap + damaged lines, URL params, OS detection.
+
+**Inferences/defaults logged**: no opt-in question since nothing leaves the computer unless the user clicks and submits on GitHub themselves; the issue body asks "what were you doing?" first.
+
+**Next (owner)**: merge app-data → outside-faces → recovery → crash-log; ADR-039.

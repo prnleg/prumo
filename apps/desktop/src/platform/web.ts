@@ -51,4 +51,9 @@ export const webPlatform: Platform = {
   async writeAppBytes() {},
   listAppFiles: async () => [],
   async removeAppFile() {},
+  appVersion: async () => "dev",
+  async openUrl(url) {
+    window.open(url, "_blank", "noopener"); // returns null with noopener even when it worked
+    return true;
+  },
 };

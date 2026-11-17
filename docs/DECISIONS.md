@@ -332,6 +332,7 @@ Status: **ACCEPTED in principle (2026-11-15, owner):** "would be nice to have at
 - Reports contain: app version, OS, stack trace, module versions. **Never** project content, file names, or paths (scrubbed).
 - No usage analytics in v1.
 - Provider OPEN: a hosted service with an open-source plan, self-hosted, or plain "copy error details → open a GitHub issue" (zero infrastructure, a fine v1). Lean: **v1 = local crash log + "Report on GitHub" button that pre-fills an issue**; a hosted provider later. Confidence: medium.
+- **v1 ACCEPTED (2026-11-17, owner: "Yes, I like this. Easy and direct.")** and implemented: `crash-log.jsonl` in the app-data folder (newest 50), scrubbed (paths, `.prumo` names, e-mails), quiet banner with "Report on GitHub" (pre-filled issue the user reviews before sending). Nothing is sent automatically, so no opt-in question is needed yet; a hosted provider later would bring the opt-in back. Opening the browser from the desktop app needs ADR-039; until then the link is copied.
 
 ## ADR-029 — Architect ↔ Engineer handoff model
 Status: **ACCEPTED in principle (2026-11-15, owner: Q-076 "yes, your case makes a lot of sense")**. Mechanics **PROPOSED**:
@@ -430,3 +431,12 @@ Decision:
 - Never touched: walls already in a loop before the change (deleting a neighbour moves nothing), walls whose alignment isn't `center` (the user's choice wins), copies (paste/duplicate/mirror copy: `Command.exact`), and every wall when the setting is turned on later.
 - Consequence (told to the owner): a free-drawn shape gets ~half a wall thickness smaller inside when it closes; the outside size stays what was drawn. The room tool closes in one step, so its walls never appear centred.
 Inside junctions with mixed thickness keep today's mitre (small wedge, Q-134 option C for those); a general polygon fix stays possible later (Q-134 B).
+
+## ADR-039 — Open web links from the desktop app (`tauri-plugin-opener`)
+Status: **PROPOSED (2026-11-17)** — blocks "Report on GitHub" opening the browser directly (today the desktop app copies the link and asks the user to paste it).
+Context: Tauri's WebView doesn't open external links in the system browser by itself; there's no core API for it.
+Options:
+- **A) `tauri-plugin-opener`** (official Tauri plugin, JS + Rust, 2.x line like our other plugins), permission limited to `https://github.com/prnleg/prumo/*` URLs. (+) one click; scope can be narrowed to our repo. (−) one more dependency.
+- **B) Keep copying the link.** (+) no dependency. (−) clumsy: paste a very long URL by hand.
+- **C) `tauri-plugin-shell` `open`.** (−) bigger surface (shell), Tauri itself now points to the opener plugin for this.
+Lean: **A**. Confidence: high (official, narrow scope; we'll need it again for "Help" links and module pages). What would change my mind: wanting zero network-facing features in v1.
