@@ -671,3 +671,13 @@ Owner received the engineer contact's answers (a Markdown file, probably AI-assi
 **My error, logged**: the batch-1 brief renumbered the validation cases (brief VC-001…005 = repo VC-001a, 001b, 002, 003, 004); the repo's VC-005 (self-weight minus an opening) was never sent → E-32. Answers mapped to repo ids.
 
 **Next**: Phase 2 start (see CURRENT_STATE).
+
+### Session #11, part 37 — Phase 2 slice 1: module-structural core (ADR-042), 2026-11-17
+
+Owner: ask the system on the start screen; data-name defaults OK → **ADR-042 accepted**. Branch `phase2/structural-core`.
+
+**Done**: new package `@prumo/module-structural` (deps: core; dev: module-architect for tests). `manifest` (`org.prumo.structural`, component v1, optional, depends on Architect). `data`: `structuralData` / `withStructuralData` (empty → removed), `setWallRole(role, origin)`, `setLintel`, `constructionSystem(profileId)`, `profileIdFor`, `rulesSystem` (unknown → masonry). `roles.bearing(wall, system)` with user-visible assumptions (A-ROLE-1 marked + origin, A-ROLE-2 masonry default, A-SYS-1 system unknown); full/half only (fences, railings, dividers never carry). `finding` (Spike B shape + ADR-041 `review`). Rules: **R-OPEN-001** (presence, no threshold; "opening up to the top" wording per E-06; review VERIFIED-UNSIGNED E-06, clause UNSOURCED → E-30) and **R-ROLE-001** (non-bearing mark in masonry, advisory, E-07). `engine.runChecks` (sorted, deterministic) + `diffFindings` + `NOT_CHECKED` (11 keys from §7).
+
+**Tests**: 351 (+13): system parsing; unknown → masonry + A-SYS-1; RC → nothing run; R-OPEN-001 default / marked same severity (E-07) / lintel / non-bearing → R-ROLE-001 / to-top wording / fences-railings-dividers; order independence; diff resolves; save → open keeps data, also with the module disabled.
+
+**Next**: slice 2 = UI (start-screen system choice, panel role/origin/lintel, findings panel "checked / not checked", canvas badges, Settings → Project system + Modules switch).

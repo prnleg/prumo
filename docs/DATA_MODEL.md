@@ -73,6 +73,8 @@ Material {
 // Wall kinds (ADR-031, UX_PRINCIPLES §3)
 Wall.kind: "full" | "half" | "fence" | "railing"
 // Room divider: implemented as Wall.kind = "separator" (ADR-040), not a separate element.
+// Structural (ADR-042): project.profileId "br-nbr/<structural-masonry|rc-frame|unknown>";
+// components["org.prumo.structural"] v1 — wall { role?, origin? }, opening { lintel?: true }.
 
 // Rooms: DERIVED from closed loops of full walls + separators (not stored),
 // Implemented s#11 (core/geometry/rooms.ts): full + half walls (Q-088), fences/railings open; floor area to inner faces;

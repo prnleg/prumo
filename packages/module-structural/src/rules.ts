@@ -1,0 +1,83 @@
+// Tier 0 rules (STRUCTURAL_ANALYSIS §3). No numeric thresholds here: both rules are presence checks,
+// so nothing is invented (ADR-018).
+import { wallsOnLevel, type Opening, type Wall } from "@prumo/core";
+import { structuralData } from "./data";
+import { ENGINEER_UNSIGNED, UNSOURCED, type Finding, type RuleDef } from "./finding";
+import { bearing, canCarry } from "./roles";
+
+const MASONRY = ["structural-masonry"] as const;
+const EPS = 1; // mm: "reaches the top of the wall" tolerance (drawing precision, not a structural value)
+
+/** R-OPEN-001 — opening in a load-bearing wall without a lintel (E-06: general rule; clause → E-30). */
+export const R_OPEN_001: RuleDef = {
+  id: "R-OPEN-001",
+  nameKey: "rule.R-OPEN-001.name",
+  severity: "warning",
+  confidence: "rule-of-thumb",
+  source: UNSOURCED,
+  review: { level: "verified-unsigned", by: ENGINEER_UNSIGNED, date: "2026-11-17", ref: "E-06" },
+  notConsidered: ["nc.lintelSize", "nc.lintelBearing", "nc.loads", "nc.arching"],
+  appliesTo: [...MASONRY],
+  run({ project, levelId, system }) {
+    const walls = new Map(wallsOnLevel(project, levelId).map((w) => [w.id, w]));
+    const out: Finding[] = [];
+    const openings = Object.values(project.elements)
+      .filter((e): e is Opening => e.type === "opening" && e.levelId === levelId)
+      .sort((a, b) => (a.id < b.id ? -1 : 1));
+    for (const o of openings) {
+      const w = walls.get(o.host.elementId);
+      if (!w || structuralData(o).lintel) continue;
+      const b = bearing(w, system);
+      if (!b.bearing) continue;
+      // An opening up to the top of the wall: the tie beam / slab above IS its lintel (E-06).
+      const toTop = o.sillHeight + o.height >= w.height - EPS;
+      out.push({
+        ruleId: this.id,
+        severity: this.severity,
+        confidence: this.confidence,
+        elementIds: [o.id, w.id],
+        messageKey: toTop ? "rule.R-OPEN-001.messageToTop" : "rule.R-OPEN-001.message",
+        params: {
+          opening: { kind: "element", id: o.id },
+          wall: { kind: "element", id: w.id },
+          width: { kind: "length", mm: o.width },
+        },
+        assumptions: b.why,
+        fingerprint: `${this.id}|${o.id}|${w.id}`,
+      });
+    }
+    return out;
+  },
+};
+
+/** R-ROLE-001 — a wall marked non-bearing in a structural-masonry project (E-07: its own warning). */
+export const R_ROLE_001: RuleDef = {
+  id: "R-ROLE-001",
+  nameKey: "rule.R-ROLE-001.name",
+  severity: "advisory",
+  confidence: "rule-of-thumb",
+  source: UNSOURCED,
+  review: { level: "verified-unsigned", by: ENGINEER_UNSIGNED, date: "2026-11-17", ref: "E-07" },
+  notConsidered: ["nc.realBuilding"],
+  appliesTo: [...MASONRY],
+  run({ project, levelId }) {
+    return wallsOnLevel(project, levelId)
+      .filter((w: Wall) => canCarry(w) && structuralData(w).role === "non-bearing")
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .map((w) => ({
+        ruleId: this.id,
+        severity: this.severity,
+        confidence: this.confidence,
+        elementIds: [w.id],
+        messageKey: "rule.R-ROLE-001.message",
+        params: {
+          wall: { kind: "element", id: w.id },
+          origin: { kind: "text", key: `origin.${structuralData(w).origin ?? "unspecified"}` },
+        },
+        assumptions: [],
+        fingerprint: `${this.id}|${w.id}`,
+      }));
+  },
+};
+
+export const RULES: readonly RuleDef[] = [R_OPEN_001, R_ROLE_001];
