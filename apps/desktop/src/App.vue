@@ -58,11 +58,13 @@ import {
 import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
+import RecoveryPanel from "./RecoveryPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import StartScreen from "./StartScreen.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
+import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
 import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
 
@@ -141,6 +143,25 @@ const startExample = (ex: Example) =>
     return { ok: true };
   });
 const startOpen = () => startWith(() => session.open(true));
+
+// Autosave + recovery (Q-111/126/129): a copy every 30 s while there are unsaved changes; at launch,
+// copies left by a crash (or a quit without saving) are offered back.
+const recoveries = ref<RecoveryEntry[]>([]);
+if (!devDemo) void session.listRecovery().then((es) => (recoveries.value = es));
+const autosaveTimer = setInterval(() => void session.autosave(), AUTOSAVE_MS);
+onBeforeUnmount(() => clearInterval(autosaveTimer));
+async function recoverEntry(e: RecoveryEntry) {
+  let ok = false;
+  await startWith(async () => {
+    const r = await session.recover(e);
+    ok = r.ok;
+    return r;
+  });
+  if (ok) recoveries.value = []; // the others stay on disk and come back next launch
+}
+async function discardEntry(e: RecoveryEntry) {
+  if (await session.discardRecovery(e)) recoveries.value = recoveries.value.filter((x) => x.key !== e.key);
+}
 const doSave = (as = false) => file(() => session.save(as));
 /** The level being edited (UI shows one level until Phase 5, ADR-015). Follows New/Open. */
 const level = ref(firstLevelId);
@@ -724,6 +745,11 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "recovery")
+  recoveries.value = [
+    { key: "a", name: "Casa da praia.prumo", path: null, savedAt: "2026-11-17T16:40:00.000Z" },
+    { key: "b", name: "Sem título.prumo", path: null, savedAt: "" },
+  ];
 if (demo === "paste") {
   const house = EXAMPLES.find((e) => e.id === "house");
   if (house)
@@ -864,6 +890,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @example="startExample"
         @open="startOpen"
         @close="showStart = false"
+      />
+      <RecoveryPanel
+        v-if="recoveries.length"
+        :locale="locale"
+        :entries="recoveries"
+        @recover="recoverEntry"
+        @discard="discardEntry"
+        @later="recoveries = []"
       />
       <SettingsPanel
         v-if="showSettings"

@@ -551,3 +551,17 @@ Owner approved the proposal ("Yes. In any case we can tweak those items in the f
 **Inferences/defaults logged**: a wall with outside on both sides (bridge) is left alone; a long wall partly outside is aligned as a whole; label of the setting command "change how outside walls line up".
 
 **Next**: 8c autosave + recovery.
+
+### Session #11, part 25 — autosave + crash recovery (8c), 2026-11-17
+
+Branch `phase1/recovery`, stacked on `phase1/outside-faces`. Spec from ROADMAP (Q-111/126/129 resolved) + ADR-037.
+
+**Done**: platform `readAppBytes` / `writeAppBytes` (temp file + rename) / `listAppFiles` / `removeAppFile` (desktop: fs plugin, app-data scope already granted; browser: none). `RecoveryStore` (copy + `{ v, name, path, savedAt }` sidecar, safe keys). `Session.autosave()` (only dirty, not mid-gesture, not read-only, skips an identical model; errors swallowed), copy removed on successful save and when the user agrees to discard changes (New/Open/close/recover over a dirty doc), `recover(entry)` (opens via the same path as Open → missing-module / newer-module handling unchanged; result is unsaved, Save asks where), `discardRecovery(entry)` (asks first). Core `History.markUnsaved()`. `RecoveryPanel` at launch over the start screen; 30 s timer. pt-BR/en strings. Dev `?demo=recovery`.
+
+**Tests**: 263 (+9): copy only when dirty and once per change, not mid-drag, save clears, discard clears / cancel keeps, crash → next launch lists → recover = unsaved + copy kept until saved, damaged copy reported + kept, discard asks, safe keys, meta parsing; `markUnsaved`.
+
+**Inferences/defaults logged** (spec-driven, high confidence): recovered work opens without a path (Save asks, suggesting the old name) so the original file isn't overwritten by surprise; the copy isn't deleted on recover (only on save/discard), so a second crash can't lose it; "Decide later" keeps copies for the next launch; macOS ⌘Q that skips the close question still leaves a copy (bonus).
+
+**Not done**: crash log (ADR-028 details PROPOSED, Q-095 default not confirmed). Native app not click-tested.
+
+**Next (owner)**: merge app-data → outside-faces → recovery; try a force-quit recovery; ADR-028/Q-095.

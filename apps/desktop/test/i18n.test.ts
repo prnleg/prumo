@@ -22,6 +22,7 @@ describe("UI i18n (ADR-021/034)", () => {
             name: "casa.prumo",
             error: "disk full",
             modules: "org.example.electrical",
+            time: "17 nov 2026 13:40",
           }),
         ).not.toThrow();
     }

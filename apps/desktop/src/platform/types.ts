@@ -23,6 +23,13 @@ export interface Platform {
    */
   readAppText(name: string): Promise<string | null>;
   writeAppText(name: string, text: string): Promise<void>;
+  /** Recovery copies (ADR-037). Desktop only; the browser build has none (reads null/[], writes nothing). */
+  readAppBytes(name: string): Promise<Uint8Array | null>;
+  /** Written to a temporary name first and renamed, so a crash mid-write never leaves half a file. */
+  writeAppBytes(name: string, bytes: Uint8Array): Promise<void>;
+  /** File names directly inside `dir` (relative to the app-data folder); [] if it doesn't exist. */
+  listAppFiles(dir: string): Promise<string[]>;
+  removeAppFile(name: string): Promise<void>;
 }
 
 export const PRUMO_EXT = "prumo";

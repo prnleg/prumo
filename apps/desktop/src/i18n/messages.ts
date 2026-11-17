@@ -12,6 +12,18 @@ export const en = {
   "start.blank.desc": "An empty plan. Draw your own rooms and walls.",
   "start.open": "Open a file…",
   "start.close": "Close",
+  "recovery.title": "Recover unsaved work?",
+  "recovery.intro":
+    "Prumo closed before these changes were saved. Each copy is kept until you recover and save it, or discard it.",
+  "recovery.savedAt": "Last copy: {time}",
+  "recovery.unknownTime": "unknown time",
+  "recovery.recover": "Recover",
+  "recovery.discard": "Discard…",
+  "recovery.later": "Decide later",
+  "recovery.unreadable": "Couldn't read the recovery copy of {name}. It's kept; you can discard it.",
+  "recovery.discard.title": "Discard recovered work?",
+  "recovery.discard.message": "The unsaved changes to {name} will be lost for good.",
+  "recovery.discard.ok": "Discard",
   "start.examples.note":
     "Examples show how Prumo works. They are not designs for a real building and haven't been checked by an engineer.",
   "example.house.name": "Small house",
@@ -214,6 +226,19 @@ export const ptBR: Record<MessageKey, string> = {
   "start.blank.desc": "Uma planta vazia. Desenhe seus próprios cômodos e paredes.",
   "start.open": "Abrir um arquivo…",
   "start.close": "Fechar",
+  "recovery.title": "Recuperar trabalho não salvo?",
+  "recovery.intro":
+    "O Prumo fechou antes de salvar estas alterações. Cada cópia fica guardada até você recuperar e salvar, ou descartar.",
+  "recovery.savedAt": "Última cópia: {time}",
+  "recovery.unknownTime": "horário desconhecido",
+  "recovery.recover": "Recuperar",
+  "recovery.discard": "Descartar…",
+  "recovery.later": "Decidir depois",
+  "recovery.unreadable":
+    "Não foi possível ler a cópia de recuperação de {name}. Ela foi mantida; você pode descartá-la.",
+  "recovery.discard.title": "Descartar trabalho recuperado?",
+  "recovery.discard.message": "As alterações não salvas de {name} serão perdidas de vez.",
+  "recovery.discard.ok": "Descartar",
   "start.examples.note":
     "Os exemplos mostram como o Prumo funciona. Não são projetos para uma construção real e não foram verificados por um engenheiro.",
   "example.house.name": "Casa pequena",

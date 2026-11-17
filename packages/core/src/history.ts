@@ -91,7 +91,8 @@ export class History {
   private future: Entry[] = [];
   private present: Project;
   private gesture: Gesture | null = null;
-  private saved: Project;
+  /** null = never saved in this form (e.g. recovered work), so it counts as unsaved. */
+  private saved: Project | null;
   private readonly listeners = new Set<(e: HistoryEvent) => void>();
 
   constructor(
@@ -126,6 +127,10 @@ export class History {
   }
   markSaved() {
     this.saved = this.present;
+  }
+  /** The document isn't on disk in this form (recovered work): dirty until the next save. */
+  markUnsaved() {
+    this.saved = null;
   }
 
   /**
