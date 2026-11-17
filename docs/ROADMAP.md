@@ -49,7 +49,7 @@ Scope:
 - **Crash log + "Report on GitHub" button** (ADR-028).
 - **Autosave + crash recovery** (Q-111 ✅): a recovery copy every ~30 s; "Recover unsaved work?" on the next start. Recovery copies are **never deleted by time**. They're removed only once the user resolves them (recovers, saves, or explicitly discards) (Q-126/129 ✅).
 - **Start screen** (Q-119 ✅): "Start blank" + pre-made example projects (Q-125 ✅): a small house, an apartment, a **"house with problems"** (already shows warnings, to teach), and **clean reference examples** with no warnings from the implemented checks. ⚠️ Wording: never call them "perfect" or "safe" in the UI. Use "reference example — no warnings from current checks" (SAFETY doc).
-- **Module manager (Stage 1, ADR-020 revision):** Settings → Modules: install/enable or remove modules; disabled modules aren't loaded at all.
+- **Module manager (Stage 1, ADR-020 revision):** Settings → Modules: install/enable or remove modules; disabled modules aren't loaded at all. **Deferred to the start of Phase 2 (2026-11-17):** with Architect as the only (required) module there is nothing to enable/disable; building it now would be plumbing without a feature (golden rule 12). It lands together with `module-structural`, the first optional module.
 - **Light/dark theme** following the OS (Q-120 ✅).
 - ❌ No image/PDF export in Phase 1. Export belongs to a future **rendering/export module** (Q-118). Until then users can take screenshots.
 - **Beginner onboarding:** a starter template + a skippable guided tour (Q-080).
@@ -74,8 +74,8 @@ Scope:
 
 Exit criteria:
 - [ ] Every operation in `EDITING_OPERATIONS.md` passes its tests, edge cases included.
-- [ ] Undo/redo works for every operation, including multi-element ones, as a single step.
-- [ ] Save → reload produces an identical model (round-trip test).
+- [x] Undo/redo works for every operation, including multi-element ones, as a single step. *(ops matrix, 2026-11-17)*
+- [x] Save → reload produces an identical model (round-trip test). *(persistence tests + ops matrix)*
 - [ ] G-1 usability test done by the owner.
 
 What could go wrong:
