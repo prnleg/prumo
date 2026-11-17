@@ -28,6 +28,7 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
   - Edge: stretching makes a connected wall shorter than its openings need → block the move and highlight the conflict (DATA_MODEL invariant doubt).
   - Edge: moving one of two walls in an L to become collinear with the other → do they merge? Default: no.
 - Opening moved → slides **along its host wall only**. Dragging it onto another wall = **re-host** (a separate command, explicitly labelled "Move opening to wall W-5").
+  - **Implemented (session #11):** one door/window dragged over a wall that isn't its host → `rehostCommand` preview (centred on the pointer, near edge on the grid, clamped inside the wall; Alt = free); the drag commits as ONE step labelled "move door/window to another wall" (`Gesture.commit(label)`); dragging back over its own wall in the same gesture = ordinary slide. Wall ids aren't shown to users, so the label names no wall.
 - Multi-select move: walls + openings + slabs translate together. Openings whose host is also selected move with the host (don't double-apply the translation — classic bug).
 
 ## Copy / Duplicate

@@ -62,10 +62,11 @@ export class Gesture {
     }
     return r; // invalid preview keeps the last valid one (Q-072: block)
   }
-  commit(): Project {
+  /** `label`: what the drag turned out to be, when it differs from the start (e.g. a re-host). */
+  commit(label: Label = this.label): Project {
     this.assertOpen();
     this.done = true;
-    this.h["endGesture"](this, this.preview_);
+    this.h["endGesture"](this, this.preview_, label);
     return this.h.current;
   }
   cancel(): void {
@@ -188,15 +189,15 @@ export class History {
     return { ok: true, project: this.prepare(next) };
   }
 
-  private endGesture(g: Gesture, result: Project | null) {
+  private endGesture(g: Gesture, result: Project | null, label: Label = g.label) {
     if (this.gesture !== g) throw new HistoryError("not the active gesture");
     this.gesture = null;
     if (result === null || result === this.present) {
       this.emit({ type: "change", project: this.present, reason: "cancel" });
       return;
     }
-    this.push(g.label, result);
-    this.emit({ type: "commit", project: this.present, label: g.label });
+    this.push(label, result);
+    this.emit({ type: "commit", project: this.present, label });
   }
 
   private push(label: Label, next: Project) {

@@ -100,6 +100,32 @@ describe("select tool", () => {
     expect((h.current.elements["o1"] as Opening).host.offset).toBe(1500);
   });
 
+  it("dragging the door onto another wall re-hosts it: centred on the pointer, own undo label", () => {
+    const { h, drag } = setup();
+    drag([1400, 0], [4000, 1500]); // w2 runs (4000,0)→(4000,3000): along 1500 − 800/2 = 1100
+    expect((h.current.elements["o1"] as Opening).host).toEqual({ elementId: "w2", offset: 1100 });
+    expect(h.undoLabel).toEqual({ key: "cmd.rehost", params: { kind: "door" } });
+    h.undo();
+    expect((h.current.elements["o1"] as Opening).host).toEqual({ elementId: "w1", offset: 1000 });
+  });
+
+  it("re-host near the wall's end is clamped inside it (3000 − 800 = 2200)", () => {
+    const { h, drag } = setup();
+    drag([1400, 0], [4000, 2950]);
+    expect((h.current.elements["o1"] as Opening).host).toEqual({ elementId: "w2", offset: 2200 });
+  });
+
+  it("over another wall and back in the same drag = an ordinary slide (label 'move')", () => {
+    const { h, tool } = setup();
+    const P = (x: number, y: number) => ({ at: { x, y }, scale: SCALE, free: false, additive: false });
+    tool.down(P(1400, 0));
+    tool.move(P(4000, 1500));
+    tool.move(P(1900, 0));
+    tool.up(P(1900, 0));
+    expect((h.current.elements["o1"] as Opening).host).toEqual({ elementId: "w1", offset: 1500 });
+    expect(h.undoLabel?.key).toBe("cmd.move");
+  });
+
   it("tiny pointer travel is a click, not a move", () => {
     const { h, drag, tool } = setup();
     drag([2000, 10], [2010, 10]); // 10 mm = 2 px < 4 px

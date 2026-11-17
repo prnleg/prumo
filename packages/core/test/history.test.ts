@@ -298,6 +298,16 @@ describe("property: N random operations, undo N times → original (EDITING_OPER
   }
 });
 
+describe("Gesture.commit(label)", () => {
+  it("a drag that turned into something else commits under the new label (re-host)", () => {
+    const h = new History(blank());
+    const g = h.beginGesture({ key: "cmd.move" });
+    g.preview(putCommand({ key: "x" }, [wall("a", 0, 0, 1000, 0)]));
+    g.commit({ key: "cmd.rehost", params: { kind: "door" } });
+    expect(h.undoLabel).toEqual({ key: "cmd.rehost", params: { kind: "door" } });
+  });
+});
+
 describe("History.load (New / Open)", () => {
   it("replaces the document, clears undo/redo, is not dirty, emits change + commit", () => {
     const h = new History(house());
