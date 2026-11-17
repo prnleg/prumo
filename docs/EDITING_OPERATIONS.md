@@ -71,6 +71,7 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 
 - Changing thickness/height/material → a command (undoable), re-analysis.
 - Changing the wall length numerically → which end moves? ❓ Default: the end point moves, the start stays.
+  - **Implemented (session #11):** panel "Length" field (cm) → `setWallLengthCommand`: start stays, end moves along the wall; walls joined at that end follow (Q-022, same as move; their doors/windows keep their distance from their far end); doors/windows on the wall keep their offset from the start, so one that no longer fits makes the edit refused (I-1).
 
 ## Undo / Redo
 

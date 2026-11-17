@@ -587,3 +587,13 @@ Owner merged app-data, outside-faces, recovery, crash-log (PRs #18–#21) and ac
 **Tests**: 268 unchanged (platform adapter isn't unit-tested; logic is). `cargo check` ok. Not click-tested.
 
 **Next**: see CURRENT_STATE next steps.
+
+### Session #11, part 28 — type a wall's length, 2026-11-17
+
+Branch `phase1/wall-length`, stacked on `phase1/opener`. Audit of EDITING_OPERATIONS against the code found three gaps: (1) wall length not editable, (2) collinear overlapping walls not refused (spec default "reject with message", but it's a ❓ and a new invariant in DATA_MODEL → asked, not done), (3) midpoint/perpendicular snapping (spec lists them; Q-087 only confirmed grid/15°/Alt → asked, not done).
+
+**Done (1)**: core `setWallLengthCommand` (spec default: start stays, end moves; joined walls at that end follow like a move; a door that no longer fits → refused). Panel "Length" field in cm with tooltip; `cmd.wallLength` strings.
+
+**Tests**: 273 (+5): 3-4-5 diagonal halved (hand: end = (2500, 3000)), L corner follows + neighbour door offset 3162.2777 − 2000 = 1162.2777 (hand), joined-by-end follows, door no longer fits → refused, same length = no step.
+
+**Noticed**: in the L-shaped demo the room's area label overlaps the free-standing partition stub (label point ignores dangling walls). Logged, not fixed.

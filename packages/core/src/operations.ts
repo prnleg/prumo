@@ -1,7 +1,7 @@
 // Editing operations (EDITING_OPERATIONS.md). Pure project → project; History blocks invalid results.
 import { putElements, wallLength, type Label } from "./edit";
 import { DEFAULTS } from "./geometry/joins";
-import { add, dist, dot, lineLine, norm, sub, type V } from "./geometry/vec";
+import { add, dist, dot, lineLine, mul, norm, sub, type V } from "./geometry/vec";
 import type { Command } from "./history";
 import type { IdSource } from "./ids";
 import type { Element, Id, Opening, Project, RoomTag, Wall } from "./model";
@@ -112,6 +112,42 @@ function reattachT(q: V, w: Wall, moved: readonly Wall[], after: ReadonlyMap<Id,
 
 export function moveCommand(ids: readonly Id[], delta: V, opts?: Partial<MoveOptions>): Command {
   return { label: { key: "cmd.move", params: { count: ids.length } }, apply: (p) => translate(p, ids, delta, opts) };
+}
+
+/**
+ * Type a wall's length (EDITING_OPERATIONS "Property edits", default): the start stays, the end moves
+ * along the wall. Walls joined at that end follow (Q-022, like a move); their doors/windows keep their
+ * distance from the end that didn't move. Doors/windows on this wall keep their offset from its start,
+ * so one that no longer fits makes the edit refused (invariant I-1), never silently moved.
+ */
+export function setWallLengthCommand(wallId: Id, length: number, opts: Partial<MoveOptions> = {}): Command {
+  if (!(length > 0) || !Number.isFinite(length)) throw new RangeError(`length must be > 0, got ${length}`);
+  const o = { ...DEFAULT_MOVE, ...opts };
+  return {
+    label: { key: "cmd.wallLength" },
+    apply: (p) => {
+      const w = p.elements[wallId];
+      if (!isWall(w) || Math.abs(wallLength(w) - length) < 1e-9) return p;
+      const end = add(w.start, mul(unit(w), length));
+      const out: Element[] = [{ ...w, end }];
+      if (o.stretch)
+        for (const n of Object.values(p.elements)) {
+          if (!isWall(n) || n.id === w.id || n.levelId !== w.levelId) continue;
+          const s = dist(n.start, w.end) <= o.joinTol;
+          const e = dist(n.end, w.end) <= o.joinTol;
+          if (!s && !e) continue;
+          const nw: Wall = { ...n, start: s ? end : n.start, end: e ? end : n.end };
+          out.push(nw);
+          if (s && !e) {
+            const grow = wallLength(nw) - wallLength(n);
+            for (const op of Object.values(p.elements))
+              if (isOpening(op) && op.host.elementId === n.id)
+                out.push({ ...op, host: { ...op.host, offset: op.host.offset + grow } });
+          }
+        }
+      return putElements(p, out);
+    },
+  };
 }
 
 export interface DuplicateResult {

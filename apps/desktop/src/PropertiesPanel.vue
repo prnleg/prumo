@@ -2,6 +2,7 @@
 // Properties of the selection (ROADMAP Phase 1 "Properties panel"). Every change is ONE command
 // (one undo step), applied when the field is committed (Enter / leaving it), never per keystroke.
 import {
+  setWallLengthCommand,
   updateCommand,
   wallLength,
   type Command,
@@ -12,7 +13,7 @@ import {
 } from "@prumo/core";
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import { computed, ref } from "vue";
-import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
+import { formatArea, formatCm, parseNumber, translate, type Locale, type Params } from "./i18n";
 
 const props = defineProps<{
   project: Project;
@@ -73,6 +74,19 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
   bad.value = null;
   edit(el, (e) => set(e, v * 10));
 }
+
+/** Length: the start stays, the end moves; walls joined there follow (core setWallLengthCommand). */
+function commitLength(w: Wall, ev: Event) {
+  const v = parseNumber((ev.target as HTMLInputElement).value, props.locale);
+  if (v === null || !(v > 0)) {
+    bad.value = "length";
+    rev.value++;
+    return;
+  }
+  bad.value = null;
+  emit("apply", setWallLengthCommand(w.id, v * 10));
+  rev.value++; // a refused edit (a door wouldn't fit) shows the old length again
+}
 </script>
 
 <template>
@@ -108,7 +122,16 @@ function commitCm<T extends Element>(el: T, field: string, ev: Event, set: (e: T
 
     <template v-else-if="wall">
       <h3>{{ t("props.wall") }}</h3>
-      <p class="ro">{{ t("props.length") }}: {{ formatLength(wallLength(wall), locale) }}</p>
+      <label :class="{ bad: bad === 'length' }" :title="t('props.length.tip')">
+        {{ t("props.length") }}
+        <span class="field">
+          <input
+            :key="wall.id + wallLength(wall) + '/' + rev"
+            :value="formatCm(wallLength(wall), locale)"
+            @change="commitLength(wall, $event)"
+          />cm
+        </span>
+      </label>
       <label :class="{ bad: bad === 'thickness' }">
         {{ t("props.thickness") }}
         <span class="field">
