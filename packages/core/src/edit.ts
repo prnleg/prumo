@@ -62,11 +62,28 @@ export type ProblemCode =
   | "opening-outside-wall"
   | "opening-above-wall"
   | "openings-overlap"
+  | "walls-overlap"
   | "level-missing";
 
 export interface Problem {
   code: ProblemCode;
   elementIds: Id[];
+}
+
+/** Same-line tolerance for I-8, mm: a hair's width (rotations leave ~1e-9 noise), not a design value. */
+const SAME_LINE = 1;
+
+/** Length two walls share along one line (0 if they aren't on the same line). */
+export function collinearOverlap(a: Wall, b: Wall): number {
+  const L = wallLength(a);
+  if (L < MIN_WALL_LENGTH) return 0;
+  const ux = (a.end.x - a.start.x) / L,
+    uy = (a.end.y - a.start.y) / L;
+  const lat = (q: { x: number; y: number }) => Math.abs((q.x - a.start.x) * uy - (q.y - a.start.y) * ux);
+  if (lat(b.start) > SAME_LINE || lat(b.end) > SAME_LINE) return 0;
+  const t = (q: { x: number; y: number }) => (q.x - a.start.x) * ux + (q.y - a.start.y) * uy;
+  const [s, e] = [t(b.start), t(b.end)].sort((x, y) => x - y) as [number, number];
+  return Math.max(0, Math.min(L, e) - Math.max(0, s));
 }
 
 /** Ids whose element object changed between two snapshots (reference equality: cheap with immutability). */
@@ -131,6 +148,17 @@ export function checkInvariants(p: Project, scope?: readonly Id[]): Problem[] {
       if (b && a.host.offset + a.width > b.host.offset + EPS)
         out.push({ code: "openings-overlap", elementIds: [a.id, b.id].sort() });
     });
+  }
+  // I-8 (EDITING_OPERATIONS "Create" default): a changed wall may not lie on top of another wall
+  // (same line, sharing more than MIN_WALL_LENGTH). Only walls that changed are checked, so an older
+  // file that already has overlaps can still be edited elsewhere.
+  const all = Object.values(p.elements).filter((e): e is Wall => e.type === "wall");
+  for (const id of scoped) {
+    const w = p.elements[id];
+    if (w?.type !== "wall") continue;
+    for (const o of all)
+      if (o.id !== w.id && o.levelId === w.levelId && collinearOverlap(w, o) > MIN_WALL_LENGTH)
+        out.push({ code: "walls-overlap", elementIds: [w.id, o.id].sort() });
   }
   for (const oid of [...openings].sort()) {
     const o = p.elements[oid] as Opening;

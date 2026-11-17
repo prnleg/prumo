@@ -118,6 +118,7 @@ Doubts:
 - I-5 `hostWallId` refers to an existing wall on the same level.
 - I-6 Slab outline is a simple (non-self-intersecting) polygon, CCW orientation.
 - I-7 All material references resolve.
+- I-8 A wall doesn't lie on top of another wall on the same level (same line within 1 mm, sharing > `MIN_WALL_LENGTH`). Checked only for walls that change (older files with overlaps stay editable). EDITING_OPERATIONS "Create" default: refuse with a message. Implemented 2026-11-17.
 
 ❓ **When an edit would break an invariant** (e.g. shortening a wall so its window no longer fits): block it, auto-fix (clamp/delete the opening), or allow an "invalid" state with a critical finding? → Lean: **block geometric impossibilities** (I-1..I-5) with a clear message; allow structural problems (those are findings). Needs owner confirmation (add to Q list).
 

@@ -10,7 +10,7 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 
 - **Wall:** click start → click end (chain mode continues from the last end; Esc ends). Snap to endpoints, midpoints, grid, 0/45/90°, and perpendicular.
   - Edge: start == end → reject (I-4).
-  - Edge: the new wall overlaps an existing wall collinearly → ❓ merge / reject / allow with a finding? Default: **reject with message.**
+  - Edge: the new wall overlaps an existing wall collinearly → ❓ merge / reject / allow with a finding? Default: **reject with message.** **Implemented (I-8):** any edit that leaves a changed wall on top of another (draw, move, rotate, paste) is refused with "That wall would lie on top of another wall"; end-to-end continuation and T junctions are fine. The room tool already reuses covered sides; a smarter "paste next to a room sharing a wall" (merge instead of refuse) is a possible later improvement.
   - Edge: the new wall crosses an existing wall → auto-create an X junction (no split). Do we split walls at junctions? ❓ Default: **don't split**; joins are computed.
 - **Opening:** hover a wall → preview → click to place. Snaps to the wall centre, ends, and other openings.
   - Edge: doesn't fit → show red preview, refuse.

@@ -597,3 +597,15 @@ Branch `phase1/wall-length`, stacked on `phase1/opener`. Audit of EDITING_OPERAT
 **Tests**: 273 (+5): 3-4-5 diagonal halved (hand: end = (2500, 3000)), L corner follows + neighbour door offset 3162.2777 − 2000 = 1162.2777 (hand), joined-by-end follows, door no longer fits → refused, same length = no step.
 
 **Noticed**: in the L-shaped demo the room's area label overlaps the free-standing partition stub (label point ignores dangling walls). Logged, not fixed.
+
+### Session #11, part 29 — fixes: overlapping walls refused (I-8), room label clear of partition stubs, 2026-11-17
+
+Owner merged opener + wall-length and said to focus on fixes. Branch `phase1/fixes` from main.
+
+**Done**: core invariant **I-8 `walls-overlap`** (`collinearOverlap`; same line within 1 mm = rotation noise, shared length > `MIN_WALL_LENGTH`; checked for changed walls only). Spec default from EDITING_OPERATIONS ("reject with message"); applies to draw / move / rotate / paste. Room label point: walls standing inside a room (stubs, an inner block) are obstacles; rooms without them keep the centroid (no change to existing labels).
+
+**Tests**: 279 (+6): overlap by hand (1000 / reversed / end-to-end 0 / parallel 0 / T 0), draw refused vs continue vs T, move refused + drag keeps last valid frame, 90° rotation noise still detected; label clear of a stub by > 1 m, rectangle still centroid. An old invariants test had two walls on one line by accident → moved.
+
+**Known side effect (logged in EDITING_OPERATIONS)**: pasting a room so one of its walls lands on a neighbour's wall is now refused (before: silently doubled walls). Merge-on-paste could come later.
+
+**Still waiting on the owner**: midpoint/perpendicular snapping (a feature, not a fix); next Phase 1 feature (room separator / polygon rooms / module manager / tour).

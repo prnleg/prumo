@@ -123,3 +123,17 @@ describe("uncoveredPieces (room tool merges shared walls)", () => {
     ]);
   });
 });
+
+describe("room label point keeps clear of walls standing in the room", () => {
+  it("a 6 × 4 m room with a 2.4 m stub through its centre: label leaves the stub", () => {
+    const stub = wall("s", 3000, 0, 3000, 2400);
+    const [r] = rooms([...rect(0, 0, 6000, 4000), stub]);
+    // centroid (3000, 2000) is ON the stub; the label must be at least a metre from its faces
+    const d = Math.abs(r!.labelAt.x - 3000) - 70;
+    expect(r!.labelAt.y > 2400 + 70 ? Infinity : d).toBeGreaterThan(1000);
+  });
+
+  it("no stub: still the centroid", () => {
+    expect(rooms(rect(0, 0, 6000, 4000))[0]!.labelAt).toEqual({ x: 3000, y: 2000 });
+  });
+});

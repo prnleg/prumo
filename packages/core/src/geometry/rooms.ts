@@ -156,6 +156,7 @@ function traceFaces(p: Project, levelId: Id, tol: number): { P: (n: number) => V
 
 export function detectRooms(p: Project, levelId: Id, tol = DEFAULTS.joinTol): Room[] {
   const { P, loops } = traceFaces(p, levelId, tol);
+  const levelWalls = wallsOnLevel(p, levelId).sort((a, b) => (a.id < b.id ? -1 : 1));
   const rooms: Room[] = [];
   for (const loop of loops) {
     const poly = loop.map((h) => P(h.from));
@@ -164,7 +165,19 @@ export function detectRooms(p: Project, levelId: Id, tol = DEFAULTS.joinTol): Ro
     const floorArea = Math.max(0, area(floor));
     if (floorArea < 1e4) continue; // < 0.01 m²: sliver between parallel walls, not a room
     const wallIds = [...new Set(loop.map((h) => h.edge.wall.id))].sort();
-    rooms.push({ key: wallIds.join(","), polygon: poly, floor, floorArea, wallIds, labelAt: labelPoint(floor) });
+    const own = new Set(wallIds);
+    // walls standing inside the room (a partition stub): the label keeps clear of them
+    const inner = levelWalls.filter(
+      (w) => !own.has(w.id) && [w.start, w.end, mul(add(w.start, w.end), 0.5)].some((q) => inside(q, floor)),
+    );
+    rooms.push({
+      key: wallIds.join(","),
+      polygon: poly,
+      floor,
+      floorArea,
+      wallIds,
+      labelAt: labelPoint(floor, inner),
+    });
   }
   return rooms.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.floorArea - b.floorArea));
 }
@@ -221,8 +234,19 @@ function floorPolygon(loop: HalfEdge[], P: (n: number) => V): V[] {
   });
 }
 
-/** Centroid if it's inside; otherwise the inside sample farthest from the boundary (L/U shapes). */
-function labelPoint(poly: V[]): V {
+/** Distance from q to segment a–b. */
+function segDist(q: V, a: V, b: V): number {
+  const e = sub(b, a);
+  const L2 = dot(e, e);
+  const t = L2 ? Math.max(0, Math.min(1, dot(sub(q, a), e) / L2)) : 0;
+  return dist(q, add(a, mul(e, t)));
+}
+
+/**
+ * Centroid if it's inside and the room has no walls standing in it; otherwise the inside sample
+ * farthest from the boundary and from those walls' faces (L/U shapes, partition stubs). Deterministic grid.
+ */
+function labelPoint(poly: V[], inner: readonly Wall[] = []): V {
   const A = area(poly);
   let cx = 0,
     cy = 0;
@@ -232,7 +256,7 @@ function labelPoint(poly: V[]): V {
     cy += (poly[j]!.y + poly[i]!.y) * f;
   }
   const c = A ? { x: cx / (6 * A), y: cy / (6 * A) } : poly[0]!;
-  if (inside(c, poly)) return c;
+  if (inside(c, poly) && !inner.length) return c;
   const xs = poly.map((q) => q.x),
     ys = poly.map((q) => q.y);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
@@ -250,6 +274,7 @@ function labelPoint(poly: V[]): V {
         const t = Math.max(0, Math.min(1, dot(sub(q, a), e) / dot(e, e)));
         d = Math.min(d, dist(q, add(a, mul(e, t))));
       }
+      for (const w of inner) d = Math.min(d, segDist(q, w.start, w.end) - w.thickness / 2);
       if (d > bestD) {
         bestD = d;
         best = q;
