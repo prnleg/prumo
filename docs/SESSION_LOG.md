@@ -657,3 +657,7 @@ Branch `phase1/tour`, stacked on `phase1/room-shape`.
 **Tests**: 338.
 
 **Remaining for Phase 1 exit**: owner G-1 usability test; EDITING_OPERATIONS edge cases still marked ❓ in the doc (e.g. Figma-style last-offset duplicate, copied override findings — those need Phase 2 data).
+
+### Session #11, part 35 — engineer brief (batch 1 + ADR-017), 2026-11-17
+
+Owner merged everything through PR #29 and asked for the engineer questions to send right away. Wrote a Portuguese brief as a shared Claude doc ("Prumo — perguntas para o engenheiro (lote 1)"): how to answer (clause numbers only, no standards text), P1 = ADR-017 options A–D + E-04 + E-07, scope (E-01, E-03), candidate rules table + E-02 + E-06, simplifications (E-05), validation cases VC-001…005 (E-22). E-01…07 and E-22 marked ⏳ 2026-11-17. Answers get recorded here with date + reviewer when they come back.
