@@ -35,6 +35,7 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 - **Copy** = to clipboard; **Paste** = place with the cursor. **Duplicate** = copy + paste at a fixed offset (or at the last-used offset, Figma-style ❓).
 - Copying a wall copies its openings (new IDs, new host IDs remapped).
 - Copying an opening alone → pasting requires a target wall; otherwise refused.
+- **Implemented (session #11):** Ctrl/⌘+C / X / V, app-internal clipboard (detached deep copy; not the OS clipboard). Paste = the copied walls' bbox centre under the pointer, delta snapped to the project grid (pointer outside the plan → 50 cm down-right). Loose doors/windows → onto the wall under the pointer, first one centred there, same-wall spacing kept, groups from different walls 200 mm apart; a paste that doesn't fit is refused by the invariants. Cut = copy + delete of real elements only (like Delete, a selected room isn't expanded). Room names aren't copied.
 - Copied elements get new IDs; **material references are kept** (not duplicated).
 - Edge: copying a slab whose support walls aren't copied → fine geometrically; analysis will flag missing supports.
 - Edge: `structuralRole` overrides copy along. ❓ Should they? Default: yes, with an info finding "copied override".

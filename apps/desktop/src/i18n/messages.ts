@@ -92,6 +92,10 @@ export const en = {
 
   "cmd.edit": "change properties",
   "cmd.duplicate": "{count, plural, one {duplicate # item} other {duplicate # items}}",
+  "cmd.paste": "{count, plural, one {paste # item} other {paste # items}}",
+  "clip.copied": "{count, plural, one {Copied # item} other {Copied # items}}. Ctrl/⌘+V pastes at the pointer.",
+  "clip.cut": "{count, plural, one {Cut # item} other {Cut # items}}. Ctrl/⌘+V pastes at the pointer.",
+  "clip.needWall": "Point at a wall, then paste: doors and windows need a wall.",
   "action.delete": "Delete",
   "action.mirror": "Mirror",
   "action.rotateLeft.tip": "Rotate 90° to the left (R)",
@@ -173,7 +177,7 @@ export const en = {
     "Move over a wall and click to place a {kind, select, door {door} other {window}}. It snaps to the middle, the ends, and next to other openings. Hold Alt to place freely.",
   "hint.opening.tooShort": "This wall is too short for this {kind, select, door {door} other {window}}.",
   "hint.select":
-    "Click to select, drag to move (Ctrl/⌘ = don't pull joined walls). Shift+click adds. Drag on empty space to select an area. Delete removes, Ctrl/⌘+D duplicates.",
+    "Click to select, drag to move (Ctrl/⌘ = don't pull joined walls). Shift+click adds. Drag on empty space to select an area. Delete removes, Ctrl/⌘+D duplicates, Ctrl/⌘+C / X / V copy, cut, paste.",
   "hint.pan": "Scroll or middle-drag to move around · pinch or Ctrl+wheel to zoom",
 
   "status.snap": "Grid {grid} · {angle}° steps · hold Alt to place freely",
@@ -284,6 +288,10 @@ export const ptBR: Record<MessageKey, string> = {
 
   "cmd.edit": "alterar propriedades",
   "cmd.duplicate": "{count, plural, one {duplicar # item} other {duplicar # itens}}",
+  "cmd.paste": "{count, plural, one {colar # item} other {colar # itens}}",
+  "clip.copied": "{count, plural, one {# item copiado} other {# itens copiados}}. Ctrl/⌘+V cola onde está o ponteiro.",
+  "clip.cut": "{count, plural, one {# item recortado} other {# itens recortados}}. Ctrl/⌘+V cola onde está o ponteiro.",
+  "clip.needWall": "Aponte para uma parede e cole: portas e janelas precisam de uma parede.",
   "action.delete": "Apagar",
   "action.mirror": "Espelhar",
   "action.rotateLeft.tip": "Girar 90° para a esquerda (R)",
@@ -366,7 +374,7 @@ export const ptBR: Record<MessageKey, string> = {
     "Passe sobre uma parede e clique para colocar uma {kind, select, door {porta} other {janela}}. Ela se encaixa no meio, nas pontas e ao lado de outras aberturas. Mantenha Alt apertado para posicionar livremente.",
   "hint.opening.tooShort": "Esta parede é curta demais para esta {kind, select, door {porta} other {janela}}.",
   "hint.select":
-    "Clique para selecionar, arraste para mover (Ctrl/⌘ = sem puxar as paredes ligadas). Shift+clique adiciona. Arraste no vazio para selecionar uma área. Delete apaga, Ctrl/⌘+D duplica.",
+    "Clique para selecionar, arraste para mover (Ctrl/⌘ = sem puxar as paredes ligadas). Shift+clique adiciona. Arraste no vazio para selecionar uma área. Delete apaga, Ctrl/⌘+D duplica, Ctrl/⌘+C / X / V copia, recorta, cola.",
   "hint.pan": "Role ou arraste com o botão do meio para mover · pinça ou Ctrl+roda para zoom",
 
   "status.snap": "Grade {grid} · passos de {angle}° · mantenha Alt apertado para posicionar livremente",

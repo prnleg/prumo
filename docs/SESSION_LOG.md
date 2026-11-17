@@ -479,3 +479,15 @@ Owner: "Go coding with default decision only if your confidence on them are high
 
 **Next**: copy/paste (`phase1/clipboard`).
 
+### Session #11, part 19 — copy / cut / paste (owner away), 2026-11-16
+
+Branch `phase1/clipboard`, stacked on `phase1/room-types`.
+
+**Done**: core `clipboard.ts` (`copyToClipboard` → detached `{ walls, hosted, loose, anchor }`; `pasteCommand`; `pasteOpeningsCommand`; `offsetAlong`). `duplicateCommand` now = copy + paste (same ids order and label, its tests unchanged and green). App: Ctrl/⌘+C / X / V, notice "Copied N items…", paste selects the copies and switches to Select; dev `?demo=paste`.
+
+**Tests**: 235. Copy takes hosted openings + bbox anchor; cut-then-paste restores everything moved (detached clipboard); two pastes = two independent copies; loose openings keep same-wall spacing + 200 mm group gap (hand values 1000 / 2500 / 3600); a loose paste that doesn't fit is refused and changes nothing; `offsetAlong` clamps. Screenshot: pasted house with doors/windows, no names.
+
+**Inferences/defaults logged** (high confidence, EDITING_OPERATIONS spec): app-internal clipboard only (no other app understands walls); paste immediately at the pointer instead of a floating preview (move it after with drag; one undo step); cut = real elements only (consistent with Delete); room names not copied (consistent with duplicate). The 200 mm gap between groups of loose openings is a drawing default, not a rule.
+
+**Next**: re-host a door/window by dragging it onto another wall (`phase1/rehost`).
+
