@@ -503,3 +503,17 @@ Branch `phase1/rehost`, stacked on `phase1/clipboard`.
 
 **Next**: Q-134 unequal-thickness step (`phase1/thickness-step`) if the geometry is clear enough; otherwise stop.
 
+### Session #11, part 21 — Q-134 investigated (stopped), toolbar wrap, label word-wrap (owner away), 2026-11-16
+
+Branch `phase1/toolbar`, stacked on `phase1/rehost`.
+
+**Q-134 stopped** (owner rule: only high-confidence defaults): measured the 7/30 imperfect mixed-thickness junctions — 4 are 2-wall near-straight (5°–35° off), 3 are 3–4-wall. Square ends ("simple step") are exact only at 180°; elsewhere they overlap/notch, so the default needs an invented angle limit. Options A/B/C written in OPEN_QUESTIONS Q-134 for the owner.
+
+**Also considered and skipped** (medium confidence, UX choices): "open end" marker for walls that almost close a room (needs an "almost" distance or marks every free wall), free-angle rotate gesture, user-picked mirror axis (2-click mode + preview), room separator (DATA_MODEL section still PROPOSED), polygon room tool.
+
+**Done**: toolbar wraps onto a second row in narrow windows (was a horizontal scrollbar); room labels word-wrap long names (a 4.9 m living room at small zoom used to hide "Living room and kitchen" entirely). Screenshot at 640 × 480 OK.
+
+**Tests**: 240 (+ word-wrap hand case: 146 px → floor(134 / 7.2) = 18 chars per line).
+
+**Next (owner)**: merge the stack in order; ADR-037; Q-134. Then 8c.
+

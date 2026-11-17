@@ -41,9 +41,27 @@ export function roomSpace(poly: readonly V[], at: V): { w: number; h: number } {
   return { w: 2 * Math.min(left, right), h: 2 * Math.min(up, down) };
 }
 
+/** Greedy word wrap to `max` characters per line; null if a single word is longer. */
+export function wrapWords(text: string, max: number): string[] | null {
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    if (w.length > max) return null;
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= max) cur += " " + w;
+    else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
 /**
- * Best layout for `parts` (e.g. ["Banheiro", "4,39 m²"]) in a space of w × h px:
- * one line "a · b" → two lines → same at the smaller size → only the first part → nothing.
+ * Best layout for `parts` (e.g. ["Banheiro", "4,39 m²"]) in a space of w × h px, first that fits:
+ * one line "a · b" → one line per part → long parts word-wrapped → (same at the smaller size) →
+ * only the first part (wrapped) → nothing.
  */
 export function fitLabel(
   parts: readonly string[],
@@ -51,16 +69,25 @@ export function fitLabel(
   h: number,
   sizes: readonly number[] = [12, 10],
 ): LabelFit | null {
+  const chars = (size: number) => Math.floor((w - 2 * PAD) / (size * CHAR_WIDTH));
   const ok = (lines: string[], size: number) =>
-    Math.max(...lines.map((l) => l.length)) * size * CHAR_WIDTH <= w - 2 * PAD && lines.length * size * LINE <= h - PAD;
+    Math.max(...lines.map((l) => l.length)) <= chars(size) && lines.length * size * LINE <= h - PAD;
+  const wrapAll = (ps: readonly string[], size: number) => {
+    const out: string[] = [];
+    for (const p of ps) {
+      const ls = wrapWords(p, chars(size));
+      if (!ls) return null;
+      out.push(...ls);
+    }
+    return out;
+  };
   const shown = parts.filter((p) => p);
   if (!shown.length) return null;
   for (const size of sizes) {
-    const one = [shown.join(" · ")];
-    if (ok(one, size)) return { lines: one, size };
-    if (shown.length > 1 && ok(shown, size)) return { lines: [...shown], size };
+    const candidates = [[shown.join(" · ")], shown, wrapAll(shown, size)];
+    for (const lines of candidates) if (lines && ok(lines, size)) return { lines: [...lines], size };
   }
   const smallest = sizes[sizes.length - 1] ?? 10;
-  const first = shown.slice(0, 1);
-  return ok(first, smallest) ? { lines: first, size: smallest } : null;
+  const first = wrapAll(shown.slice(0, 1), smallest);
+  return first && ok(first, smallest) ? { lines: first, size: smallest } : null;
 }

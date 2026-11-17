@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHAR_WIDTH, fitLabel, roomSpace } from "../src/label-fit";
+import { CHAR_WIDTH, fitLabel, roomSpace, wrapWords } from "../src/label-fit";
 
 const rect = (x0: number, y0: number, x1: number, y1: number) => [
   { x: x0, y: y0 },
@@ -39,5 +39,15 @@ describe("room label fit", () => {
     expect(fitLabel(["Banheiro", "4,39 m²"], 40, 20)).toBeNull();
     expect(fitLabel(["", "4,39 m²"], 200, 40)).toEqual({ lines: ["4,39 m²"], size: 12 });
     expect(fitLabel([], 200, 40)).toBeNull();
+  });
+
+  it("long names wrap by words (a big room never loses its name)", () => {
+    expect(wrapWords("Living room and kitchen", 12)).toEqual(["Living room", "and kitchen"]);
+    expect(wrapWords("Superlongword x", 5)).toBeNull();
+    // 146 px wide: 12 px → floor(134 / 7.2) = 18 chars per line; "Living room and kitchen" = 23 → wrap
+    expect(fitLabel(["Living room and kitchen", "33.34 m²"], 146, 200)).toEqual({
+      lines: ["Living room and", "kitchen", "33.34 m²"],
+      size: 12,
+    });
   });
 });
