@@ -8,20 +8,29 @@ export interface CheckResult {
   system: ConstructionSystem;
   /** Rules that ran (the "Checked" list — SAFETY: show what was checked AND what wasn't). */
   checksRun: RuleDef[];
+  /** Rules for this system that couldn't run because no existing building is marked (ADR-043). */
+  needBaseline: RuleDef[];
   findings: Finding[];
 }
 
 const SEV = { critical: 0, warning: 1, advisory: 2, info: 3 } as const;
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
-export function runChecks(project: Project, levelId: Id, rules: readonly RuleDef[] = RULES): CheckResult {
+export function runChecks(
+  project: Project,
+  levelId: Id,
+  opts: { rules?: readonly RuleDef[]; baseline?: Project | null } = {},
+): CheckResult {
   const system = constructionSystem(project);
   const run = rulesSystem(system);
-  const checksRun = rules.filter((r) => r.appliesTo.includes(run)).sort((a, b) => cmp(a.id, b.id));
+  const baseline = opts.baseline ?? null;
+  const forSystem = (opts.rules ?? RULES).filter((r) => r.appliesTo.includes(run)).sort((a, b) => cmp(a.id, b.id));
+  const checksRun = forSystem.filter((r) => !r.needsBaseline || baseline);
+  const needBaseline = forSystem.filter((r) => r.needsBaseline && !baseline);
   const findings = checksRun
-    .flatMap((r) => r.run({ project, levelId, system }))
+    .flatMap((r) => r.run({ project, levelId, system, baseline }))
     .sort((a, b) => SEV[a.severity] - SEV[b.severity] || cmp(a.fingerprint, b.fingerprint));
-  return { system, checksRun, findings };
+  return { system, checksRun, needBaseline, findings };
 }
 
 export interface FindingsDiff {

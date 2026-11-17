@@ -8,8 +8,16 @@ import { computed, ref } from "vue";
 import { translate, type Locale, type Params } from "./i18n";
 import { cards, findingText } from "./structural-ui";
 
-const props = defineProps<{ locale: Locale; project: Project; result: CheckResult; diff: FindingsDiff | null }>();
-const emit = defineEmits<{ select: [ids: string[]]; system: [] }>();
+const props = defineProps<{
+  locale: Locale;
+  project: Project;
+  result: CheckResult;
+  diff: FindingsDiff | null;
+  /** When "the existing building" was marked (ISO), or null (ADR-043). */
+  baseline: string | null;
+}>();
+const emit = defineEmits<{ select: [ids: string[]]; system: []; mark: []; clearBaseline: [] }>();
+const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateStyle: "medium", timeStyle: "short" });
 const t = (key: string, params?: Params) => translate(props.locale, key, params);
 
 const open = ref(true);
@@ -34,10 +42,21 @@ const count = computed(() => props.result.findings.length);
         {{ t("checks.system", { system: t(`system.${result.system}`) }) }}
         <button class="link" @click="emit('system')">{{ t("checks.system.change") }}</button>
       </p>
-      <p v-if="!result.checksRun.length" class="empty">{{ t("checks.noneForSystem") }}</p>
-      <article v-for="c in list" :key="c.rule.id" class="card" :class="c.rule.severity">
+      <p v-if="!result.checksRun.length && !result.needBaseline.length" class="empty">
+        {{ t("checks.noneForSystem") }}
+      </p>
+      <div v-if="result.needBaseline.length" class="baseline">
+        <p>{{ t("checks.baseline.need", { count: result.needBaseline.length }) }}</p>
+        <button @click="emit('mark')">{{ t("checks.baseline.mark") }}</button>
+      </div>
+      <div v-else-if="baseline" class="baseline">
+        <p>{{ t("checks.baseline.on", { date: when(baseline) }) }}</p>
+        <button @click="emit('mark')">{{ t("checks.baseline.again") }}</button>
+        <button @click="emit('clearBaseline')">{{ t("checks.baseline.clear") }}</button>
+      </div>
+      <article v-for="c in list" :key="c.rule.id" class="card" :class="c.severity">
         <h4>
-          <span class="sev">{{ t(`severity.${c.rule.severity}`) }}</span>
+          <span class="sev">{{ t(`severity.${c.severity}`) }}</span>
           {{ t(c.rule.nameKey) }}
           <span class="rid">{{ c.rule.id }}</span>
         </h4>
@@ -69,6 +88,7 @@ const count = computed(() => props.result.findings.length);
         </ul>
         <p class="h">{{ t("checks.notChecked") }}</p>
         <ul>
+          <li v-for="r in result.needBaseline" :key="r.id">{{ t(r.nameKey) }} — {{ t("checks.needsBaseline") }}</li>
           <li v-for="k in NOT_CHECKED" :key="k">{{ t(k) }}</li>
         </ul>
       </details>
@@ -130,6 +150,26 @@ header {
   margin: 4px 0;
   color: var(--muted);
   font-size: 12px;
+}
+.baseline {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.baseline p {
+  margin: 0 0 6px;
+}
+.baseline button {
+  margin-right: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
 }
 .card {
   border-left: 3px solid var(--muted);
