@@ -15,6 +15,7 @@ const props = defineProps<{
   outsideFaces: boolean;
   system: ConstructionSystem;
   structural: boolean;
+  electrical: boolean;
   /** Your name on notes (ADR-044), or null when not set yet. */
   name: string | null;
   /** Saved versions in this file (Q-124), oldest first; `inUse` = the existing building (can't delete). */
@@ -30,6 +31,7 @@ const emit = defineEmits<{
   outsideFaces: [on: boolean];
   system: [s: ConstructionSystem];
   structural: [on: boolean];
+  electrical: [on: boolean];
   name: [name: string];
   deleteVersion: [id: string];
   exportClean: [];
@@ -137,6 +139,14 @@ const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateS
           @change="emit('structural', ($event.target as HTMLInputElement).checked)"
         />
         <span>{{ t("module.structural.name") }}</span>
+      </label>
+      <label class="check">
+        <input
+          type="checkbox"
+          :checked="electrical"
+          @change="emit('electrical', ($event.target as HTMLInputElement).checked)"
+        />
+        <span>{{ t("module.electrical.name") }}</span>
       </label>
       <p class="tip">{{ t("settings.modules.tip") }}</p>
       <h3>{{ t("settings.you") }}</h3>

@@ -7,6 +7,8 @@ import type { IdSource } from "./ids";
 import {
   hostedExtent,
   isHosted,
+  isModuleElement,
+  type ModuleElement,
   type Element,
   type Hosted,
   type Id,
@@ -66,6 +68,7 @@ export function translate(p: Project, ids: readonly Id[], delta: V, opts: Partia
   }
   if (moved.length) out.push(...tagsTravelling(p, movedIds, (q) => add(q, delta)));
   out.push(...notesTravelling(p, sel, (q) => add(q, delta)));
+  out.push(...pointsTravelling(p, sel, (q) => add(q, delta)));
   out.push(...slabsTravelling(p, sel, moved, (q) => add(q, delta)));
   return putElements(p, out);
 }
@@ -262,14 +265,14 @@ export function rotateCommand(ids: readonly Id[], pivot: V, deg: number, opts: P
       if (deg % 360 === 0) return p;
       const sel = new Set(ids.filter((id) => p.elements[id]));
       const moved = [...sel].map((id) => p.elements[id]).filter(isWall);
-      if (!moved.length) return p;
       const after = new Map(moved.map((w) => [w.id, { ...w, start: f(w.start), end: f(w.end) }]));
       const out: Element[] = [...after.values()];
       if (o.stretch) out.push(...stretchNeighbours(p, sel, moved, after, f, o.joinTol));
       out.push(...tagsTravelling(p, new Set(moved.map((w) => w.id)), f));
       out.push(...notesTravelling(p, sel, f));
+      out.push(...pointsTravelling(p, sel, f));
       out.push(...slabsTravelling(p, sel, moved, f));
-      return putElements(p, out);
+      return out.length ? putElements(p, out) : p; // nothing that turns (no walls, notes, slabs, points)
     },
   };
 }
@@ -332,7 +335,8 @@ export function mirrorCommand(
       .sort((a, b) => (a.id < b.id ? -1 : 1));
 
   if (!mode.copy) {
-    const sel = new Set(walls.map((w) => w.id));
+    // walls + whatever else was picked (notes, point items) that mirrors on its own
+    const sel = new Set([...walls.map((w) => w.id), ...ids.filter((id) => p.elements[id])]);
     const label: Label = { key: "cmd.mirror", params: { count: walls.length } };
     return {
       command: {
@@ -345,6 +349,7 @@ export function mirrorCommand(
             out.push(...stretchNeighbours(q, sel, walls, after, f, mode.joinTol ?? DEFAULTS.joinTol));
           out.push(...tagsTravelling(q, sel, f));
           out.push(...notesTravelling(q, sel, f));
+          out.push(...pointsTravelling(q, sel, f));
           out.push(...slabsTravelling(q, sel, walls, f));
           return putElements(q, out);
         },
@@ -364,6 +369,18 @@ export function mirrorCommand(
     copies.push({ ...mirrorWall(structuredClone(w), f, mode.mirrorComponent), id });
     for (const o of hostedOn(w.id))
       copies.push({ ...mirrorOpening(structuredClone(o)), id: mode.newId(), host: { ...o.host, elementId: id } });
+  }
+  // point items picked with them (ADR-058): mirrored copies too
+  for (const e of Object.values(p.elements)) {
+    if (!ids.includes(e.id) || !isModuleElement(e) || e.host || !e.at) continue;
+    const id = mode.newId();
+    newIds.push(id);
+    const data = mode.mirrorComponent
+      ? Object.fromEntries(
+          Object.entries(e.components).map(([m, c]) => [m, { ...c, data: mode.mirrorComponent?.(m, c.data) }]),
+        )
+      : e.components;
+    copies.push({ ...structuredClone(e), id, at: f(e.at), components: structuredClone(data) });
   }
   const label: Label = { key: "cmd.mirrorCopy", params: { count: newIds.length } };
   return { command: { label, apply: (q) => putElements(q, copies), exact: true }, newIds, skipped };
@@ -452,6 +469,14 @@ function slabsTravelling(p: Project, sel: ReadonlySet<Id>, moved: readonly Wall[
     .filter((s) => sel.has(s.id) || (moved.length > 0 && s.outline.every(onMoved)))
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .map((s) => ({ ...s, outline: ccw(s.outline.map(f)) }));
+}
+
+/** Module items placed at a point (ADR-058) that are selected: their point moves. Sorted by id. */
+function pointsTravelling(p: Project, sel: ReadonlySet<Id>, f: (q: V) => V): Element[] {
+  return Object.values(p.elements)
+    .filter((e): e is ModuleElement & { at: V } => isModuleElement(e) && !e.host && !!e.at && sel.has(e.id))
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .map((e) => ({ ...e, at: f(e.at) }));
 }
 
 /**

@@ -62,6 +62,8 @@ describe("UI i18n (ADR-021/034)", () => {
             bearing: "0,2",
             floor: "Andar 1",
             paper: "A4",
+            min: 3,
+            perimeter: "13,44 m",
           }),
         ).not.toThrow();
     }

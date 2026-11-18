@@ -4,7 +4,6 @@ import {
   isDivider,
   isHosted,
   isModuleElement,
-  type Host,
   type Id,
   type ModuleElement,
   type Note,
@@ -42,6 +41,9 @@ export interface HostedItemPlan {
   polygon: V[];
 }
 
+/** Pick size of a module item placed at a point (ADR-058), mm. */
+const POINT_ITEM = 300;
+
 export function wallsOnLevel(p: Project, levelId: Id): Wall[] {
   return Object.values(p.elements).filter((e): e is Wall => e.type === "wall" && e.levelId === levelId);
 }
@@ -76,9 +78,21 @@ export function planGeometry(p: Project, levelId: Id, opts: JoinOptions = DEFAUL
     return w ? [openingPlan(w, o, expand)] : [];
   });
   const items = Object.values(p.elements)
-    .filter((e): e is ModuleElement & { host: Host } => isModuleElement(e) && isHosted(e) && e.levelId === levelId)
+    .filter((e): e is ModuleElement => isModuleElement(e) && e.levelId === levelId && (isHosted(e) || !!e.at))
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .flatMap((e): HostedItemPlan[] => {
+      if (!isHosted(e)) {
+        // a point item (ADR-058): a pickable square around it
+        const q = e.at as V;
+        const h = POINT_ITEM / 2;
+        const sq = [
+          { x: q.x - h, y: q.y - h },
+          { x: q.x + h, y: q.y - h },
+          { x: q.x + h, y: q.y + h },
+          { x: q.x - h, y: q.y + h },
+        ];
+        return [{ id: e.id, type: e.type, a: q, b: q, polygon: sq }];
+      }
       const w = byId.get(e.host.elementId);
       if (!w) return [];
       const u = norm(sub(w.end, w.start));

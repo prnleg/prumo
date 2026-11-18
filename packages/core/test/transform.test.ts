@@ -214,3 +214,36 @@ describe("module mirror hook (MODULES rule 1: core doesn't know module data)", (
     expect((p.elements["w"] as Wall).components["x.sides"]!.data).toEqual({ left: "blue", right: "red" }); // input untouched
   });
 });
+
+describe("module items placed at a point (ADR-058)", () => {
+  it("move / rotate / mirror carry a selected point item; an unselected one stays", async () => {
+    const { emptyProject, putCommand, moveCommand, rotateCommand, mirrorCommand, counterIds } = await import("../src");
+    const light = (id: string, x: number, y: number) => ({
+      id,
+      type: "org.example.electrical:light" as const,
+      ownerModule: "org.example.electrical",
+      levelId: "l",
+      at: { x, y },
+      components: {},
+    });
+    const p0 = putCommand({ key: "x" }, [light("a", 1000, 500), light("b", 3000, 500)]).apply(
+      emptyProject({ id: "p", levelId: "l", name: "t", now: "2026-11-18T00:00:00Z", profileId: "x" }),
+    );
+    const at = (p: typeof p0, id: string) => (p.elements[id] as { at: { x: number; y: number } }).at;
+    const moved = moveCommand(["a"], { x: 100, y: 200 }).apply(p0);
+    expect(at(moved, "a")).toEqual({ x: 1100, y: 700 });
+    expect(at(moved, "b")).toEqual({ x: 3000, y: 500 });
+    const turned = rotateCommand(["a"], { x: 0, y: 0 }, 90).apply(p0);
+    expect(at(turned, "a").x).toBeCloseTo(-500);
+    expect(at(turned, "a").y).toBeCloseTo(1000);
+    const flipped = mirrorCommand(
+      p0,
+      ["a", "b"],
+      "vertical",
+      { x: 2000, y: 0 },
+      { copy: false, newId: counterIds("m") },
+    ).command.apply(p0);
+    expect(at(flipped, "a").x).toBeCloseTo(3000);
+    expect(at(flipped, "b").x).toBeCloseTo(1000);
+  });
+});

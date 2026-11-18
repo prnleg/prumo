@@ -1,0 +1,56 @@
+{
+  "format": "prumo-pack",
+  "formatVersion": 1,
+  "id": "br",
+  "parent": null,
+  "module": "org.prumo.electrical",
+  "version": "2026.11.1",
+  "name": { "en": "Brazil", "pt-BR": "Brasil" },
+  "values": {
+    "lights.minPerRoom": {
+      "value": 1,
+      "source": "NBR 5410:2004, 9.5.2.1.1 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "At least one fixed ceiling light point in each room, worked by a switch (EL-01)."
+    },
+    "outlets.living.perimeterPer": {
+      "value": 5,
+      "unit": "m",
+      "source": "NBR 5410:2004, 9.5.2.2.1 (salas e dormitórios; from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Living rooms and bedrooms: one general outlet per 5 m of perimeter or part of it (EL-01)."
+    },
+    "outlets.kitchen.perimeterPer": {
+      "value": 3.5,
+      "unit": "m",
+      "source": "NBR 5410:2004, 9.5.2.2.1 (cozinhas, copas, áreas de serviço, lavanderias; from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Kitchens and laundry areas: one outlet per 3.5 m of perimeter or part of it (EL-01)."
+    },
+    "outlets.bathroom.min": {
+      "value": 1,
+      "source": "NBR 5410:2004, 9.5.2.2.1 (banheiros: junto ao lavatório; from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Bathrooms: at least one outlet near the washbasin (EL-01)."
+    },
+    "outlets.balcony.min": {
+      "value": 1,
+      "source": "NBR 5410:2004, 9.5.2.2.1 (varandas; from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Balconies: at least one outlet (EL-01)."
+    },
+    "outlets.other.smallArea": {
+      "value": 6,
+      "unit": "m2",
+      "source": "NBR 5410:2004, 9.5.2.2.1 (demais cômodos; from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Other rooms: up to 6 m² at least one outlet; larger, one per 5 m of perimeter (EL-01)."
+    }
+  }
+}

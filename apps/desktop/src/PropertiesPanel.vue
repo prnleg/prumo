@@ -50,6 +50,7 @@ import {
 import { computed, ref } from "vue";
 import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 import { paramText, unitWeightText } from "./structural-ui";
+import { OUTLET_PURPOSES, electricalData, kindOf as electricalKind } from "@prumo/module-electrical";
 
 const props = defineProps<{
   project: Project;
@@ -66,6 +67,17 @@ const props = defineProps<{
     joists: JoistDir | null;
     /** A drawn slab covers it (ADR-050): the slab's own answers count. */
     coveredBySlab?: boolean;
+    /** Electrical minimums (ADR-058); null = module off. */
+    electrical?: {
+      rule: string;
+      typed: boolean;
+      perimeter: number;
+      lights: number;
+      lightsMin: number | null;
+      outlets: number;
+      outletsMin: number | null;
+      values: { source: string }[];
+    } | null;
   }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
@@ -82,6 +94,10 @@ const props = defineProps<{
   } | null;
   /** Installed data packs (ADR-049): material values shown with their source. */
   packs?: PackSet | null;
+  /** Electrical module on (ADR-058). */
+  electrical?: boolean;
+  /** This floor's ceiling lights, for a switch's "turns on" list. */
+  lights?: readonly { id: string; label: string }[];
   /** The project's construction system when the Structural module is on; null = module off. */
   structural?: ConstructionSystem | null;
 }>();
@@ -99,6 +115,7 @@ const emit = defineEmits<{
   role: [wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined];
   lintel: [openingId: string, has: boolean];
   lintelSize: [openingId: string, size: LintelSize];
+  electrical: [itemId: string, change: { height?: number; purpose?: string; light?: { id: string; on: boolean } }];
   contraverga: [openingId: string, has: boolean];
   tieBeam: [wallId: string, has: boolean];
   protect: [wallId: string];
@@ -195,6 +212,20 @@ const BAR_OPTIONS = BAR_COUNTS.flatMap((n) => BAR_DIAMETERS.map((d) => ({ n, d, 
 /** Has a side to flip (hinge / slide direction, which face): doors and side-dependent windows (ADR-046). */
 const sided = (o: Opening) =>
   o.kind === "door" || (o.kind === "window" && ["sliding", "casement", "top-hung"].includes(openingStyle(o) ?? ""));
+/** A selected electrical item (ADR-058). */
+const eItem = computed(() => {
+  const e = one.value;
+  const k = props.electrical ? electricalKind(e ?? undefined) : null;
+  return e && k ? { e, kind: k, data: electricalData(e) } : null;
+});
+function eHeight(id: string, ev: Event) {
+  const cm = parseNumber((ev.target as HTMLInputElement).value, props.locale);
+  if (cm === null || cm < 0 || cm > 500) {
+    rev.value++;
+    return;
+  }
+  emit("electrical", id, { height: Math.round(cm * 10) });
+}
 const chase = computed(() => {
   const e = one.value ?? undefined;
   return isChase(e) ? e : null;
@@ -345,6 +376,28 @@ function commitLength(w: Wall, ev: Event) {
             <option value="short">{{ t("joists.short") }}</option>
           </select>
         </label>
+      </template>
+      <!-- Electrical (ADR-058): NBR 5410 minimums for this room — information, UNVERIFIED -->
+      <template v-if="room.electrical">
+        <h4>{{ t("props.electrical") }}</h4>
+        <p :class="{ warn: room.electrical.lightsMin !== null && room.electrical.lights < room.electrical.lightsMin }">
+          {{ t("elec.lights", { n: room.electrical.lights, min: room.electrical.lightsMin ?? "?" }) }}
+        </p>
+        <p
+          :class="{ warn: room.electrical.outletsMin !== null && room.electrical.outlets < room.electrical.outletsMin }"
+        >
+          {{
+            t(`elec.outlets.${room.electrical.rule}`, {
+              n: room.electrical.outlets,
+              min: room.electrical.outletsMin ?? "?",
+              perimeter: formatLength(room.electrical.perimeter * 1000, locale),
+            })
+          }}
+        </p>
+        <p v-if="!room.electrical.typed" class="ro">{{ t("elec.noType") }}</p>
+        <p class="ro" :title="room.electrical.values.map((v) => v.source).join('\n')">
+          {{ t("elec.source") }} · <span class="unverified">{{ t("value.review.unverified") }}</span>
+        </p>
       </template>
     </template>
 
@@ -724,6 +777,44 @@ function commitLength(w: Wall, ev: Event) {
           {{ t("note.reopen") }}
         </button>
       </div>
+    </template>
+
+    <template v-else-if="eItem">
+      <h3>{{ t(`elec.item.${eItem.kind}`) }}</h3>
+      <label v-if="eItem.kind !== 'light'" :title="t('elec.height.tip')">
+        {{ t("props.height") }}
+        <span class="field">
+          <input
+            :key="eItem.e.id + (eItem.data.height ?? '') + '/' + rev"
+            :value="formatCm(eItem.data.height ?? 0, locale)"
+            @change="eHeight(eItem.e.id, $event)"
+          />cm
+        </span>
+      </label>
+      <label v-if="eItem.kind === 'outlet'" class="stack" :title="t('elec.purpose.tip')">
+        {{ t("elec.purpose") }}
+        <select
+          :value="eItem.data.purpose ?? 'general'"
+          @change="emit('electrical', eItem.e.id, { purpose: ($event.target as HTMLSelectElement).value })"
+        >
+          <option v-for="pu in OUTLET_PURPOSES" :key="pu" :value="pu">{{ t(`elec.purpose.${pu}`) }}</option>
+        </select>
+      </label>
+      <template v-if="eItem.kind === 'switch'">
+        <p class="ro">{{ t("elec.turnsOn") }}</p>
+        <p v-if="!lights?.length" class="ro">{{ t("elec.noLights") }}</p>
+        <label v-for="l in lights ?? []" :key="l.id" class="check">
+          <input
+            type="checkbox"
+            :checked="(eItem.data.lights ?? []).includes(l.id)"
+            @change="
+              emit('electrical', eItem.e.id, { light: { id: l.id, on: ($event.target as HTMLInputElement).checked } })
+            "
+          />
+          {{ l.label }}
+        </label>
+      </template>
+      <p v-if="eItem.kind === 'light'" class="ro">{{ t("elec.light.note") }}</p>
     </template>
 
     <template v-else-if="chase">

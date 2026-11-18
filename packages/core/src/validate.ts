@@ -78,7 +78,7 @@ export function validateProject(p: Project): string[] {
       typeof e.ownerModule !== "string"
     ) {
       errs.push(`${at}: unknown type ${String((e as { type: unknown }).type)}`);
-    }
+    } else if (e.at !== undefined && !isVec(e.at)) errs.push(`${at}: a module item's point must be x, y`);
 
     const host = (e as { host?: unknown }).host;
     if (e.type === "opening" && host === undefined) errs.push(`${at}: opening needs a host`);
