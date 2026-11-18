@@ -157,6 +157,24 @@ export const en = {
   "note.reopen": "Reopen",
   "settings.you": "You",
   "el.chase": "the chase",
+  someone: "Someone",
+  "protect.add": "Protect: load-bearing, don't remove",
+  "protect.tip":
+    "Leaves a mark for whoever edits this next. Removing or moving this wall will show a serious warning — it never stops the edit.",
+  "protect.on": "Protected: load-bearing, don't remove",
+  "protect.by": "By {name}, {date}",
+  "protect.remove": "Remove protection",
+  "protect.again": "Protect it where it is now",
+  "cmd.protect": "protect wall",
+  "cmd.unprotect": "remove protection",
+  "rule.R-PROT-001.name": "Protected wall changed",
+  "rule.R-PROT-001.removed":
+    'Serious: {author} marked a {length} wall "load-bearing, don\'t remove", and it was removed.',
+  "rule.R-PROT-001.moved":
+    'Serious: {author} marked a {length} wall "load-bearing, don\'t remove", and it was moved or resized.',
+  "rule.R-PROT-001.kind":
+    "Serious: {author} marked a {length} wall \"load-bearing, don't remove\", and it's no longer a wall that can carry.",
+  "nc.whyProtected": "why it was protected (ask the person who did it)",
   "tool.chase": "Chase",
   "tool.chase.tip": "Mark where a wall will be cut for pipes or wiring (a chase)",
   "chaseDir.label": "Chase direction",
@@ -624,6 +642,24 @@ export const ptBR: Record<MessageKey, string> = {
   "note.reopen": "Reabrir",
   "settings.you": "Você",
   "el.chase": "o rasgo",
+  someone: "Alguém",
+  "protect.add": "Proteger: estrutural, não remover",
+  "protect.tip":
+    "Deixa uma marca para quem editar depois. Remover ou mover esta parede mostra um aviso sério — nunca impede a edição.",
+  "protect.on": "Protegida: estrutural, não remover",
+  "protect.by": "Por {name}, {date}",
+  "protect.remove": "Tirar a proteção",
+  "protect.again": "Proteger onde está agora",
+  "cmd.protect": "proteger parede",
+  "cmd.unprotect": "tirar proteção",
+  "rule.R-PROT-001.name": "Parede protegida alterada",
+  "rule.R-PROT-001.removed":
+    'Sério: {author} marcou uma parede de {length} como "estrutural, não remover", e ela foi removida.',
+  "rule.R-PROT-001.moved":
+    'Sério: {author} marcou uma parede de {length} como "estrutural, não remover", e ela foi movida ou mudou de tamanho.',
+  "rule.R-PROT-001.kind":
+    'Sério: {author} marcou uma parede de {length} como "estrutural, não remover", e ela não é mais uma parede que carrega.',
+  "nc.whyProtected": "por que ela foi protegida (pergunte a quem protegeu)",
   "tool.chase": "Rasgo",
   "tool.chase.tip": "Marcar onde a parede vai ser cortada para canos ou fios (um rasgo)",
   "chaseDir.label": "Direção do rasgo",

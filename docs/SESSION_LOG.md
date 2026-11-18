@@ -751,3 +751,17 @@ Owner merged exit-criteria + batch 2b, chose option 1 (notes / protection / hand
 **Tests**: 403 (core +6 notes incl. v1→v2 open; desktop +2 name). Screenshots checked (en).
 
 **Next**: slice 2 — protection markers + R-PROT-001.
+
+### Session #11, part 44 — ADR-044 slice 2: protection markers, 2026-11-17
+
+Owner merged handoff-design + notes and left me working alone ("do whatever isn't blocked, separate branches, give the merge order"). Branch `phase2/protection` from main.
+
+**Done**: module-structural `PROTECTION` element (`org.prumo.structural:protection`, not hosted) with `{ wallId, wall: {start,end,kind}, author, createdAt }`; `protectCommand` (also renews: same marker, wall as it is now), `unprotectCommand`, `protectionOf`, `protectionsOn`; `Param` kind `name` (a typed display name, never translated; "" → "Someone"); **R-PROT-001** (critical, masonry + RC, review `unverified` because it isn't an engineering rule — it reports a person's marker; source = ADR-029 / Q-077). App: panel protect / remove, checks-card actions (protect where it is now / remove), PlanView `locks` + `ghosts` (first "ghost of a removed wall" on the plan), badge at the old wall's middle, 15 strings, dev `?demo=protect`.
+
+**Decided alone (reversible)**: protecting without a name stores "" (shown "Someone") rather than forcing the name prompt; only full/half walls can be protected (fences etc. carry nothing); several protections on one wall (older files) → the first by id is used.
+
+**Slip**: a script truncated App.vue again (open for write before read in the same expression); restored from git (no other uncommitted App.vue changes on the branch) and redid the edits. Rule for myself: write files with `with open(p,'w')` only after reading into a variable.
+
+**Tests**: 409 (structural +6). Screenshot checked.
+
+**Next**: slice 3 — hand-off.

@@ -16,6 +16,10 @@ const props = defineProps<{
   labels?: readonly { at: V; text: string }[];
   /** Structural findings: a small "!" mark per element (severity colour; never green). */
   badges?: readonly { at: V; severity: string; id: string }[];
+  /** Protected walls ("load-bearing, don't remove"): a lock at `at`; `broken` = the wall was moved/removed. */
+  locks?: readonly { id: string; at: V; broken: boolean }[];
+  /** Where a protected wall used to be (dashed outline). */
+  ghosts?: readonly { id: string; a: V; b: V }[];
   /** Grid step, mm. */
   grid?: number;
   /** Detected rooms: floor polygon + a localized label (e.g. area). Drawn under the walls. */
@@ -297,6 +301,15 @@ function wheel(e: WheelEvent) {
       />
       <circle v-else :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
     </g>
+    <g class="ghosts">
+      <line v-for="gh in ghosts ?? []" :key="gh.id" :x1="S(gh.a).x" :y1="S(gh.a).y" :x2="S(gh.b).x" :y2="S(gh.b).y" />
+    </g>
+    <g class="locks">
+      <g v-for="l in locks ?? []" :key="l.id" :class="{ broken: l.broken }">
+        <rect :x="S(l.at).x - 5" :y="S(l.at).y - 3" width="10" height="8" rx="1.5" />
+        <path :d="`M${S(l.at).x - 3},${S(l.at).y - 3} v-2.5 a3,3 0 0 1 6,0 v2.5`" />
+      </g>
+    </g>
     <!-- notes (ADR-044): a speech-bubble pin centred on the noted spot (so a click on it picks it) -->
     <g class="notes">
       <path
@@ -427,6 +440,26 @@ function wheel(e: WheelEvent) {
 .items .selected line,
 .items .selected circle {
   stroke: var(--accent);
+}
+.ghosts line {
+  stroke: #d64545;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  opacity: 0.8;
+}
+.locks rect {
+  fill: var(--panel);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.locks path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.locks .broken rect,
+.locks .broken path {
+  stroke: #d64545;
 }
 .notes path {
   fill: var(--note, #f2c94c);

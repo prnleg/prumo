@@ -65,6 +65,11 @@ import {
   runChecks,
   ChaseTool,
   isChase,
+  isProtection,
+  protectCommand,
+  protectionData,
+  protectionsOn,
+  unprotectCommand,
   setBonded,
   setContraverga,
   setLintel,
@@ -386,6 +391,10 @@ onBeforeUnmount(() => settleTimer && clearTimeout(settleTimer));
 recheck(false);
 
 /** A "!" over the element each finding is about (its first id). */
+function protectionMid(e: Parameters<typeof protectionData>[0]): V | null {
+  const d = protectionData(e);
+  return d ? { x: (d.wall.start.x + d.wall.end.x) / 2, y: (d.wall.start.y + d.wall.end.y) / 2 } : null;
+}
 const badges = computed(() => {
   const c = checks.value;
   if (!c) return [];
@@ -408,7 +417,9 @@ const badges = computed(() => {
           ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + e.width / 2)
           : isChase(e)
             ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + (e.host.length ?? 0) / 2)
-            : null;
+            : isProtection(e)
+              ? protectionMid(e)
+              : null;
     return at ? [{ at, severity: f.severity, id }] : [];
   });
 });
@@ -433,6 +444,41 @@ function setWallTieBeam(id: string, has: boolean) {
 function setWallBonded(id: string, end: WallEnd, bonded: boolean) {
   run(updateCommand({ key: "cmd.setBonded" }, [id], (e) => (e.type === "wall" ? setBonded(e, end, bonded) : e)));
 }
+// "Load-bearing, don't remove" markers (ADR-044 slice 2). Author = your name (may be unknown: "").
+function protectWall(wallId: string) {
+  const w = history.current.elements[wallId];
+  if (w?.type === "wall") run(protectCommand(w, myName.value ?? "", new Date().toISOString(), randomIds()));
+}
+function protectAgain(protectionId: string) {
+  const pr = history.current.elements[protectionId];
+  const d = isProtection(pr) ? protectionData(pr) : null;
+  if (d) protectWall(d.wallId);
+}
+function unprotect(protectionId: string) {
+  run(unprotectCommand(protectionId));
+}
+const SAME_MM = 1; // drawing precision (same as R-PROT-001), not a structural value
+/** Locks on protected walls; a protected wall that's gone or moved leaves a dashed ghost where it was. */
+const protectionMarks = computed(() => {
+  if (!structuralOn.value) return { locks: [], ghosts: [] };
+  const p = project.value;
+  const locks: { id: string; at: V; broken: boolean }[] = [];
+  const ghosts: { id: string; a: V; b: V }[] = [];
+  for (const pr of protectionsOn(p, level.value)) {
+    const d = protectionData(pr);
+    if (!d) continue;
+    const w = p.elements[d.wallId];
+    const same =
+      w?.type === "wall" &&
+      (w.kind === "full" || w.kind === "half") &&
+      dist(w.start, d.wall.start) <= SAME_MM &&
+      dist(w.end, d.wall.end) <= SAME_MM;
+    const mid = (a: V, b: V) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    locks.push({ id: pr.id, at: mid(d.wall.start, d.wall.end), broken: !same });
+    if (!same) ghosts.push({ id: pr.id, a: d.wall.start, b: d.wall.end });
+  }
+  return { locks, ghosts };
+});
 function setOpeningLintel(id: string, has: boolean) {
   run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
 }
@@ -1083,6 +1129,22 @@ if (demo === "structure-panel") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "protect") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      myName.value = "Ana";
+      const walls = Object.values(history.current.elements).filter((e): e is Wall => e.type === "wall");
+      const inner = walls.find((w) => w.start.x === 5000 && w.end.x === 5000);
+      const front = walls.find((w) => w.start.y === 0 && w.end.y === 0);
+      if (inner) protectWall(inner.id);
+      if (front) protectWall(front.id);
+      if (inner) run(deleteCommand(history.current, [inner.id]));
+      recheck(false);
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "note" || demo === "note-new") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -1353,6 +1415,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :box="box"
         :labels="labels"
         :badges="badges"
+        :locks="protectionMarks.locks"
+        :ghosts="protectionMarks.ghosts"
         :grid="gridSize"
         @pointer="onPointer"
         @resize="onResize"
@@ -1382,6 +1446,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @contraverga="setOpeningContraverga"
         @tie-beam="setWallTieBeam"
         @bonded="setWallBonded"
+        @protect="protectWall"
+        @unprotect="unprotect"
         @apply="run"
         @name="nameRoom"
         @paint-side="paintSide"
@@ -1428,6 +1494,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @mark="session.markBaseline()"
         @clear-baseline="session.clearBaseline()"
         @select="selectFromCheck"
+        @protect-again="protectAgain"
+        @unprotect="unprotect"
         @system="showSettings = true"
       />
       <SettingsPanel

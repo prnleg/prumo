@@ -19,6 +19,8 @@ import {
   chaseDir,
   isChase,
   junctionsOf,
+  protectionData,
+  protectionOf,
   structuralData,
   type WallEnd,
   type ConstructionSystem,
@@ -54,6 +56,8 @@ const emit = defineEmits<{
   lintel: [openingId: string, has: boolean];
   contraverga: [openingId: string, has: boolean];
   tieBeam: [wallId: string, has: boolean];
+  protect: [wallId: string];
+  unprotect: [protectionId: string];
   bonded: [wallId: string, end: WallEnd, bonded: boolean];
 }>();
 const wallFinishes = FINISHES.filter((f) => f.use === "wall");
@@ -97,6 +101,12 @@ function commitNoteText(n: Note, ev: Event) {
   }
   edit(n, (e) => ({ ...e, text: v }));
 }
+/** "Load-bearing, don't remove" marker on the selected wall (ADR-044 slice 2). */
+const protection = computed(() => {
+  const pr = wall.value ? protectionOf(props.project, wall.value.id) : null;
+  const d = pr ? protectionData(pr) : null;
+  return pr && d ? { id: pr.id, ...d } : null;
+});
 const chaseWall = computed(() => {
   const h = chase.value ? props.project.elements[chase.value.host.elementId] : undefined;
   return h?.type === "wall" ? h : undefined;
@@ -299,6 +309,21 @@ function commitLength(w: Wall, ev: Event) {
           />
           {{ t(`props.bonded.${endSide(wall, j.end)}`, { other: wallLabel(j.others[0]) }) }}
         </label>
+        <div v-if="protection" class="protected">
+          <p>🔒 {{ t("protect.on") }}</p>
+          <p class="ro">
+            {{
+              t("protect.by", {
+                name: protection.author || t("someone"),
+                date: noteDate(protection.createdAt),
+              })
+            }}
+          </p>
+          <button @click="emit('unprotect', protection.id)">{{ t("protect.remove") }}</button>
+        </div>
+        <button v-else class="protect" :title="t('protect.tip')" @click="emit('protect', wall.id)">
+          🔒 {{ t("protect.add") }}
+        </button>
       </template>
     </template>
 
@@ -435,6 +460,18 @@ function commitLength(w: Wall, ev: Event) {
 </template>
 
 <style scoped>
+.protected {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.protected p {
+  margin: 0 0 4px;
+}
+.protect {
+  margin-top: 6px;
+}
 .note-text {
   width: 100%;
   box-sizing: border-box;

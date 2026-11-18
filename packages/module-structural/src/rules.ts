@@ -1,7 +1,7 @@
 // Tier 0 rules (STRUCTURAL_ANALYSIS §3). No numeric thresholds here: both rules are presence checks,
 // so nothing is invented (ADR-018).
 import { wallsOnLevel, type Opening, type Project, type Wall } from "@prumo/core";
-import { chaseDir, isChase, structuralData, type WallEnd } from "./data";
+import { chaseDir, isChase, protectionData, protectionsOn, structuralData, type WallEnd } from "./data";
 import { ENGINEER_UNSIGNED, UNSOURCED, type Finding, type RuleDef } from "./finding";
 import { bearing, canCarry } from "./roles";
 
@@ -83,7 +83,8 @@ export const R_ROLE_001: RuleDef = {
 // --- renovation rules: compare with the existing building (ADR-043) -----------------------------
 
 const SAME = 1; // mm: "didn't move" tolerance (drawing precision, not a structural value)
-const moved = (a: Wall, b: Wall) =>
+type Ends = Pick<Wall, "start" | "end">;
+const moved = (a: Ends, b: Ends) =>
   Math.hypot(a.start.x - b.start.x, a.start.y - b.start.y) > SAME ||
   Math.hypot(a.end.x - b.end.x, a.end.y - b.end.y) > SAME;
 const openingsOn = (p: Project, levelId: string) =>
@@ -375,6 +376,48 @@ export const R_WALL_004: RuleDef = {
   },
 };
 
+/**
+ * R-PROT-001 — a wall someone marked "load-bearing, don't remove" was removed, moved, or is no longer
+ * a wall that can carry (ADR-029, Q-077 b). Never blocks (ADR-026). Not an engineering threshold: it
+ * reports the user's own marker, so it runs for every construction system. Stays until the marker is
+ * removed or renewed ("protect it where it is now"; owner 2026-11-17: also for the project's holder).
+ */
+export const R_PROT_001: RuleDef = {
+  id: "R-PROT-001",
+  nameKey: "rule.R-PROT-001.name",
+  severity: "critical",
+  confidence: "rule-of-thumb",
+  source: "ADR-029 / Q-077 (a person's marker, not an engineering rule)",
+  review: { level: "unverified" },
+  notConsidered: ["nc.whyProtected", "nc.realBuilding"],
+  appliesTo: ["structural-masonry", "rc-frame"],
+  run({ project, levelId }) {
+    const out: Finding[] = [];
+    for (const pr of protectionsOn(project, levelId)) {
+      const d = protectionData(pr);
+      if (!d) continue;
+      const now = project.elements[d.wallId];
+      const w = now?.type === "wall" ? now : null;
+      const how = !w ? "removed" : !canCarry(w) ? "kind" : moved(d.wall, w) ? "moved" : null;
+      if (!how) continue;
+      out.push({
+        ruleId: this.id,
+        severity: this.severity,
+        confidence: this.confidence,
+        elementIds: w ? [w.id, pr.id] : [pr.id],
+        messageKey: `rule.R-PROT-001.${how}`,
+        params: {
+          author: { kind: "name", name: d.author },
+          length: { kind: "length", mm: Math.hypot(d.wall.end.x - d.wall.start.x, d.wall.end.y - d.wall.start.y) },
+        },
+        assumptions: [],
+        fingerprint: `${this.id}|${pr.id}`,
+      });
+    }
+    return out;
+  },
+};
+
 export const RULES: readonly RuleDef[] = [
   R_OPEN_001,
   R_ROLE_001,
@@ -384,4 +427,5 @@ export const RULES: readonly RuleDef[] = [
   R_RING_001,
   R_JOINT_001,
   R_WALL_004,
+  R_PROT_001,
 ];

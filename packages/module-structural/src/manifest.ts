@@ -10,6 +10,8 @@ export const STRUCTURAL = "org.prumo.structural";
  *   opening → { lintel?: true, contraverga?: true }
  *   chase   → { dir: "horizontal" | "vertical" }   (element type `org.prumo.structural:chase`, hosted on a
  *             wall; a horizontal chase's run along the wall is `host.length`, a vertical one is a point)
+ *   protection → { wallId, wall: { start, end, kind }, author, createdAt }   (element type
+ *             `org.prumo.structural:protection`, NOT hosted: it outlives its wall, ADR-044)
  * Absent = not specified: the construction system's default applies (ADR-017).
  */
 export const structuralManifest: ModuleManifest = {
@@ -20,5 +22,5 @@ export const structuralManifest: ModuleManifest = {
   dependsOn: ["org.prumo.architect"],
   // Nothing in the data depends on direction, so mirroring changes nothing.
   component: { version: 1, migrations: {} },
-  elementTypes: [`${STRUCTURAL}:chase`],
+  elementTypes: [`${STRUCTURAL}:chase`, `${STRUCTURAL}:protection`],
 };

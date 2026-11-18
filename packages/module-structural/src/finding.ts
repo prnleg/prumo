@@ -6,7 +6,12 @@ import type { ConstructionSystem } from "./data";
 export type Severity = "critical" | "warning" | "advisory" | "info";
 export type Confidence = "rule-of-thumb" | "simplified-calc" | "analysis";
 
-export type Param = { kind: "length"; mm: number } | { kind: "element"; id: Id } | { kind: "text"; key: string };
+export type Param =
+  | { kind: "length"; mm: number }
+  | { kind: "element"; id: Id }
+  | { kind: "text"; key: string }
+  /** A person's display name as typed (never translated); empty = unknown. */
+  | { kind: "name"; name: string };
 
 export interface AssumptionUse {
   /** Stable id shown to the user ("Assumptions used"). */
