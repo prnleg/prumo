@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Guided tour (Q-080 default: skippable, Phase 1). A bubble points at one toolbar control at a time
+// Guided tour (Q-080 default: skippable, Phase 1). A bubble points at one toolbar / tool-strip control at a time
 // (elements marked `data-tour="<id>"`). Not modal: the plan stays usable; never shown during a gesture
 // (it only opens at launch / from Settings, ADR-025). Esc / Skip ends it.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -41,6 +41,8 @@ onBeforeUnmount(() => window.removeEventListener("resize", measure));
 const pos = computed(() => {
   const r = rect.value;
   if (!r) return { left: "50%", top: "80px", transform: "translateX(-50%)" };
+  // a control in the left tool strip: bubble to its right; otherwise below it
+  if (r.left < 100 && r.height > 30) return { left: `${r.right + 12}px`, top: `${Math.max(8, r.top - 8)}px` };
   const left = Math.max(8, Math.min(window.innerWidth - BUBBLE_W - 8, r.left + r.width / 2 - BUBBLE_W / 2));
   return { left: `${left}px`, top: `${r.bottom + 10}px` };
 });
