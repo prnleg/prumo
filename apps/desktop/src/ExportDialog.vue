@@ -8,11 +8,19 @@ export interface ExportOptions {
   format: "pdf" | "png";
   paper: Paper;
   scale: number | "fit";
+  /** PDF only: this floor or every floor (one page each). */
+  floors: "this" | "all";
+  /** Structure-check marks on the plan (+ a notes page in a PDF). */
+  marks: boolean;
 }
 
 const props = defineProps<{
   locale: Locale;
   floor: string;
+  /** How many floors the project has. */
+  floorCount: number;
+  /** Structure checks on? (the marks option) */
+  structure: boolean;
   /** Draws the sheet on `canvas` at `px` pixels per mm; returns the scale used and whether the plan fits. */
   draw: (canvas: HTMLCanvasElement, o: ExportOptions, px: number) => { scale: number; fits: boolean } | null;
 }>();
@@ -22,6 +30,8 @@ const t = (k: string, p?: Params) => translate(props.locale, k, p);
 const format = ref<ExportOptions["format"]>("pdf");
 const paper = ref<Paper>("a4");
 const scale = ref<number | "fit">("fit");
+const floors = ref<ExportOptions["floors"]>("this");
+const marks = ref(false);
 const preview = ref<HTMLCanvasElement>();
 const result = ref<{ scale: number; fits: boolean } | null>(null);
 const busy = ref(false);
@@ -31,14 +41,21 @@ function redraw() {
   if (!c) return;
   // preview: ~1.6 px per mm (A4 ≈ 475 px wide)
   const px = 460 / PAPERS[paper.value].w;
-  result.value = props.draw(c, { format: format.value, paper: paper.value, scale: scale.value }, px);
+  result.value = props.draw(c, opts(), px);
 }
+const opts = (): ExportOptions => ({
+  format: format.value,
+  paper: paper.value,
+  scale: scale.value,
+  floors: format.value === "pdf" ? floors.value : "this",
+  marks: props.structure && marks.value,
+});
 onMounted(() => nextTick(redraw));
-watch([paper, scale], redraw);
+watch([paper, scale, marks], redraw);
 
 async function go() {
   busy.value = true;
-  emit("export", { format: format.value, paper: paper.value, scale: scale.value });
+  emit("export", opts());
 }
 </script>
 
@@ -69,6 +86,16 @@ async function go() {
             <option value="fit">{{ t("export.scale.fit") }}</option>
             <option v-for="n in SCALES" :key="n" :value="n">1:{{ n }}</option>
           </select>
+        </label>
+      </div>
+      <div class="row checks">
+        <label v-if="format === 'pdf' && props.floorCount > 1" class="check">
+          <input v-model="floors" type="checkbox" true-value="all" false-value="this" />
+          {{ t("export.allFloors", { count: props.floorCount }) }}
+        </label>
+        <label v-if="structure" class="check" :title="t('export.marks.tip')">
+          <input v-model="marks" type="checkbox" />
+          {{ t("export.marks") }}
         </label>
       </div>
       <p v-if="result" class="muted">
@@ -122,6 +149,14 @@ h3 {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+.checks {
+  margin-top: 8px;
+}
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
 }
 label {
   display: flex;

@@ -985,3 +985,13 @@ Branch `phase5c/export`, stacked on `phase5/stack-rules`. Owner: "Yes".
 **Decided alone (reversible):** landscape only; 200 dpi; PDF holds a JPEG (quality 0.92) — text not selectable; current floor only; the date is the export day (UI clock, not core).
 
 **Tests**: export +8 (layout scales, page mapping, scale bar, PDF structure: xref offsets, MediaBox, string escaping). Screenshots: dialog preview + full sheet (pt-BR).
+
+### Session #13, part 1 — export extras (ADR-056), 2026-11-18
+
+Owner merged everything; "You can do all of them, I revise them later" (export extras, 3D polish, Phase 5b). Branch `phase5c/export-extras` from main.
+
+**Done**: `pdfWithImages` (multi-page), sheet marks (numbered discs by severity), `notes.ts` (`layoutNotes` wraps + paginates with a measuring callback, `drawNotesPage`). App: `detectedOn(level)`, `badgePoints(findings)`, `drawExport(…, levelId, first)`, `exportCanvases` (sheets + notes), dialog options "All N floors" (PDF) and "Show the structure checks". 8 strings. Dev `?demo=export-full[&notes]` (house with problems).
+
+**Decided alone (reversible):** numbering runs across floors; marks only where the panel shows "!" (first element); notes pages only in PDFs; fresh `runChecks` per floor with the same baseline as the panel.
+
+**Tests**: export +3 (multi-page xref, notes wrap/paginate/footer, empty floor).

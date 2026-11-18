@@ -11,6 +11,8 @@ export interface SheetInput {
   openings: OpeningPlan[];
   /** Room labels: lines of text at a point. */
   rooms: { at: V; lines: string[] }[];
+  /** Structure-check marks (numbered; the numbers match the notes page). */
+  marks?: { at: V; label: string; severity: Severity }[];
   /** Overall size of the plan, mm (for the dimension lines). */
   bounds: { minX: number; minY: number; maxX: number; maxY: number };
   texts: {
@@ -29,6 +31,14 @@ const INK = "#111111";
 const WALL = "#3b3b3b";
 const WALL_LOW = "#9a9a9a";
 const MUTED = "#555555";
+export type Severity = "critical" | "warning" | "advisory" | "info";
+export const SEVERITY_COLOR: Record<Severity, string> = {
+  critical: "#c62828",
+  warning: "#d97706",
+  advisory: "#2f6fb5",
+  info: "#666666",
+};
+const FONT = `system-ui, -apple-system, "Segoe UI", sans-serif`;
 
 /** Draw at `px` pixels per page mm. The canvas must be page.w × px by page.h × px. */
 export function drawSheet(g: CanvasRenderingContext2D, s: SheetInput, L: SheetLayout, px: number) {
@@ -111,6 +121,23 @@ export function drawSheet(g: CanvasRenderingContext2D, s: SheetInput, L: SheetLa
       g.fillStyle = i ? MUTED : INK;
       g.fillText(line, p.x, p.y + (i - (r.lines.length - 1) / 2) * mm(3.8));
     });
+  }
+  // structure marks: a coloured disc with the finding number(s)
+  for (const m of s.marks ?? []) {
+    const p = P(m.at);
+    g.font = `600 ${mm(2.4)}px ${FONT}`;
+    const w = Math.max(mm(4.2), g.measureText(m.label).width + mm(2));
+    g.fillStyle = SEVERITY_COLOR[m.severity];
+    g.beginPath();
+    g.roundRect(p.x - w / 2, p.y - mm(2.1), w, mm(4.2), mm(2.1));
+    g.fill();
+    g.strokeStyle = "#ffffff";
+    g.lineWidth = mm(0.3);
+    g.stroke();
+    g.fillStyle = "#ffffff";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(m.label, p.x, p.y + mm(0.1));
   }
   // overall dimensions: below and to the left of the plan
   const b = s.bounds;
