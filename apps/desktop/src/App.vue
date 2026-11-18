@@ -32,6 +32,8 @@ import {
   type Clipboard,
   type V,
   type Opening,
+  DOOR_STYLES,
+  WINDOW_STYLES,
   mirrorCommand,
   rotateCommand,
   selectionBounds,
@@ -1091,7 +1093,7 @@ function setTool(n: ToolName, divider = false) {
   tool.value = n;
   dividerMode.value = n === "wall" && divider;
   wallTool.options = { ...wallTool.options, kind: dividerMode.value ? "separator" : "full" };
-  if (n === "door" || n === "window") openingTool.options = { ...openingTool.options, kind: n };
+  if (n === "door" || n === "window") applyOpeningStyle(n);
   sync();
 }
 function onLeave() {
@@ -1131,6 +1133,22 @@ const hint = computed(() => {
   if (dividerMode.value) return wallTool.active ? t("hint.divider.active") : t("hint.divider.idle");
   return wallTool.active ? t("hint.wall.active") : t("hint.wall.idle");
 });
+
+/** Type for new doors / windows (ADR-046), chosen in the options bar; this session only. */
+const placeStyle = ref<{ door: string; window: string }>({ door: "hinged", window: "" });
+function applyOpeningStyle(kind: "door" | "window") {
+  const style = placeStyle.value[kind];
+  const o = { ...openingTool.options, kind };
+  delete o.style;
+  // "hinged" is the default door: leave the field out so placed doors look like before
+  openingTool.options = style && style !== "hinged" ? { ...o, style } : o;
+}
+function setPlaceStyle(kind: "door" | "window", style: string) {
+  placeStyle.value = { ...placeStyle.value, [kind]: style };
+  openingTool.finish();
+  applyOpeningStyle(kind);
+  sync();
+}
 
 // --- menu bar, tool strip, options bar (ADR-047) -------------------------------------------------
 const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -1516,6 +1534,16 @@ if (demo === "types") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "place-type") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      setTool("door");
+      setPlaceStyle("door", "folding");
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "above") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -1784,6 +1812,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           <Pentagon :size="14" /> {{ t("roomShape.polygon") }}
         </button>
       </span>
+      <label v-if="tool === 'door' || tool === 'window'" class="cmp-pick">
+        {{ t("props.openingStyle") }}
+        <select
+          :value="placeStyle[tool]"
+          @change="setPlaceStyle(tool as 'door' | 'window', ($event.target as HTMLSelectElement).value)"
+        >
+          <option v-if="tool === 'window'" value="">{{ t("windowStyle.plain") }}</option>
+          <option v-for="st in tool === 'door' ? DOOR_STYLES : WINDOW_STYLES" :key="st" :value="st">
+            {{ t(`${tool}Style.${st}`) }}
+          </option>
+        </select>
+      </label>
       <span v-if="tool === 'chase'" class="seg" role="group" :aria-label="t('chaseDir.label')">
         <button
           :class="{ on: chaseDirection === 'horizontal' }"

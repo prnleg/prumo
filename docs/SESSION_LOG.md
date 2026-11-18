@@ -841,3 +841,9 @@ Branch `ui/menu-bar`, stacked on `types/openings`. Q-138 resolved. New dependenc
 **Not done**: the opening tool's type picker in the options bar (ADR-046 follow-up) and the layers panel (Q-141) — next.
 
 **Tests**: no new unit tests (view only; i18n parity test covers the strings). Screenshots checked: plan, open Edit menu, room options, tour step 1.
+
+### Session #11, part 54 — pick the type before placing (ADR-046 follow-up), 2026-11-18
+
+Branch `ui/opening-type`, stacked on `ui/menu-bar`. Door / Window tool options bar → "Type" select; `OpeningToolOptions.style` + `STYLE_WIDTHS` (double 1200, sliding 2 leaves 1600, garage 2500 mm — drawing defaults, logged as UX values). Hinged doors keep no `style` field (files look the same as before). Choice lasts for the session. Dev `?demo=place-type`.
+
+**Tests**: architect +2 (double door placed 1200 wide and centred; no option → no field). Screenshot checked (options bar).

@@ -32,11 +32,19 @@ export const DEFAULT_OPENING_SIZES: Record<"door" | "window", OpeningSize> = {
   window: { width: 1200, height: 1200, sillHeight: 1000 },
 };
 
+/**
+ * Drawing defaults for types that are wider than a single door (ADR-046; UX values, edit them in the
+ * panel — not structural values). Other types use `sizes[kind]`.
+ */
+export const STYLE_WIDTHS: Readonly<Record<string, number>> = { double: 1200, "sliding-double": 1600, garage: 2500 };
+
 export interface OpeningToolOptions {
   ids: IdSource;
   levelId: string;
   kind: Extract<OpeningKind, "door" | "window">;
   sizes: Record<"door" | "window", OpeningSize>;
+  /** Type for new openings (ADR-046), e.g. "sliding"; missing = default (hinged door / plain window). */
+  style?: string;
   /** Step along the wall when no magnet is near, mm. */
   grid: number;
   /** Magnet radius, screen px. */
@@ -67,7 +75,9 @@ export class OpeningTool {
   move(p: PointerInfo): void {
     const base = this.gesture?.base ?? this.h.current;
     const hit = pickWall(base, this.options.levelId, p);
-    const size = this.options.sizes[this.options.kind];
+    const base0 = this.options.sizes[this.options.kind];
+    const wide = this.options.style ? STYLE_WIDTHS[this.options.style] : undefined;
+    const size = wide ? { ...base0, width: wide } : base0;
     this.tooShort = false;
     this.blocked = [];
     if (!hit) return this.clear();
@@ -155,6 +165,7 @@ export class OpeningTool {
       sillHeight: s.sillHeight,
       kind: this.options.kind,
       ...(door ? { handing: "left" as const, swing: "in" as const } : {}),
+      ...(this.options.style ? { style: this.options.style } : {}),
       components: {},
     };
   }
