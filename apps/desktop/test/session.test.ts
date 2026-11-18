@@ -305,3 +305,27 @@ describe("hand-off (ADR-044 slice 3)", () => {
     expect(f.asked).toHaveLength(2);
   });
 });
+
+describe("saved versions (Q-124)", () => {
+  it("delete makes the file unsaved; the existing building can't be deleted while in use; clean copy has none", async () => {
+    const f = fakePlatform();
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    s.markBaseline();
+    s.handOff({ from: "Ana", to: "Bruno" });
+    await s.save();
+    expect(s.snapshotList().map((v) => v.id)).toEqual(["s-1", "s-2"]);
+    expect(s.snapshotsSize()).toBeGreaterThan(0);
+    expect(s.deleteSnapshot("s-1")).toBe(false); // the existing building, in use
+    expect(s.deleteSnapshot("s-2")).toBe(true);
+    expect(h.dirty).toBe(true);
+    expect(s.snapshotList().map((v) => v.id)).toEqual(["s-1"]);
+    expect(await s.exportClean()).toEqual({ ok: true });
+    const clean = openProjectFile(f.writes.at(-1)!.bytes, { installedModules: [architectManifest.id] });
+    expect(clean.status === "ok" && [clean.file.snapshots.length, clean.file.project.settings.baseline]).toEqual([
+      0,
+      undefined,
+    ]);
+    expect(s.path).toBe("/tmp/casa.prumo"); // the open file didn't change
+  });
+});

@@ -17,6 +17,10 @@ const props = defineProps<{
   structural: boolean;
   /** Your name on notes (ADR-044), or null when not set yet. */
   name: string | null;
+  /** Saved versions in this file (Q-124), oldest first; `inUse` = the existing building (can't delete). */
+  versions: readonly { id: string; name: string; createdAt: string; author: string | null; inUse: boolean }[];
+  /** Rough size of the saved versions, bytes. */
+  versionsSize: number;
 }>();
 const emit = defineEmits<{
   grid: [mm: number];
@@ -25,6 +29,8 @@ const emit = defineEmits<{
   system: [s: ConstructionSystem];
   structural: [on: boolean];
   name: [name: string];
+  deleteVersion: [id: string];
+  exportClean: [];
   locale: [l: Locale];
   tour: [];
   close: [];
@@ -36,6 +42,11 @@ function onName(ev: Event) {
   const n = cleanName((ev.target as HTMLInputElement).value);
   if (n) emit("name", n);
 }
+/** Size above which the file is called "big" (Q-124 warning). A UX value, not a technical limit. */
+const BIG = 20_000_000;
+const mb = (bytes: number) =>
+  Math.max(0.1, bytes / 1_000_000).toLocaleString(props.locale, { maximumFractionDigits: 1 });
+const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateStyle: "short", timeStyle: "short" });
 </script>
 
 <template>
@@ -77,6 +88,28 @@ function onName(ev: Event) {
         </select>
       </label>
       <p class="tip">{{ t("settings.system.tip") }}</p>
+      <h4>{{ t("versions.title") }}</h4>
+      <p v-if="!versions.length" class="tip">{{ t("versions.none") }}</p>
+      <ul v-else class="versions">
+        <li v-for="v in versions" :key="v.id">
+          <span>
+            {{ v.name }}
+            <small>{{ when(v.createdAt) }}{{ v.author ? ` · ${v.author}` : "" }}</small>
+          </span>
+          <button
+            :disabled="v.inUse"
+            :title="v.inUse ? t('versions.inUse') : t('versions.delete.tip')"
+            @click="emit('deleteVersion', v.id)"
+          >
+            {{ t("versions.delete") }}
+          </button>
+        </li>
+      </ul>
+      <p v-if="versions.length" class="tip" :class="{ big: versionsSize > BIG }">
+        {{ t("versions.size", { size: mb(versionsSize) }) }}
+        <template v-if="versionsSize > BIG">{{ t("versions.big") }}</template>
+      </p>
+      <button v-if="versions.length" class="plain" @click="emit('exportClean')">{{ t("versions.exportClean") }}</button>
       <h3>{{ t("settings.modules") }}</h3>
       <label class="check">
         <input type="checkbox" checked disabled />
@@ -171,6 +204,30 @@ select {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 2px 4px;
+}
+.versions {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+}
+.versions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+}
+.versions small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.versions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tip.big {
+  color: var(--warn);
 }
 .tip {
   margin: 0 0 6px;

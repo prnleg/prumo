@@ -87,8 +87,44 @@ export class Session {
   // --- "the existing building" (ADR-043) --------------------------------------------------------
 
   /** Saved versions in this file (compare view), oldest first. */
-  snapshotList(): { id: string; name: string; createdAt: string }[] {
-    return this.snapshots.map((s) => ({ id: s.id, name: s.name, createdAt: s.createdAt }));
+  snapshotList(): { id: string; name: string; createdAt: string; author: string | null }[] {
+    return this.snapshots.map((s) => ({ id: s.id, name: s.name, createdAt: s.createdAt, author: s.author }));
+  }
+  /** Rough size the saved versions add to the file (uncompressed JSON), bytes (Q-124 size warning). */
+  snapshotsSize(): number {
+    return this.snapshots.reduce((n, s) => n + JSON.stringify(s.project).length, 0);
+  }
+  /**
+   * Delete a saved version (Q-124: manual deletion). Not undoable (versions aren't undo state); the file
+   * becomes unsaved so Save writes it. The version marked as the existing building can't be deleted
+   * while it's in use (stop comparing first).
+   */
+  deleteSnapshot(id: string): boolean {
+    if (id === this.history.current.settings.baseline || !this.snapshots.some((s) => s.id === id)) return false;
+    this.snapshots = this.snapshots.filter((s) => s.id !== id);
+    this.history.markUnsaved();
+    return true;
+  }
+  /**
+   * "Export a clean copy" (Q-124): the plan as it is now, without saved versions (and so without the
+   * existing-building pointer). The open file stays as it is.
+   */
+  async exportClean(): Promise<Outcome> {
+    const name = this.fileName.replace(/\.prumo$/i, "");
+    const path = await this.platform.pickSavePath(`${name} (${this.t("versions.cleanSuffix")}).${PRUMO_EXT}`);
+    if (!path) return { ok: false, reason: "cancelled" };
+    const { baseline: _b, ...settings } = this.history.current.settings;
+    void _b;
+    try {
+      const bytes = saveProjectFile(
+        { project: { ...this.history.current, settings }, snapshots: [], extra: this.extra },
+        this.modules,
+      );
+      await this.platform.writeFile(path, bytes);
+    } catch (e) {
+      return { ok: false, reason: "error", message: this.t("file.saveFailed", { error: String(e) }) };
+    }
+    return { ok: true };
   }
   snapshotProject(id: string): Project | null {
     return this.snapshots.find((s) => s.id === id)?.project ?? null;
