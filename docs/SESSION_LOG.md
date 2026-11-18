@@ -799,3 +799,13 @@ Branch `phase2/compare`, stacked on `phase2/slabs-design`. ADR-029 (b) "compare 
 **Tests**: core +3. Screenshot checked.
 
 **Noticed**: with the room-shape options open plus the version picker, the toolbar wraps to two lines at 1400 px → more weight for the menu bar (Q-138).
+
+### Session #11, part 50 — saved versions (Q-124), 2026-11-17
+
+Branch `phase2/versions`, stacked on `phase2/compare`. Q-124 (accepted 2026-11-15: size warning + manual deletion + export a clean copy). Hand-offs now add versions, so this became needed.
+
+**Done**: Session `snapshotsSize` (uncompressed JSON, rough), `deleteSnapshot` (not undoable; file becomes unsaved via `markUnsaved`; the version in use as the existing building can't be deleted), `exportClean` (current plan, no versions, no baseline pointer; the open file and its path stay). Settings → This project → "Saved versions in this file" (name, date, author, Delete with confirmation), size line with a warning above 20 MB (UX value, not a technical limit), "Export a clean copy…". 12 strings. Dev `?demo=versions`.
+
+**Not done**: "keep only the last N" (optional in Q-124) — waits until someone needs it.
+
+**Tests**: desktop +1 (session). Screenshot checked.

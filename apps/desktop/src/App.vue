@@ -762,6 +762,20 @@ const compareName = computed(() => snapshots.value.find((x) => x.id === compareW
 const whenShort = (iso: string) =>
   new Date(iso).toLocaleString(locale.value, { dateStyle: "short", timeStyle: "short" });
 
+async function deleteVersion(id: string) {
+  const v = snapshots.value.find((x) => x.id === id);
+  const yes = await platform.ask(t("versions.delete.message", { name: v?.name ?? "" }), {
+    title: t("versions.delete.title"),
+    ok: t("versions.delete"),
+    cancel: t("handoff.take.cancel"),
+  });
+  if (yes && session.deleteSnapshot(id)) {
+    if (compareWith.value === id) compareWith.value = null;
+    fileTick.value++;
+    void platform.setTitle(session.title);
+  }
+}
+
 function setMyName(name: string) {
   myName.value = name;
   savePrefs({ name });
@@ -1261,7 +1275,7 @@ if (demo === "chase") {
       setTimeout(fitAll, 0);
     });
 }
-if (demo === "renovation" || demo === "compare") {
+if (demo === "renovation" || demo === "compare" || demo === "versions") {
   const house = EXAMPLES.find((e) => e.id === "house");
   if (house)
     void startExample(house).then(() => {
@@ -1273,6 +1287,11 @@ if (demo === "renovation" || demo === "compare") {
       if (win)
         run(updateCommand({ key: "cmd.edit" }, [win.id], (e) => (e.type === "opening" ? { ...e, width: 2000 } : e)));
       if (demo === "compare") compareWith.value = history.current.settings.baseline ?? null;
+      if (demo === "versions") {
+        session.handOff({ from: "Ana", to: "Bruno" });
+        myName.value = "Bruno";
+        showSettings.value = true;
+      }
       recheck(true);
       setTimeout(fitAll, 0);
     });
@@ -1637,6 +1656,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :system="constructionSystem(project)"
         :structural="structuralOn"
         :name="myName"
+        :versions="snapshots.map((v) => ({ ...v, inUse: v.id === project.settings.baseline }))"
+        :versions-size="(void tick, void fileTick, session.snapshotsSize())"
+        @delete-version="deleteVersion"
+        @export-clean="file(() => session.exportClean())"
         @name="setMyName"
         @system="(s) => run(setSystemCommand(s))"
         @structural="(on) => (structuralOn = on)"
