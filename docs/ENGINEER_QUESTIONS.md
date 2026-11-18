@@ -50,6 +50,7 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 
 | # | Question | Status | Answer |
 |---|---|---|---|
+| E-40 | "What's above" a room in a typical self-built Brazilian house (ADR-045): is this list enough — solid slab, joist slab (vigota/treliçada) with joist direction, roof resting on the walls, nothing/open, don't know? Anything common we're missing (e.g. slab + roof, wooden ceiling)? For a joist slab, do beginners usually know which way the joists run? | ☐ | |
 | E-20 | Typical Brazilian block types to ship in the material pack (ceramic/concrete, structural vs sealing), and unit weights/strengths, with sources. | ☐ | |
 | E-21 | How to treat arching action over openings in a simplified way (Q-033). | ☐ | |
 | E-22 | Review the hand-calculated validation cases VC-001…005 (`STRUCTURAL_ANALYSIS.md` §5, drafted 2026-11-16 with given test inputs; also: is "wall's own weight counts at its base" and "load over an opening goes half to each side" fine as the first simplified methods?). | ✅ 2026-11-17 (VERIFIED-UNSIGNED) | Arithmetic of all five correct. Premises: VC-001/002 E is concrete's and the section is uncracked → formula test only, never a realistic deflection; VC-003 4 × 6 m (ratio 1.5) is two-way for a solid slab → state "one-way joist slab" and add VC-003b (two-way); VC-004 ignores wall interaction, gross area is consistent with NBR 16868; VC-005 the load arrives concentrated at lintel bearings (local check governs narrow piers). "Self-weight at the base" and "half each side" OK as first methods, not as complete checks. |

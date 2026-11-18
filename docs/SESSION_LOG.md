@@ -785,3 +785,7 @@ Branch `phase2/notes-list`, stacked on `phase2/handoff`. `NotesPanel.vue` (botto
 ### Session #11, part 47 — Q-140 scale probe, 2026-11-17
 
 Branch `phase2/scale-bench`, stacked on `phase2/notes-list`. `module-structural/test/scale.perf.test.ts` (skipped unless `PRUMO_PERF=1`): grids of 6…1000 rooms → plan geometry, room detection, all checks, invariants, save. Results in Q-140: a hotel floor is instant; ~quadratic growth; > 200 rooms on one level gets laggy during drags. Recommendation logged (spatial index when needed, no dependency). No product code changed.
+
+### Session #11, part 48 — ADR-045 drafted (what's above), 2026-11-17
+
+Branch `phase2/slabs-design`, stacked on `phase2/scale-bench`. Docs only: **ADR-045 PROPOSED** (A per-room "what's above" choice / B drawn slabs / C = A now, B in Phase 3; lean C, medium) + **E-40** added to engineer batch 3 (slab types for self-built houses). Blocked on the owner's choice → not implemented.
