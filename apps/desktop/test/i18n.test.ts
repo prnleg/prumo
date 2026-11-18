@@ -64,6 +64,7 @@ describe("UI i18n (ADR-021/034)", () => {
       "approved",
       "certified",
       "compliant",
+      "passes code",
       "structurally sound",
       "ok to build",
       "guaranteed",

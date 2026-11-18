@@ -13,7 +13,7 @@ Status: **DRAFT.** Every goal here is a proposal until the owner confirms it. Ma
 | G-5 | Live structural feedback | After any edit, findings update in **< 300 ms** for a model of ≤ 200 elements (target; revisit). | ☐ |
 | G-6 | Every finding is explained | 100% of findings show: rule ID, plain-language reason, elements involved, severity, confidence level, source. | ☐ |
 | G-7 | Change impact | After an edit the user can see "new / resolved / unchanged" findings compared with before the edit. | ☐ |
-| G-8 | Honest about limits | No UI text claims safety (enforced by a test that greps the UI strings for banned words). | ☐ |
+| G-8 | Honest about limits | No UI text claims safety (enforced by a test that greps the UI strings for banned words). | ✅ test in place (2026-11-17); keeps running on every change |
 | G-9 | Persist work | Save/load a project file; files from older versions still open (schema versioning + migrations). | ☐ |
 | G-10 | AI sessions stay aligned | Every session ends with docs updated (see CLAUDE.md DoD). | ☐ |
 

@@ -100,8 +100,8 @@ Scope:
 
 Exit criteria:
 - [x] ≥ 8 Tier-0 rules, each with ID, source (or `UNVERIFIED` tag), and tests. *(2026-11-17: 8 — R-OPEN-001, R-ROLE-001, R-WALL-002, R-OPEN-NEW, R-OPEN-006, R-RING-001, R-JOINT-001, R-WALL-004; all presence/comparison checks, sources UNSOURCED pending batch 2b.)*
-- [ ] Findings diff works on undo/redo too.
-- [ ] Safety wording test (G-8) passes.
+- [x] Findings diff works on undo/redo too. *(2026-11-17: undo/redo emit a History commit → checks re-run → diff; tested in `module-structural/test/diff-history.test.ts`.)*
+- [x] Safety wording test (G-8) passes. *(`apps/desktop/test/i18n.test.ts`: every UI string, pt-BR + en, against SAFETY's banned list; "passes code" added 2026-11-17.)*
 
 What could go wrong:
 - Rules depend on thresholds that vary by country and construction system → wrong for the user. (ADR-009)
