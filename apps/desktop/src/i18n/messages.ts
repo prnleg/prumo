@@ -333,6 +333,9 @@ export const en = {
   "lintel.tip": "A lintel is the small beam over a door or window that carries the wall above it.",
   "view3d.label": "Plan or 3D",
   "view3d.walls": "Walls of this floor",
+  "view3d.sun": "Sun",
+  "view3d.sun.tip":
+    "Where the sun is at this time of day. Approximate: north is the top of the plan; no date or place.",
   "view3d.walls.low": "Low walls",
   "view3d.walls.low.tip": "Every wall of this floor cut to 15 cm: see the whole layout",
   "view3d.walls.cutaway": "See inside",
@@ -1107,6 +1110,8 @@ export const ptBR: Record<MessageKey, string> = {
   "lintel.tip": "Verga é a pequena viga sobre a porta ou janela que carrega a parede de cima.",
   "view3d.label": "Planta ou 3D",
   "view3d.walls": "Paredes deste andar",
+  "view3d.sun": "Sol",
+  "view3d.sun.tip": "Onde o sol está nesta hora do dia. Aproximado: o norte é o topo da planta; sem data nem lugar.",
   "view3d.walls.low": "Paredes baixas",
   "view3d.walls.low.tip": "Todas as paredes deste andar cortadas em 15 cm: veja a planta inteira",
   "view3d.walls.cutaway": "Ver por dentro",

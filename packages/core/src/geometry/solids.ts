@@ -7,9 +7,11 @@ import { isDivider, type Id, type Opening, type Project, type Slab, type Wall } 
 import { add, dot, mul, norm, perp, sub, type V } from "./vec";
 import { planGeometry } from "./plan";
 import { faceOffsets } from "./joins";
+import { openingPlan } from "./openings";
 import { detectRooms, wallSides } from "./rooms";
 
-export type SolidKind = "wall" | "glass" | "slab" | "floor";
+/** frame = window / door frame pieces; leaf = a door panel, drawn open like the plan symbol (ADR-057). */
+export type SolidKind = "wall" | "glass" | "slab" | "floor" | "frame" | "leaf";
 
 export interface Solid {
   /** Element the solid belongs to (wall, opening, slab) or "room:<levelId>:<key>" for a floor. */
@@ -67,6 +69,10 @@ const GLASS = 20; // mm: thickness of the pane drawn in a window (drawing value)
 const FLOOR = 20; // mm: thickness of a room's floor plate (drawing value)
 const SLAB = 100; // mm: slab thickness when not known (drawing value, not a structural one)
 const SEAM = 1; // mm: overlap between wall pieces (drawing value)
+// Drawing values for frames and door leaves (ADR-057), not product sizes:
+const FRAME = 50; // mm: frame profile seen from the front
+const FRAME_DEPTH = 70; // mm: window frame depth (across the wall)
+const LEAF = 40; // mm: door leaf thickness
 
 export const buildingSolids = (p: Project, opts: SolidOptions = {}): Solid[] => buildingModel(p, opts).solids;
 
@@ -167,12 +173,62 @@ export function wallSolids(w: Wall, polygon: readonly V[], openings: readonly Op
     // under-sill / over-head pieces reach 1 mm into their neighbours: no hairline cracks where they meet
     res.push(...piece(o0 - SEAM, o1 + SEAM, base, sill, o.id));
     res.push(...piece(o0 - SEAM, o1 + SEAM, head, top, o.id));
+    const { l, r } = faceOffsets(w);
+    const m = (l + r) / 2;
+    const n = perp(u);
+    const P = (t: number, off: number) => add(add(w.start, mul(u, t)), mul(n, off));
+    /** A box along the wall: s0…s1 along it, `d0…d1` across it (offsets from the line), z0…z1 up. */
+    const box = (kind: SolidKind, s0: number, s1: number, d0: number, d1: number, z0: number, z1: number): Solid[] =>
+      s1 - s0 > 1e-6 && z1 - z0 > 1e-6
+        ? [
+            {
+              id: o.id,
+              kind,
+              host: w.id,
+              levelId: w.levelId,
+              outline: [P(s0, d0), P(s1, d0), P(s1, d1), P(s0, d1)],
+              z0,
+              z1,
+            },
+          ]
+        : [];
+    const F = Math.min(FRAME, o.width / 4, (head - sill) / 4);
+    if (o.kind === "window") {
+      // a frame around the pane, on the middle of the body
+      const d0 = m - FRAME_DEPTH / 2;
+      const d1 = m + FRAME_DEPTH / 2;
+      res.push(
+        ...box("frame", o0, o1, d0, d1, sill, sill + F),
+        ...box("frame", o0, o1, d0, d1, head - F, head),
+        ...box("frame", o0, o0 + F, d0, d1, sill + F, head - F),
+        ...box("frame", o1 - F, o1, d0, d1, sill + F, head - F),
+      );
+    }
+    if (o.kind === "door") {
+      // jambs + head across the whole wall, and the leaves where the plan draws them (open)
+      res.push(
+        ...box("frame", o0, o0 + F, r, l, sill, head),
+        ...box("frame", o1 - F, o1, r, l, sill, head),
+        ...box("frame", o0 + F, o1 - F, r, l, head - F, head),
+      );
+      for (const [a, b] of openingPlan(w, o).leaves) {
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        if (len < 1) continue;
+        const lu = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+        const ln = { x: (-lu.y * LEAF) / 2, y: (lu.x * LEAF) / 2 };
+        res.push({
+          id: o.id,
+          kind: "leaf",
+          host: w.id,
+          levelId: w.levelId,
+          outline: [add(a, mul(ln, -1)), add(b, mul(ln, -1)), add(b, ln), add(a, ln)],
+          z0: sill,
+          z1: head - F,
+        });
+      }
+    }
     if (o.kind === "window") {
       // a thin pane on the middle of the body
-      const { l, r } = faceOffsets(w);
-      const m = (l + r) / 2;
-      const n = perp(u);
-      const P = (t: number, off: number) => add(add(w.start, mul(u, t)), mul(n, off));
       res.push({
         id: o.id,
         kind: "glass",

@@ -995,3 +995,13 @@ Owner merged everything; "You can do all of them, I revise them later" (export e
 **Decided alone (reversible):** numbering runs across floors; marks only where the panel shows "!" (first element); notes pages only in PDFs; fresh `runChecks` per floor with the same baseline as the panel.
 
 **Tests**: export +3 (multi-page xref, notes wrap/paginate/footer, empty floor).
+
+### Session #13, part 2 — 3D polish (ADR-057), 2026-11-18
+
+Branch `phase4/3d-polish`, stacked on `phase5c/export-extras`.
+
+**Done**: core frames (window 4 pieces, door jambs + head) and door leaves from the plan's leaf lines; renderer colours + hide-with-wall for anything with a host; sun direction prop; App time-of-day slider (6–18 h, hemisphere from the profile). 2 strings.
+
+**Decided alone (reversible):** sizes are drawing values (5 cm frame, 7 cm deep, 4 cm leaf); leaves shown open like the plan; sun is approximate (no north arrow / date yet) and not saved.
+
+**Tests**: core +1 (frames + leaf).
