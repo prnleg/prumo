@@ -5,6 +5,7 @@ import {
   isChase,
   kgPerM3,
   type WallLoad,
+  type LintelCheck,
   type AssumptionUse,
   type Finding,
   type Param,
@@ -137,5 +138,51 @@ export function wallLoadText(
     range: t("load.range", { range: span(L.lo, L.hi, locale) }),
     lines,
     notCounted: L.notCounted.map((k) => t(k)),
+  };
+}
+
+/** The selected opening's lintel (ADR-052) for the panel: headline, bending vs strength, verdict, calculation. */
+export function lintelText(
+  c: LintelCheck,
+  locale: Locale,
+  nameOf: (ref: string) => string,
+): {
+  headline: string;
+  bending: string;
+  strength: string | null;
+  verdict: string;
+  lines: string[];
+  notChecked: string[];
+} {
+  const t = (k: string, p?: Record<string, string | number>) => translate(locale, k, p);
+  const s = (x: number) => sig2(x, locale);
+  const mid = (c.w.lo + c.w.hi) / 2;
+  const gf = c.values.find((v) => v.key === "safety.gammaF");
+  const fck = [
+    c.values.find((v) => v.key === "lintel.concrete.fck.min"),
+    c.values.find((v) => v.key === "lintel.concrete.fck.max"),
+  ];
+  const lines = c.lines.map((l) => {
+    const p = l.params;
+    if (l.key === "lintel.line.span")
+      return t(l.key, { width: s(Number(p.width)), bearing: s(Number(p.bearing)), L: s(Number(p.L)) });
+    if (l.key === "lintel.line.slab")
+      return t(l.key, {
+        name: nameOf(String(p.ref)),
+        kind: t(`load.kind.${String(p.kind)}`),
+        w: span(l.lo, l.hi, locale),
+      });
+    return t(l.key, { h: s(Number(p.h)), w: span(l.lo, l.hi, locale) });
+  });
+  lines.push(t("lintel.line.moment", { m: span(c.M.lo, c.M.hi, locale), v: span(c.V.lo, c.V.hi, locale) }));
+  if (c.MRd && fck[0] && fck[1])
+    lines.push(t("lintel.line.strength", { fck: span(Number(fck[0].value), Number(fck[1].value), locale) }));
+  return {
+    headline: t("lintel.headline", { kn: s(mid), L: s(c.span), t: s(mid / 9.80665) }),
+    bending: t("lintel.bending", { gf: gf ? s(Number(gf.value)) : "1", md: span(c.Md.lo, c.Md.hi, locale) }),
+    strength: c.MRd ? t("lintel.strength", { mrd: span(c.MRd.lo, c.MRd.hi, locale) }) : null,
+    verdict: t(`lintel.verdict.${c.verdict}`),
+    lines,
+    notChecked: c.notChecked.map((k) => t(k)),
   };
 }

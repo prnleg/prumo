@@ -103,6 +103,9 @@ import {
   STRUCTURAL,
   materialTable,
   wallLoads,
+  lintelCheck,
+  setLintelSize,
+  type LintelSize,
   structuralPacks,
   setWallMaterial,
   type WallMaterial,
@@ -156,7 +159,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { paramText, unitWeightText, wallLoadText } from "./structural-ui";
+import { lintelText, paramText, unitWeightText, wallLoadText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -581,6 +584,9 @@ const protectionMarks = computed(() => {
 function setMaterial(id: string, m: WallMaterial | undefined) {
   run(updateCommand({ key: "cmd.material" }, [id], (e) => (e.type === "wall" ? setWallMaterial(e, m) : e)));
 }
+function setOpeningLintelSize(id: string, size: LintelSize) {
+  run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintelSize(e, size) : e)));
+}
 function setOpeningLintel(id: string, has: boolean) {
   run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
 }
@@ -700,12 +706,21 @@ const selectedLoad = computed(() => {
   if (w?.type !== "wall") return null;
   const L = wallLoads(project.value, level.value, packs).get(id);
   if (!L) return null;
-  const nameOf = (ref: string) => {
-    if (ref.startsWith("slab:")) return t("slab.badge");
-    const r = detected.value.find((x) => x.key === ref.slice(5));
-    return r ? r.label || formatArea(r.floorArea, locale.value) : t("finish.outside");
-  };
-  return wallLoadText(L, locale.value, nameOf);
+  return wallLoadText(L, locale.value, slabOrRoomName);
+});
+function slabOrRoomName(ref: string) {
+  if (ref.startsWith("slab:")) return t("slab.badge");
+  const r = detected.value.find((x) => x.key === ref.slice(5));
+  return r ? r.label || formatArea(r.floorArea, locale.value) : t("finish.outside");
+}
+
+/** The selected opening's lintel (ADR-052), structure on only. */
+const selectedLintel = computed(() => {
+  if (!structuralOn.value || selection.value.length !== 1) return null;
+  const o = project.value.elements[selection.value[0] ?? ""];
+  if (o?.type !== "opening") return null;
+  const c = lintelCheck(project.value, o, wallLoads(project.value, level.value, packs).get(o.host.elementId), packs);
+  return c ? lintelText(c, locale.value, slabOrRoomName) : null;
 });
 
 // --- floors (ADR-048) ------------------------------------------------------------------------------
@@ -1871,7 +1886,7 @@ if (demo === "materials" || demo === "values") {
       setTimeout(fitAll, 0);
     });
 }
-if (demo === "loads") {
+if (demo === "loads" || demo === "lintel") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
@@ -1889,10 +1904,20 @@ if (demo === "loads") {
         setMaterial(w.id, "ceramic-block");
         selectTool.selection = [w.id];
       }
+      const o = Object.values(history.current.elements).find(
+        (e): e is Opening => e.type === "opening" && e.kind === "window",
+      );
+      if (demo === "lintel" && o) {
+        const hw = history.current.elements[o.host.elementId];
+        if (hw?.type === "wall") setMaterial(hw.id, "ceramic-block");
+        setOpeningLintel(o.id, true);
+        setOpeningLintelSize(o.id, { height: 100, bars: { count: 2, diameter: 8 } });
+        selectTool.selection = [o.id];
+      }
       sync();
       setTimeout(() => {
         fitAll();
-        document.querySelector(".load details")?.setAttribute("open", "");
+        document.querySelectorAll(".load details").forEach((d) => d.setAttribute("open", ""));
       }, 50);
     });
 }
@@ -2356,6 +2381,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           v-model:keep-original="keepOriginal"
           :packs="structuralOn ? packs : null"
           :load="selectedLoad"
+          :lintel-load="selectedLintel"
           :project="project"
           :selection="selection"
           :locale="locale"
@@ -2364,6 +2390,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :structural="structuralOn ? (checks?.system ?? null) : null"
           @role="setRole"
           @lintel="setOpeningLintel"
+          @lintel-size="setOpeningLintelSize"
           @contraverga="setOpeningContraverga"
           @tie-beam="setWallTieBeam"
           @bonded="setWallBonded"
