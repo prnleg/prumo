@@ -4,6 +4,7 @@ import {
   ModuleHost,
   counterIds,
   emptyProject,
+  openProjectFile,
   putCommand,
   saveProjectFile,
   type Project,
@@ -273,5 +274,34 @@ describe("the existing building (ADR-043)", () => {
     h.undo();
     h.undo();
     expect(s.baselineProject()).toBeNull();
+  });
+});
+
+describe("hand-off (ADR-044 slice 3)", () => {
+  it("hand to: snapshot 'Sent to Bruno #1' + log entry; survives save → open; take over asks first", async () => {
+    const f = fakePlatform({ answers: [false, true] });
+    const { h, s } = setup(f.p);
+    h.execute(putCommand({ key: "x" }, [wall]));
+    expect(s.handOff({ from: "Ana", to: "Bruno", message: "Your turn" })).toBe(true);
+    expect(h.current.handoff).toEqual({
+      holder: "Bruno",
+      log: [{ kind: "hand", from: "Ana", to: "Bruno", at: NOW, message: "Your turn", snapshotId: "s-1" }],
+    });
+    await s.save();
+    const g = fakePlatform({ open: { name: "casa.prumo", bytes: f.writes.at(-1)!.bytes, path: "/tmp/casa.prumo" } });
+    const two = setup(g.p);
+    await two.s.open();
+    expect(two.h.current.handoff?.holder).toBe("Bruno");
+    // the snapshot travelled with the file (named for the recipient)
+    const opened = openProjectFile(f.writes.at(-1)!.bytes, { installedModules: [architectManifest.id] });
+    expect(opened.status === "ok" && opened.file.snapshots.map((x) => [x.name, x.author])).toEqual([
+      ['handoff.snapshotName {"name":"Bruno","n":1}', "Ana"],
+    ]);
+    // Carla takes over: the first answer is "no" (nothing happens), the second "yes"
+    expect(await s.takeOver("Carla")).toBe(false);
+    expect(h.current.handoff?.holder).toBe("Bruno");
+    expect(await s.takeOver("Carla")).toBe(true);
+    expect(h.current.handoff?.log.at(-1)).toEqual({ kind: "take", from: "Bruno", to: "Carla", at: NOW });
+    expect(f.asked).toHaveLength(2);
   });
 });

@@ -37,6 +37,8 @@ import {
   selectionCentre,
   setGridCommand,
   setOutsideFacesCommand,
+  handoffGuard,
+  isHolder,
   type MirrorAxis,
   type Command,
   type Wall,
@@ -88,6 +90,7 @@ import {
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import FindingsPanel from "./FindingsPanel.vue";
+import HandoffDialog from "./HandoffDialog.vue";
 import NotePopover from "./NotePopover.vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
 import RecoveryPanel from "./RecoveryPanel.vue";
@@ -121,7 +124,8 @@ const history = new History(
     now: new Date().toISOString(),
     profileId: PROFILE,
   }),
-  { freeze: import.meta.env.DEV, normalize: anchorOutsideWalls }, // ADR-038
+  // ADR-038 outside faces; ADR-044 hand-off lock (someone else holds the project → only notes change)
+  { freeze: import.meta.env.DEV, normalize: anchorOutsideWalls, guard: handoffGuard(() => myName.value) },
 );
 
 const project = shallowRef<Project>(history.current);
@@ -708,6 +712,34 @@ function addNote(text: string, name: string) {
     sync();
   }
 }
+// --- Hand-off "baton" (ADR-044 slice 3) ---------------------------------------------------------------
+const showHandoff = ref(false);
+/** Someone else holds this project: you can look and leave notes (tools that edit are off). */
+const notMyTurn = computed(() => !isHolder(project.value, myName.value));
+const holder = computed(() => project.value.handoff?.holder ?? "");
+async function sendHandoff(from: string, to: string, message: string) {
+  showHandoff.value = false;
+  if (from !== myName.value) setMyName(from);
+  endTools();
+  if (session.handOff({ from, to, ...(message ? { message } : {}) })) await doSave(false);
+  setTool("select");
+}
+async function takeOver() {
+  const name = myName.value;
+  if (!name) {
+    // who's taking over must be known (it's logged): set your name first
+    notice.value = t("handoff.needName");
+    showSettings.value = true;
+    return;
+  }
+  if (await session.takeOver(name)) sync();
+}
+/** Tools that change the plan; off while it's not your turn. */
+const EDIT_TOOLS: readonly ToolName[] = ["room", "wall", "door", "window", "chase"];
+watch(notMyTurn, (locked) => {
+  if (locked && EDIT_TOOLS.includes(tool.value)) setTool("select");
+});
+
 function setMyName(name: string) {
   myName.value = name;
   savePrefs({ name });
@@ -938,6 +970,7 @@ function redo() {
 /** The Divider button = the wall tool drawing room dividers (ADR-040: wall kind "separator"). */
 const dividerMode = ref(false);
 function setTool(n: ToolName, divider = false) {
+  if (notMyTurn.value && EDIT_TOOLS.includes(n)) return; // keyboard shortcuts too (ADR-044)
   endTools();
   tool.value = n;
   dividerMode.value = n === "wall" && divider;
@@ -1129,6 +1162,17 @@ if (demo === "structure-panel") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "handoff" || demo === "handoff-dialog") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      myName.value = "Ana";
+      if (demo === "handoff") session.handOff({ from: "Ana", to: "Bruno", message: "Your turn" });
+      else showHandoff.value = true;
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "protect") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -1313,6 +1357,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button data-tour="save" :title="t('action.save.tip')" :disabled="!!readOnly" @click="doSave(false)">
           {{ t("action.save") }}
         </button>
+        <button :title="t('handoff.tip')" :disabled="!!readOnly || notMyTurn" @click="showHandoff = true">
+          {{ t("handoff.button") }}
+        </button>
       </div>
       <div class="group">
         <button
@@ -1323,7 +1370,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         >
           {{ t("tool.select") }}
         </button>
-        <button data-tour="room" :class="{ on: tool === 'room' }" :title="t('tool.room.tip')" @click="setTool('room')">
+        <button
+          data-tour="room"
+          :class="{ on: tool === 'room' }"
+          :title="t('tool.room.tip')"
+          :disabled="notMyTurn"
+          @click="setTool('room')"
+        >
           {{ t("tool.room") }}
         </button>
         <span v-if="tool === 'room'" class="seg" role="group" :aria-label="t('roomShape.label')">
@@ -1346,6 +1399,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           data-tour="wall"
           :class="{ on: tool === 'wall' && !dividerMode }"
           :title="t('tool.wall.tip')"
+          :disabled="notMyTurn"
           @click="setTool('wall')"
         >
           {{ t("tool.wall") }}
@@ -1354,14 +1408,26 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :class="{ on: tool === 'wall' && dividerMode }"
           data-tour="divider"
           :title="t('tool.divider.tip')"
+          :disabled="notMyTurn"
           @click="setTool('wall', true)"
         >
           {{ t("tool.divider") }}
         </button>
-        <button data-tour="door" :class="{ on: tool === 'door' }" :title="t('tool.door.tip')" @click="setTool('door')">
+        <button
+          data-tour="door"
+          :class="{ on: tool === 'door' }"
+          :title="t('tool.door.tip')"
+          :disabled="notMyTurn"
+          @click="setTool('door')"
+        >
           {{ t("tool.door") }}
         </button>
-        <button :class="{ on: tool === 'window' }" :title="t('tool.window.tip')" @click="setTool('window')">
+        <button
+          :class="{ on: tool === 'window' }"
+          :title="t('tool.window.tip')"
+          :disabled="notMyTurn"
+          @click="setTool('window')"
+        >
           {{ t("tool.window") }}
         </button>
         <button :class="{ on: tool === 'note' }" :title="t('tool.note.tip')" @click="setTool('note')">
@@ -1371,6 +1437,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           v-if="structuralOn"
           :class="{ on: tool === 'chase' }"
           :title="t('tool.chase.tip')"
+          :disabled="notMyTurn"
           @click="setTool('chase')"
         >
           {{ t("tool.chase") }}
@@ -1463,6 +1530,17 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button @click="reportCrash">{{ t("crash.report") }}</button>
         <button @click="crash = null">{{ t("crash.dismiss") }}</button>
       </div>
+      <div v-if="notMyTurn" class="turn" role="status">
+        <span>{{ t("handoff.banner", { name: holder }) }}</span>
+        <button @click="takeOver">{{ t("handoff.takeOver") }}</button>
+      </div>
+      <HandoffDialog
+        v-if="showHandoff"
+        :locale="locale"
+        :name="myName"
+        @send="sendHandoff"
+        @cancel="showHandoff = false"
+      />
       <p v-if="readOnly" class="blocked">{{ readOnly }}</p>
       <p v-if="notice" class="blocked">{{ notice }}</p>
       <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
@@ -1622,6 +1700,31 @@ button:disabled {
 .canvas {
   position: relative;
   min-height: 0;
+}
+.turn {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  z-index: 6;
+  font-size: 13px;
+}
+.turn button {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
 }
 .crash {
   position: absolute;

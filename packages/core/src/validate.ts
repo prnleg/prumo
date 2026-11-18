@@ -19,6 +19,17 @@ export function validateProject(p: Project): string[] {
     errs.push("project.settings.outsideFaces must be a boolean");
   else if (p.settings.baseline !== undefined && typeof p.settings.baseline !== "string")
     errs.push("project.settings.baseline must be a string");
+  const h = (p as { handoff?: unknown }).handoff;
+  if (h !== undefined) {
+    const entryOk = (e: unknown) =>
+      isObj(e) &&
+      (e.kind === "hand" || e.kind === "take") &&
+      typeof e.from === "string" &&
+      typeof e.to === "string" &&
+      typeof e.at === "string";
+    if (!isObj(h) || typeof h.holder !== "string" || !Array.isArray(h.log) || !h.log.every(entryOk))
+      errs.push("project.handoff must be { holder, log[] }");
+  }
   if (errs.length) return errs;
 
   const levels = new Set<string>();
