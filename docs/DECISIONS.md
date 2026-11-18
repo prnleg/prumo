@@ -307,7 +307,7 @@ Options: only official/bundled modules; unsigned community modules with a big wa
 
 ## ADR-024 — Generic hosting of elements on walls/slabs
 Spike E note (session #11): an Electrical outlet hosted on a core wall needed a generic `host` field **in the core** (the core must know hosting to cascade deletes later). Supports this ADR. Cascade not tested yet.
-Status: **ACCEPTED (2026-11-16, owner: "lean")**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays.
+Status: **ACCEPTED (2026-11-16, owner: "lean")**: replaces the opening-only `hostWallId` (ADR-007) with a generic `host: {elementId, offset, ...}` so future electrical outlets, switches, or wall-mounted fixtures use the same mechanism. ADR-007's intent stays. **2026-11-17:** optional `host.length` (extent along the host) added for module items (first user: chases, ADR-042 addition); move / stretch / mirror / copy / delete now carry any hosted item, not just openings.
 
 ## ADR-025 — When and how findings appear ("quiet while creating")
 Status: **ACCEPTED (2026-11-16, owner: "lean", settle delay **2 s** after the user stops)** (from the owner's Q-054 answer, 2026-11-15)
@@ -470,6 +470,7 @@ Status: **ACCEPTED (2026-11-17, owner: "use defaults")**.
   - opening → `{ lintel?: true }` — absent = not specified → R-OPEN-001 applies.
   - Unknown fields are kept; an empty component is removed (no clutter). Mirroring changes nothing.
 - **Additions (2026-11-17, owner: "yes, they make a lot of sense"):** opening `contraverga?: true` (windows); wall `tieBeam?: true`, `bonded?: { start?: true, end?: true }` (a junction counts as bonded when any wall END there is marked; a T's through-wall has no end there, so the stem decides). Chases (R-WALL-004) → a new element, later.
+- **Addition (2026-11-17, owner: "let's start it and go with the Horizontal"):** chase = module element `org.prumo.structural:chase`, hosted on a wall (ADR-024), component `{ dir: "horizontal" | "vertical" }`. A horizontal chase's run along the wall is a new generic **`host.length`** (mm; missing = a point item — vertical chases, future outlets). Core treats every hosted module item like a door/window when walls move, stretch, mirror, copy or get deleted; new invariant `item-outside-wall` (may not run past the wall's ends; overlaps allowed). Height and depth not stored (no rule uses them yet; R-WALL-004 has no threshold until E-33).
 - Findings: Spike B's shape + `review` (ADR-041 level, reviewer, date, question id). Rule strings live in the desktop catalogue for now (same as Architect's; module-owned catalogues later, ADR-021).
 
 ## ADR-043 — "The existing building" (baseline) for renovation checks

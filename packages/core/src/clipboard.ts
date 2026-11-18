@@ -8,12 +8,12 @@ import { putElements, wallLength, type Label } from "./edit";
 import { add, sub, type V } from "./geometry/vec";
 import type { Command } from "./history";
 import type { IdSource } from "./ids";
-import type { Element, Id, Opening, Project, Wall } from "./model";
+import { isHosted, type Element, type Hosted, type Id, type Opening, type Project, type Wall } from "./model";
 
 export interface Clipboard {
   walls: Wall[];
-  /** Openings hosted on copied walls. */
-  hosted: Opening[];
+  /** Items hosted on copied walls (doors, windows, module items such as chases). */
+  hosted: Hosted[];
   /** Openings copied without their wall, sorted by (original host, offset). */
   loose: Opening[];
   /** Centre of the copied walls' bounding box (paste puts this under the cursor); null = no walls. */
@@ -28,7 +28,7 @@ export function copyToClipboard(p: Project, ids: readonly Id[]): Clipboard {
   const walls = els.filter((e): e is Wall => e.type === "wall").sort(byId);
   const wallIds = new Set(walls.map((w) => w.id));
   const hosted = Object.values(p.elements)
-    .filter((e): e is Opening => e.type === "opening" && wallIds.has(e.host.elementId))
+    .filter((e): e is Hosted => isHosted(e) && wallIds.has(e.host.elementId))
     .sort(byId);
   const loose = els
     .filter((e): e is Opening => e.type === "opening" && !wallIds.has(e.host.elementId))

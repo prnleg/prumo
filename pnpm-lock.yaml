@@ -99,7 +99,6 @@ importers:
       '@prumo/core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
       '@prumo/module-architect':
         specifier: workspace:*
         version: link:../module-architect

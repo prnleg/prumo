@@ -61,6 +61,8 @@ import {
   diffFindings,
   profileIdFor,
   runChecks,
+  ChaseTool,
+  isChase,
   setBonded,
   setContraverga,
   setLintel,
@@ -68,6 +70,7 @@ import {
   setTieBeam,
   setWallRole,
   structuralManifest,
+  type ChaseDir,
   type CheckResult,
   type ConstructionSystem,
   type FindingsDiff,
@@ -225,13 +228,29 @@ const openingTool = new OpeningTool(history, {
   magnetPx: DEFAULT_SNAP.endpointRadiusPx,
 });
 
+/** Chase tool (Structural, R-WALL-004): where a wall gets cut for pipes or wiring. */
+const chaseTool = new ChaseTool(history, {
+  ids: randomIds,
+  levelId: firstLevelId,
+  dir: "horizontal",
+  grid: DEFAULT_SNAP.grid,
+});
+const chaseDirection = ref<ChaseDir>("horizontal");
+function setChaseDir(d: ChaseDir) {
+  chaseTool.finish();
+  chaseDirection.value = d;
+  chaseTool.options = { ...chaseTool.options, dir: d };
+  sync();
+}
+
 /** After New/Open the level ids change: point every tool at the project's first level. */
 history.subscribe((e) => {
   if (e.project.levels.some((l) => l.id === level.value)) return;
   const first = e.project.levels[0];
   if (!first) return;
   level.value = first.id;
-  for (const tl of [wallTool, openingTool, roomTool, selectTool]) tl.options = { ...tl.options, levelId: first.id };
+  for (const tl of [wallTool, openingTool, roomTool, selectTool, chaseTool])
+    tl.options = { ...tl.options, levelId: first.id };
   selectTool.selection = [];
 });
 
@@ -317,7 +336,7 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   watch(angleStep, (a) => savePrefs({ angleStepDeg: a }));
 });
 
-type ToolName = "select" | "room" | "wall" | "door" | "window";
+type ToolName = "select" | "room" | "wall" | "door" | "window" | "chase";
 const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
 const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
@@ -354,7 +373,10 @@ function scheduleCheck(keepDiff: boolean) {
 history.subscribe((e) => {
   if (e.type === "commit") scheduleCheck(e.label.key !== "cmd.open");
 });
-watch(structuralOn, () => recheck(false));
+watch(structuralOn, (on) => {
+  if (!on && tool.value === "chase") setTool("select");
+  recheck(false);
+});
 onBeforeUnmount(() => settleTimer && clearTimeout(settleTimer));
 recheck(false);
 
@@ -379,7 +401,9 @@ const badges = computed(() => {
         ? wallOf(e, wallLength(e) / 2)
         : e?.type === "opening"
           ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + e.width / 2)
-          : null;
+          : isChase(e)
+            ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + (e.host.length ?? 0) / 2)
+            : null;
     return at ? [{ at, severity: f.severity, id }] : [];
   });
 });
@@ -559,15 +583,18 @@ function sync() {
         ? selectTool.blocked
         : tool.value === "room"
           ? roomTool.blocked
-          : openingTool.blocked;
+          : tool.value === "chase"
+            ? []
+            : openingTool.blocked;
   blocked.value = [...new Set(probs.map((p) => p.code))];
-  tooShort.value = tool.value !== "wall" && openingTool.tooShort;
+  tooShort.value = (tool.value === "door" || tool.value === "window") && openingTool.tooShort;
 }
 
 function endTools() {
   if (wallTool.active) wallTool.finish();
   roomTool.finish();
   openingTool.finish();
+  chaseTool.finish();
   selectTool.cancel();
 }
 
@@ -717,6 +744,13 @@ function onPointer(e: PlanPointer) {
     sync();
     return;
   }
+  if (tool.value === "chase") {
+    if (e.type === "move") chaseTool.move(info);
+    else if (e.type === "down" && e.button === 0) chaseTool.click(info);
+    else if (e.type === "down" && e.button === 2) chaseTool.finish();
+    sync();
+    return;
+  }
   if (tool.value === "select") {
     if (e.button !== 0 && e.type !== "move") return;
     const sp = { ...info, additive: e.shift, detach: e.mod };
@@ -763,6 +797,11 @@ const labels = computed(() => {
       return [];
     });
   }
+  if (tool.value === "chase") {
+    void tick.value;
+    const at = chaseTool.at;
+    return at && chaseTool.length ? [{ at, text: formatLength(chaseTool.length, locale.value) }] : [];
+  }
   if (tool.value === "room") {
     const r = roomHover.value;
     if (!roomTool.size || !r) return [];
@@ -800,6 +839,7 @@ function setTool(n: ToolName, divider = false) {
 function onLeave() {
   cursorAt = null;
   if (tool.value === "door" || tool.value === "window") openingTool.finish();
+  if (tool.value === "chase" && !chaseTool.active) chaseTool.finish();
   sync();
 }
 
@@ -821,6 +861,12 @@ const hint = computed(() => {
     return roomTool.active ? t("hint.roomShape.active") : t("hint.roomShape.idle");
   }
   if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
+  if (tool.value === "chase")
+    return chaseDirection.value === "vertical"
+      ? t("hint.chase.vertical")
+      : chaseTool.active
+        ? t("hint.chase.active")
+        : t("hint.chase.idle");
   if (tool.value === "door" || tool.value === "window")
     return tooShort.value ? t("hint.opening.tooShort", { kind: tool.value }) : t("hint.opening", { kind: tool.value });
   if (dividerMode.value) return wallTool.active ? t("hint.divider.active") : t("hint.divider.idle");
@@ -884,6 +930,7 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key === "Escape" || e.key === "Enter") {
     if (wallTool.active) wallTool.finish();
     else if (roomTool.active && !(e.key === "Enter" && roomTool.close())) roomTool.finish();
+    else if (chaseTool.active) chaseTool.finish();
     else if (e.key === "Escape") setTool("select");
     openingTool.finish();
     sync();
@@ -969,6 +1016,18 @@ if (demo === "structure-panel") {
       );
       if (w) selectTool.selection = [w.id];
       sync();
+      setTimeout(fitAll, 0);
+    });
+}
+if (demo === "chase") {
+  const ex = EXAMPLES.find((e) => e.id === "problems");
+  if (ex)
+    void startExample(ex).then(() => {
+      setTool("select");
+      const c = Object.values(history.current.elements).find(isChase);
+      if (c) selectTool.selection = [c.id];
+      sync();
+      recheck(false);
       setTimeout(fitAll, 0);
     });
 }
@@ -1145,6 +1204,30 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button :class="{ on: tool === 'window' }" :title="t('tool.window.tip')" @click="setTool('window')">
           {{ t("tool.window") }}
         </button>
+        <button
+          v-if="structuralOn"
+          :class="{ on: tool === 'chase' }"
+          :title="t('tool.chase.tip')"
+          @click="setTool('chase')"
+        >
+          {{ t("tool.chase") }}
+        </button>
+        <span v-if="tool === 'chase'" class="seg" role="group" :aria-label="t('chaseDir.label')">
+          <button
+            :class="{ on: chaseDirection === 'horizontal' }"
+            :title="t('chaseDir.horizontal.tip')"
+            @click="setChaseDir('horizontal')"
+          >
+            ⟷ {{ t("chaseDir.horizontal") }}
+          </button>
+          <button
+            :class="{ on: chaseDirection === 'vertical' }"
+            :title="t('chaseDir.vertical.tip')"
+            @click="setChaseDir('vertical')"
+          >
+            ↕ {{ t("chaseDir.vertical") }}
+          </button>
+        </span>
       </div>
       <div class="group">
         <button data-tour="undo" :disabled="!canUndo" :title="undoTip" @click="undo">↶ {{ t("action.undo") }}</button>

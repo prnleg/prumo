@@ -85,7 +85,7 @@ describe("structural checks on the examples (Phase 2)", () => {
     expect(run("house")).toEqual([]);
     expect(run("apartment")).toEqual([]);
   });
-  it("the house with problems: two openings without a lintel (one a window: no contraverga either) + one wall marked as a partition", () => {
-    expect(run("problems")).toEqual(["R-OPEN-001", "R-OPEN-001", "R-OPEN-006", "R-ROLE-001"]);
+  it("the house with problems: two openings without a lintel (one a window: no contraverga either), a horizontal chase + one wall marked as a partition", () => {
+    expect(run("problems")).toEqual(["R-OPEN-001", "R-OPEN-001", "R-WALL-004", "R-OPEN-006", "R-ROLE-001"]);
   });
 });

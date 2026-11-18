@@ -99,7 +99,7 @@ Scope:
 - **Change impact (diff of findings before/after each command).**
 
 Exit criteria:
-- [ ] ≥ 8 Tier-0 rules, each with ID, source (or `UNVERIFIED` tag), and tests.
+- [x] ≥ 8 Tier-0 rules, each with ID, source (or `UNVERIFIED` tag), and tests. *(2026-11-17: 8 — R-OPEN-001, R-ROLE-001, R-WALL-002, R-OPEN-NEW, R-OPEN-006, R-RING-001, R-JOINT-001, R-WALL-004; all presence/comparison checks, sources UNSOURCED pending batch 2b.)*
 - [ ] Findings diff works on undo/redo too.
 - [ ] Safety wording test (G-8) passes.
 

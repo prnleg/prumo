@@ -1,5 +1,14 @@
 // Structural data on walls and openings (ADR-042) + the construction system (project.profileId).
-import type { Command, Element, Opening, Project, Wall } from "@prumo/core";
+import {
+  isHosted,
+  type Command,
+  type Element,
+  type Id,
+  type ModuleElement,
+  type Opening,
+  type Project,
+  type Wall,
+} from "@prumo/core";
 import { STRUCTURAL } from "./manifest";
 
 export type WallRole = "bearing" | "non-bearing";
@@ -90,5 +99,32 @@ export function setSystemCommand(s: ConstructionSystem): Command {
       const id = profileIdFor(s, country);
       return p.profileId === id ? p : { ...p, profileId: id };
     },
+  };
+}
+
+// --- chases (rasgos): channels cut into a wall for pipes / wiring (R-WALL-004, ADR-042 addition) ------
+
+export type ChaseDir = "horizontal" | "vertical";
+export const CHASE = `${STRUCTURAL}:chase` as const;
+export type Chase = ModuleElement & { type: typeof CHASE; host: NonNullable<ModuleElement["host"]> };
+
+export const isChase = (e: Element | undefined): e is Chase => e?.type === CHASE && isHosted(e);
+
+/** A chase's direction; unreadable data counts as horizontal (the more serious case, E-02). */
+export const chaseDir = (c: Chase): ChaseDir =>
+  (c.components[STRUCTURAL]?.data as { dir?: unknown } | undefined)?.dir === "vertical" ? "vertical" : "horizontal";
+
+/**
+ * New chase on `wall`. Horizontal: runs `length` mm along the wall from `offset`. Vertical: a point at
+ * `offset` (its height isn't drawn on the plan).
+ */
+export function newChase(id: Id, wall: Wall, offset: number, dir: ChaseDir, length = 0): Chase {
+  return {
+    id,
+    type: CHASE,
+    ownerModule: STRUCTURAL,
+    levelId: wall.levelId,
+    host: dir === "horizontal" ? { elementId: wall.id, offset, length } : { elementId: wall.id, offset },
+    components: { [STRUCTURAL]: { v: STRUCTURAL_DATA_VERSION, data: { dir } } },
   };
 }

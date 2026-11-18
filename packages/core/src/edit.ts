@@ -2,7 +2,16 @@
 // Q-072 default: geometric impossibilities are BLOCKED (the edit is refused, nothing changes);
 // tools may clamp before submitting. Structural rules never block (ADR-026) — they aren't here.
 import { EPS } from "./tolerance";
-import type { Element, Id, Opening, Project, Wall } from "./model";
+import {
+  hostedExtent,
+  isHosted,
+  type Element,
+  type Hosted,
+  type Id,
+  type Opening,
+  type Project,
+  type Wall,
+} from "./model";
 
 /** i18n key + params (ADR-021/034). Core never builds user-facing sentences. */
 export interface Label {
@@ -60,6 +69,7 @@ export type ProblemCode =
   | "host-not-wall"
   | "host-other-level"
   | "opening-outside-wall"
+  | "item-outside-wall"
   | "opening-above-wall"
   | "openings-overlap"
   | "walls-overlap"
@@ -110,16 +120,18 @@ export function checkInvariants(p: Project, scope?: readonly Id[]): Problem[] {
     else if (e.type === "opening") {
       openings.add(id);
       walls.add(e.host.elementId);
-    }
+    } else if (isHosted(e)) walls.add(e.host.elementId);
   };
   if (scope) scope.forEach(add);
   else Object.keys(p.elements).forEach(add);
   const hosted = new Map<Id, Opening[]>();
+  const items = new Map<Id, Hosted[]>(); // module items (chases…): must sit on the wall; may overlap anything
   for (const e of Object.values(p.elements))
-    if (e.type === "opening" && walls.has(e.host.elementId)) {
-      const list = hosted.get(e.host.elementId) ?? [];
+    if (isHosted(e) && walls.has(e.host.elementId)) {
+      const map: Map<Id, Hosted[]> = e.type === "opening" ? hosted : items;
+      const list = map.get(e.host.elementId) ?? [];
       list.push(e);
-      hosted.set(e.host.elementId, list);
+      map.set(e.host.elementId, list);
     }
 
   const out: Problem[] = [];
@@ -142,6 +154,12 @@ export function checkInvariants(p: Project, scope?: readonly Id[]): Problem[] {
         out.push({ code: "opening-outside-wall", elementIds: [o.id, wid] });
       if (o.sillHeight < -EPS || o.sillHeight + o.height > w.height + EPS)
         out.push({ code: "opening-above-wall", elementIds: [o.id, wid] });
+    }
+    for (const it of (items.get(wid) ?? []).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+      if (it.levelId !== w.levelId) out.push({ code: "host-other-level", elementIds: [it.id, wid] });
+      if (w.kind === "separator") out.push({ code: "host-not-wall", elementIds: [it.id, wid] });
+      else if (it.host.offset < -EPS || it.host.offset + hostedExtent(it) > len + EPS)
+        out.push({ code: "item-outside-wall", elementIds: [it.id, wid] });
     }
     ops.forEach((a, i) => {
       const b = ops[i + 1];

@@ -1,18 +1,25 @@
 // Example projects for the start screen (Q-119/Q-125). Built in code from plain elements, so they
 // always match the current model; names are localized when the example is opened.
-// "House with problems" waits for the first checks (Phase 2): today there's nothing to show.
 import {
   emptyProject,
   putElements,
+  type Element,
   type Id,
   type IdSource,
   type Opening,
   type Project,
-  type RoomTag,
   type Wall,
 } from "@prumo/core";
 import { DEFAULT_OPENING_SIZES, setRoomType, type RoomType } from "@prumo/module-architect";
-import { setBonded, setContraverga, setLintel, setTieBeam, setWallRole } from "@prumo/module-structural";
+import {
+  newChase,
+  setBonded,
+  setContraverga,
+  setLintel,
+  setTieBeam,
+  setWallRole,
+  type ChaseDir,
+} from "@prumo/module-structural";
 
 type Translate = (key: string) => string;
 
@@ -51,6 +58,8 @@ interface Plan {
   rooms: { at: Pt; name: string; type: RoomType }[];
   /** Walls the owner marked as partitions on their own judgement (shows R-ROLE-001). */
   partitions?: string[];
+  /** Cuts for pipes / wiring (shows R-WALL-004). */
+  chases?: { wall: string; offset: number; dir: ChaseDir; length?: number }[];
 }
 
 const THICK = 140; // drawing default, same as the wall tool; not a structural value
@@ -62,7 +71,7 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
   const base: Project = { ...made, settings: { ...made.settings, outsideFaces: false } };
   const height = base.levels[0]?.defaultWallHeight ?? 2700;
   const wallId = new Map<string, Id>();
-  const els: (Wall | Opening | RoomTag)[] = [];
+  const els: Element[] = [];
   for (const [key, [s, e]] of Object.entries(plan.walls)) {
     const id = a.ids();
     wallId.set(key, id);
@@ -140,6 +149,11 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
     const i = els.findIndex((e) => e.id === wallId.get(key));
     const w = els[i];
     if (w?.type === "wall") els[i] = setWallRole(w, "non-bearing", "own-judgement");
+  }
+  for (const c of plan.chases ?? []) {
+    const w = els.find((e): e is Wall => e.id === wallId.get(c.wall) && e.type === "wall");
+    if (!w) throw new Error(`example: no wall "${c.wall}"`);
+    els.push(newChase(a.ids(), w, c.offset, c.dir, c.length));
   }
   return putElements(base, els);
 }
@@ -262,8 +276,8 @@ const apartment: Plan = {
 
 /**
  * "House with problems" (ROADMAP Phase 1/2, Q-125): the small house after a typical DIY renovation —
- * the living-room window widened without a lintel, a new door cut without one, and the hall wall
- * marked "partition" on the owner's own judgement. Teaches the checks; not a design.
+ * the living-room window widened without a lintel, a new door cut without one, the hall wall
+ * marked "partition" on the owner's own judgement, and a pipe run sideways through the back wall. Teaches the checks; not a design.
  */
 const problems: Plan = {
   ...house,
@@ -271,6 +285,7 @@ const problems: Plan = {
   doors: house.doors.map((d) => (d.wall === "hallFront" ? { ...d, noLintel: true } : d)),
   windows: house.windows.map((w) => (w.wall === "front" && w.offset === 3000 ? { ...w, noLintel: true } : w)),
   partitions: ["hallBack"],
+  chases: [{ wall: "back", offset: 3000, dir: "horizontal", length: 1500 }],
 };
 
 export const EXAMPLES: readonly Example[] = [

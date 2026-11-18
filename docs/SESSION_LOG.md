@@ -715,3 +715,15 @@ Owner approved the three data additions. Branch `phase2/more-rules` from main.
 **Noticed**: a stale dev server from an earlier run held port 5199 and served a blank page; killed by pid.
 
 **Next**: Phase 2 exit needs ≥ 8 rules → R-WALL-004 (chases: a new element + tool, approved "later"). Threshold rules (R-OPEN-002/003/004, R-WALL-001/006) wait for batch 2b.
+
+### Session #11, part 41 — Phase 2 slice 5: chases (R-WALL-004), 2026-11-17
+
+Owner: "let's start it and go with the Horizontal" (horizontal = warning, vertical = advice). Branch `phase2/chases`, stacked on `phase2/more-rules` (not merged yet).
+
+**Done**: core — `Host.length?` (extent for module items), `Hosted` / `isHosted` / `hostedExtent`; translate (slide clamped by length), stretch-from-start offset shift, setWallLength, mirror (move + copy), clipboard / duplicate now carry any hosted item; invariant `item-outside-wall` (+ host-other-level / host-not-wall for items); `PlanGeometry.items` (marker along the body centre, pick polygon; a point item gets a square pad), pick + box select. Renderer draws items (dotted run / ring, highlight when selected). module-structural — `CHASE`, `newChase`, `isChase`, `chaseDir` (unreadable → horizontal, the more serious case), `ChaseTool` (framework-free; `@prumo/module-architect` moved from dev to runtime dependency for `pickWall` — workspace package, declared in the manifest's dependsOn; no new third-party dep), **R-WALL-004**. App: toolbar Chase + Horizontal/Vertical segment, hints, length label while drawing, Esc/right-click cancel, badge at the chase's middle, panel "Horizontal chase · In the 10.00 m wall · Length", 22 strings pt-BR/en, dev `?demo=chase`. Docs: ADR-042 + ADR-024 notes, catalogue row, ROADMAP exit criterion ticked (8 rules), Q-139 (element types, owner's remark).
+
+**Decided alone (reversible, logged)**: chases on any hosted wall may overlap doors/windows (a pipe can pass above a door); no height/depth stored; changing a chase's direction = delete + redraw (no switch in the panel); chases hidden from the toolbar when Structural is off, but kept and drawn (rule 13).
+
+**Tests**: 394 in all (core +7, structural +10): core hosted items (ride / slide clamp / stretch / delete / duplicate + mirror copy / item-outside-wall / plan + pick); chase data; R-WALL-004 (horizontal warning, vertical advice, partition → none, half wall flagged, RC → not run, A-ROLE-2); chase tool (vertical click, horizontal backwards, clamp + zero length, Esc). Example "house with problems" now 5 findings. Screenshot checked (en).
+
+**Next**: owner merges more-rules → chases; Q-139 (element types) design when Phase 2 closes; batch 2b to the engineer (thresholds); G-1 usability test.
