@@ -30,6 +30,8 @@ export interface StructuralData {
   tieBeam?: true;
   /** Wall: bonded (interlocked / tied) to the walls meeting it at that end. */
   bonded?: { start?: true; end?: true };
+  /** Wall: what it's built with (ADR-046). Missing = "don't know". Informs only; changes no role (yet). */
+  material?: WallMaterial;
   /** Room (on its tag): what's above it (ADR-045 A). Missing = "don't know". */
   above?: Above;
   /** Room with a joist slab: which way the joists run, relative to the room's long side. */
@@ -60,6 +62,25 @@ export function withStructuralData<T extends Element>(e: T, data: Input): T {
 export function setWallRole(w: Wall, role: WallRole | undefined, origin?: RoleOrigin): Wall {
   const d = structuralData(w);
   return withStructuralData(w, { ...d, role, origin: role ? origin : undefined });
+}
+
+export type WallMaterial = "ceramic-block" | "concrete-block" | "solid-brick" | "drywall" | "concrete";
+export const WALL_MATERIALS: readonly WallMaterial[] = [
+  "ceramic-block",
+  "concrete-block",
+  "solid-brick",
+  "drywall",
+  "concrete",
+];
+
+/** What the wall is built with; unknown values (newer files) read as "don't know" (null) and are kept. */
+export function wallMaterial(w: Wall): WallMaterial | null {
+  const m = structuralData(w).material;
+  return (WALL_MATERIALS as readonly unknown[]).includes(m) ? (m as WallMaterial) : null;
+}
+
+export function setWallMaterial(w: Wall, m: WallMaterial | undefined): Wall {
+  return withStructuralData(w, { ...structuralData(w), material: m });
 }
 
 export function setLintel(o: Opening, has: boolean): Opening {

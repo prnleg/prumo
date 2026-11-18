@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { openingPlan, type Opening } from "../src";
+import { openingPlan, openingStyle, type Opening } from "../src";
 import { wall } from "./fixtures";
 
 // Wall along +x, 4000 long, t = 140 centred → faces at y = +70 (left) and y = −70 (right).
@@ -92,5 +92,64 @@ describe("opening plan symbols (hand-checked points)", () => {
         { x: -200, y: 1300 },
       ],
     ]);
+  });
+
+  // ADR-046 types — same wall (faces y = ±70, centre 0), opening 1000 … 1800.
+  it("double door: two 400 leaves hinged at both jambs, swinging to the left side", () => {
+    const p = openingPlan(w, op({ style: "double", swing: "in" }));
+    expect(p.leaves.map((l) => l.map(r))).toEqual([
+      [
+        { x: 1000, y: 70 },
+        { x: 1000, y: 470 },
+      ],
+      [
+        { x: 1800, y: 70 },
+        { x: 1800, y: 470 },
+      ],
+    ]);
+    // both arcs start where the leaves meet when closed: the middle (1400, 70)
+    expect(p.arcs.map((a) => r(a[0]!))).toEqual([
+      { x: 1400, y: 70 },
+      { x: 1400, y: 70 },
+    ]);
+  });
+
+  it("pocket door: leaf on the centre line; dashed pocket 800 long towards the hinge side, clamped at the wall end", () => {
+    const p = openingPlan(w, op({ style: "pocket", handing: "left" }));
+    expect(p.leaves.map((l) => l.map(r))).toEqual([
+      [
+        { x: 1000, y: 0 },
+        { x: 1800, y: 0 },
+      ],
+    ]);
+    expect(p.dashed.map((l) => l.map(r))).toEqual([
+      [
+        { x: 1000, y: 0 },
+        { x: 200, y: 0 },
+      ],
+    ]);
+    const near = openingPlan(w, op({ style: "pocket", handing: "left", host: { elementId: "w-1", offset: 300 } }));
+    expect(r(near.dashed[0]![1])).toEqual({ x: 0, y: 0 }); // 300 − 800 < 0 → wall start
+  });
+
+  it("sliding window: faces + two panes on tracks at ±t/8 = ±17.5, overlapping 50 each side of the middle", () => {
+    const p = openingPlan(w, op({ kind: "window", style: "sliding", swing: "in" }));
+    expect(p.glass.slice(2).map((l) => l.map(r))).toEqual([
+      [
+        { x: 1000, y: 17.5 },
+        { x: 1450, y: 17.5 },
+      ],
+      [
+        { x: 1350, y: -17.5 },
+        { x: 1800, y: -17.5 },
+      ],
+    ]);
+    expect(p.leaves).toEqual([]);
+  });
+
+  it("an unknown style (newer file) draws the default symbol and is kept as is", () => {
+    const o = op({ style: "revolving" });
+    expect(openingStyle(o)).toBeNull();
+    expect(openingPlan(w, o).leaf).toEqual(openingPlan(w, op({})).leaf);
   });
 });

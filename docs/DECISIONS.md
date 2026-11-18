@@ -511,3 +511,13 @@ Options:
 Lean: **C**. Confidence: medium — A's limit (one slab over several rooms) only matters once loads are computed, and by then the engineer's answers (E-40) tell us which slab types to support.
 Not decided here: loads per slab type (Phase 3, sourced values only — ADR-018); roofs other than "on the walls" (pitched roofs are a non-goal for now).
 
+
+## ADR-046 — Door, window and wall types (Q-139)
+Status: **ACCEPTED (2026-11-18)** — owner: "all usual types"; the proposed list approved as is.
+- **Doors** — `Opening.style` (core, optional string): `hinged` (default when missing) · `double` · `sliding` · `sliding-double` · `pocket` · `folding` · `garage`. "Opening only" stays `kind: "void"`.
+- **Windows** — `Opening.style`: `sliding` · `casement` · `top-hung` (maxim-ar) · `tilting` (basculante) · `fixed`; missing = not specified (the plain window symbol, as before).
+- **Walls** — what it's built with, in the **Structural** component (Q-090: structure owns the core material): `components["org.prumo.structural"].data.material` = `ceramic-block` · `concrete-block` · `solid-brick` · `drywall` · `concrete`; missing = don't know. Shown in the wall's Structure section. **Informs only**: no role default and no rule changes (drywall shows a plain note) until the engineer answers E-41 (owner deferred engineering, 2026-11-18). The wall *kinds* (full / half / fence / railing / divider) stay.
+- **Why a string, not an enum check:** a newer version's types must survive in older versions (rule 13) — an unknown style draws the default symbol and is saved untouched. **No schema bump**: the field is optional and older Prumo keeps it (its validation ignores unknown fields).
+- **Side:** `handing` = the side a sliding / pocket / folding leaf goes to (the hinge side for hinged); `swing` = which face. Sliding, casement and top-hung windows use `swing` too and flip it on mirror like doors (property test: every type's symbol mirrors exactly).
+- **Symbols** (core `openingPlan`, hand-checked tests): CAD-style plan conventions — staggered panes for sliding, swing arcs for hinged/casement, dashed for hidden or "when open" parts (pocket inside the wall, garage / top-hung sweep), zig-zag for folding, tick marks for tilting panes, double glass line for fixed.
+- **Not decided:** the opening tool's default type (today: hinged door, plain window); choosing a type before placing waits for the options bar (ADR-047).

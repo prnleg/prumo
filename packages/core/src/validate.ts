@@ -60,6 +60,7 @@ export function validateProject(p: Project): string[] {
     } else if (e.type === "opening") {
       for (const k of ["width", "height", "sillHeight"] as const)
         if (!isNum(e[k])) errs.push(`${at}: opening.${k} must be a number`);
+      if (e.style !== undefined && typeof e.style !== "string") errs.push(`${at}: opening.style must be text`);
     } else if (e.type === "note") {
       if (!isVec(e.at) || typeof e.text !== "string" || typeof e.author !== "string" || typeof e.createdAt !== "string")
         errs.push(`${at}: note needs at, text, author and createdAt`);

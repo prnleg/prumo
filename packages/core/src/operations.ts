@@ -286,8 +286,13 @@ function mirrorWall(w: Wall, f: (q: V) => V, mc?: MirrorComponent): Wall {
     : w.components;
   return { ...w, start: f(w.start), end: f(w.end), alignment: flip[w.alignment], components };
 }
+/** Openings whose symbol has a side (doors; sliding / casement / top-hung windows, ADR-046): swing flips on mirror. */
 function mirrorOpening<T extends Hosted>(o: T): T {
-  return o.type === "opening" && o.kind === "door" ? { ...o, swing: (o.swing ?? "in") === "in" ? "out" : "in" } : o;
+  if (o.type !== "opening") return o;
+  const sided =
+    o.kind === "door" ||
+    (o.kind === "window" && (o.style === "sliding" || o.style === "casement" || o.style === "top-hung"));
+  return sided ? { ...o, swing: (o.swing ?? "in") === "in" ? "out" : "in" } : o;
 }
 
 export interface MirrorResult {

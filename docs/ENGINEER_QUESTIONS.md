@@ -50,6 +50,7 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 
 | # | Question | Status | Answer |
 |---|---|---|---|
+| E-41 | Wall "built with" (ADR-046): ceramic block / concrete block / solid brick / drywall / concrete. (a) Can we assume a **drywall** wall never carries a slab or roof (so ADR-017's "all walls load-bearing by default" skips it)? (b) Do any checks change with the material (e.g. hollow ceramic block vs concrete block for chases, R-WALL-004)? *Parked: the owner deferred engineering on 2026-11-18.* | ☐ | |
 | E-40 | "What's above" a room in a typical self-built Brazilian house (ADR-045): is this list enough — solid slab, joist slab (vigota/treliçada) with joist direction, roof resting on the walls, nothing/open, don't know? Anything common we're missing (e.g. slab + roof, wooden ceiling)? For a joist slab, do beginners usually know which way the joists run? | ☐ | |
 | E-20 | Typical Brazilian block types to ship in the material pack (ceramic/concrete, structural vs sealing), and unit weights/strengths, with sources. | ☐ | |
 | E-21 | How to treat arching action over openings in a simplified way (Q-033). | ☐ | |

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  DOOR_STYLES,
+  WINDOW_STYLES,
   counterIds,
   faceOffsets,
   mirrorCommand,
@@ -123,6 +125,37 @@ describe("mirror (EDITING_OPERATIONS 'Mirror')", () => {
         expect(set([b.arc[0]!, b.arc.at(-1)!])).toEqual(set([a.arc[0]!, a.arc.at(-1)!].map(f)));
         expect(set(b.cover)).toEqual(set(a.cover.map(f)));
       }
+  });
+
+  it("property: every door / window type's symbol mirrors exactly (ADR-046)", () => {
+    const f = reflector("vertical", axisX);
+    const key = (v: V) => `${v.x.toFixed(6)},${v.y.toFixed(6)}`;
+    const all = (o: ReturnType<typeof openingPlan>) => [
+      ...o.cover,
+      ...o.glass.flat(),
+      ...o.leaves.flat(),
+      ...o.arcs.flatMap((a) => [a[0]!, a.at(-1)!]),
+      ...o.dashed.flat(),
+      ...o.folds.flat(),
+    ];
+    const cases = [
+      ...DOOR_STYLES.map((style) => ({ kind: "door" as const, style })),
+      ...WINDOW_STYLES.map((style) => ({ kind: "window" as const, style })),
+    ];
+    for (const c of cases)
+      for (const swing of ["in", "out"] as const)
+        for (const handing of ["left", "right"] as const) {
+          const d = { ...door("d1", "w1", 1000, { swing, handing }), ...c };
+          const p = putCommand({ key: "x" }, [d]).apply(room());
+          const q = mirrorCommand(p, ["w1"], "vertical", axisX, { copy: true, newId: counterIds("m") }).command.apply(
+            p,
+          );
+          const a = openingPlan(W(p, "w1"), p.elements["d1"] as Opening);
+          const b = openingPlan(W(q, "m-1"), q.elements["m-2"] as Opening);
+          expect(all(b).map(key).sort(), `${c.kind} ${c.style} ${swing} ${handing}`).toEqual(
+            all(a).map(f).map(key).sort(),
+          );
+        }
   });
 
   it("in place: walls mirror where they are, joined walls stretch to follow", () => {

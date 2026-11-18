@@ -298,10 +298,26 @@ function wheel(e: WheelEvent) {
           :x2="S(g[1]).x"
           :y2="S(g[1]).y"
         />
-        <template v-if="o.leaf">
-          <line class="leaf" :x1="S(o.leaf[0]).x" :y1="S(o.leaf[0]).y" :x2="S(o.leaf[1]).x" :y2="S(o.leaf[1]).y" />
-          <polyline class="arc" :points="pts(o.arc)" />
-        </template>
+        <line
+          v-for="(lf, k) in o.leaves"
+          :key="'l' + k"
+          class="leaf"
+          :x1="S(lf[0]).x"
+          :y1="S(lf[0]).y"
+          :x2="S(lf[1]).x"
+          :y2="S(lf[1]).y"
+        />
+        <polyline v-for="(a, k) in o.arcs" :key="'a' + k" class="arc" :points="pts(a)" />
+        <polyline v-for="(f, k) in o.folds" :key="'f' + k" class="leaf" :points="pts(f)" />
+        <line
+          v-for="(d, k) in o.dashed"
+          :key="'d' + k"
+          class="arc"
+          :x1="S(d[0]).x"
+          :y1="S(d[0]).y"
+          :x2="S(d[1]).x"
+          :y2="S(d[1]).y"
+        />
       </g>
     </g>
     <!-- hosted module items (chases…): a run along the wall, or a ring for a point item -->
