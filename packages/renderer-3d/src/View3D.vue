@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Read-only 3D view of the building (ADR-053). Orbit (left drag), pan (right drag / Shift), zoom (wheel).
 // A click without dragging picks the element under the pointer. Renders on demand (no idle loop).
-import type { Solid } from "@prumo/core";
+import type { BuildingModel } from "@prumo/core";
 import {
   Box3,
   DirectionalLight,
@@ -9,6 +9,7 @@ import {
   Group,
   HemisphereLight,
   Mesh,
+  Object3D,
   MeshStandardMaterial,
   PCFSoftShadowMap,
   PerspectiveCamera,
@@ -23,11 +24,18 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { buildGroup, DARK, disposeGroup, LIGHT, type Mark } from "./mesh";
+import { applyView, buildGroup, DARK, disposeGroup, LIGHT, type Mark, type WallFaces, type WallMode } from "./mesh";
 
 const props = defineProps<{
-  solids: readonly Solid[];
+  model: BuildingModel;
   selection: readonly string[];
+  /** How the walls of the floor being edited show (ADR-054). */
+  mode?: WallMode;
+  /** The floor being edited, and the floors above it (faint, not pickable). */
+  level?: string;
+  above?: readonly string[];
+  /** Wall faces from the finishes. */
+  faces?: WallFaces;
   /** Findings: element id → worst severity. */
   marks?: Readonly<Record<string, Mark>>;
   dark?: boolean;
@@ -56,6 +64,19 @@ sun.shadow.normalBias = 0.03; // no stripes (shadow acne) on the walls
 scene.add(new HemisphereLight(0xffffff, 0x8a8378, 1.4), sun, sun.target);
 
 let pending = 0;
+/** Walls up / low / see-inside + faint floors above; cheap, so it runs whenever the camera turns. */
+function view() {
+  if (!building || !controls) return;
+  const d = camera.position.clone().sub(controls.target);
+  const len = Math.hypot(d.x, d.z) || 1;
+  applyView(building, {
+    mode: props.mode ?? "full",
+    level: props.level ?? "",
+    above: new Set(props.above ?? []),
+    toCamera: { x: d.x / len, y: -d.z / len },
+  });
+}
+
 function render() {
   if (pending) return;
   pending = requestAnimationFrame(() => {
@@ -71,7 +92,12 @@ function rebuild() {
   }
   const c = props.dark ? DARK : LIGHT;
   scene.background = new Color(props.dark ? 0x1d1f22 : 0xf4f5f7);
-  building = buildGroup(props.solids, c, new Set(props.selection), props.marks ?? {});
+  building = buildGroup(props.model, c, {
+    selected: new Set(props.selection),
+    marks: props.marks ?? {},
+    faces: props.faces ?? {},
+  });
+  view();
   scene.add(building);
   placeGround();
   render();
@@ -155,7 +181,10 @@ function onUp(e: PointerEvent) {
   const ndc = new Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   const ray = new Raycaster();
   ray.setFromCamera(ndc, camera);
-  const hit = ray.intersectObjects(building.children, false).find((h) => h.object instanceof Mesh);
+  const shown = (o: Object3D | null): boolean => !o || (o.visible && shown(o.parent));
+  const hit = ray
+    .intersectObjects(building.children, true)
+    .find((h) => h.object instanceof Mesh && !h.object.userData.ghost && shown(h.object));
   emit("pick", (hit?.object.userData.id as string | undefined) ?? null);
 }
 
@@ -174,7 +203,10 @@ onMounted(() => {
   el.appendChild(renderer.domElement);
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI / 2 - 0.02; // never under the ground
-  controls.addEventListener("change", render);
+  controls.addEventListener("change", () => {
+    if (props.mode === "cutaway") view();
+    render();
+  });
   controls.addEventListener("start", () => (userMoved = true));
   renderer.domElement.addEventListener("pointerdown", onDown);
   renderer.domElement.addEventListener("pointerup", onUp);
@@ -200,7 +232,14 @@ onBeforeUnmount(() => {
   renderer?.domElement.remove();
 });
 
-watch(() => [props.solids, props.selection, props.dark, props.marks], rebuild);
+watch(() => [props.model, props.selection, props.dark, props.marks, props.faces], rebuild);
+watch(
+  () => [props.mode, props.level, props.above],
+  () => {
+    view();
+    render();
+  },
+);
 watch(
   () => props.fitKey,
   () => {
