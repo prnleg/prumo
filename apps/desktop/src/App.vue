@@ -126,6 +126,7 @@ import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prum
 import { View3D, type Surface, type WallMode } from "@prumo/renderer-3d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import {
+  Sun as SunIcon,
   ArrowDownToLine,
   ArrowUpToLine,
   Eye,
@@ -787,6 +788,24 @@ const WALL_MODES = [
   { id: "cutaway", icon: Eye },
   { id: "full", icon: ArrowUpToLine },
 ] as const;
+/**
+ * Sun by time of day (ADR-057): approximate — north = the top of the plan, no date or place. 6 h rises
+ * in the east, 18 h sets in the west; at noon it stands to the north (southern hemisphere, Brazil
+ * profiles) or to the south, at 60° up.
+ */
+const sunHour = ref(10);
+const sun3d = computed(() => {
+  const t = ((Math.min(18, Math.max(6, sunHour.value)) - 6) / 12) * Math.PI; // 0 … π
+  const south = project.value.profileId.startsWith("br");
+  return {
+    azimuth: south ? Math.PI / 2 - t : Math.PI / 2 + t,
+    elevation: Math.max((5 * Math.PI) / 180, ((60 * Math.PI) / 180) * Math.sin(t)),
+  };
+});
+const sunLabel = computed(() => {
+  const h = Math.floor(sunHour.value);
+  return `${h}:${sunHour.value % 1 ? "30" : "00"}`;
+});
 const levelsAbove = computed(() => {
   const here = project.value.levels.find((l) => l.id === level.value)?.elevation ?? 0;
   return project.value.levels.filter((l) => l.elevation > here).map((l) => l.id);
@@ -2750,6 +2769,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             >
               <component :is="m.icon" :size="14" /> {{ t(`view3d.walls.${m.id}`) }}
             </button>
+            <label class="sun" :title="t('view3d.sun.tip')">
+              <SunIcon :size="14" />
+              <input v-model.number="sunHour" type="range" min="6" max="18" step="0.5" :aria-label="t('view3d.sun')" />
+              <span>{{ sunLabel }}</span>
+            </label>
           </span>
           <View3D
             :model="model3d"
@@ -2757,6 +2781,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             :level="level"
             :above="levelsAbove"
             :faces="faces3d"
+            :sun="sun3d"
             :selection="selection3d"
             :marks="marks3d"
             :dark="prefersDark"
@@ -3149,6 +3174,17 @@ button:disabled {
   background: var(--panel);
   color: var(--muted);
   cursor: col-resize;
+}
+.walls3d .sun {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.walls3d .sun input {
+  width: 90px;
 }
 .walls3d {
   position: absolute;

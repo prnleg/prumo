@@ -87,6 +87,18 @@ describe("building solids (ADR-053)", () => {
     expect(s.some((x) => x.kind === "glass")).toBe(false);
   });
 
+  it("frames: 4 around a window, 3 around a door (+ its open leaf, as tall as the frame's inside)", () => {
+    const s = buildingSolids(
+      put([W("a", 0, 0, 4000, 0), O("w", "window", 500, 1200, 1000, 1200), O("d", "door", 2500, 800, 0, 2100)]),
+    );
+    expect(s.filter((x) => x.kind === "frame" && x.id === "w")).toHaveLength(4);
+    expect(s.filter((x) => x.kind === "frame" && x.id === "d")).toHaveLength(3);
+    const leaf = s.find((x) => x.kind === "leaf");
+    expect(leaf?.id).toBe("d");
+    expect([leaf?.z0, leaf?.z1]).toEqual([0, 2050]);
+    expect(s.filter((x) => x.kind === "frame" || x.kind === "leaf").every((x) => x.host === "a")).toBe(true);
+  });
+
   it("upper floor sits at its elevation; a slab rests on the wall tops", () => {
     let p = put([W("a", 0, 0, 4000, 0)]);
     p = { ...p, levels: [...p.levels, { id: "l2", name: null, elevation: 2800, defaultWallHeight: 2700 }] };

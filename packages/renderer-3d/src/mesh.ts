@@ -36,6 +36,8 @@ export interface Palette {
   critical: number;
   warning: number;
   advisory: number;
+  frame: number;
+  leaf: number;
 }
 
 export const LIGHT: Palette = {
@@ -49,6 +51,8 @@ export const LIGHT: Palette = {
   critical: 0xd64545,
   warning: 0xe08a1e,
   advisory: 0x4a90d9,
+  frame: 0xf3f1ec,
+  leaf: 0xa8784f,
 };
 export const DARK: Palette = { ...LIGHT, edge: 0x222222 };
 
@@ -71,7 +75,15 @@ function color(kind: SolidKind, wallKind: Solid["wallKind"], c: Palette, selecte
   if (selected) return c.selected;
   if (mark && mark !== "info") return c[mark];
   if (kind === "wall") return wallKind && wallKind !== "full" ? c.wallLow : c.wall;
-  return kind === "glass" ? c.glass : kind === "slab" ? c.slab : c.floor;
+  return kind === "glass"
+    ? c.glass
+    : kind === "slab"
+      ? c.slab
+      : kind === "frame"
+        ? c.frame
+        : kind === "leaf"
+          ? c.leaf
+          : c.floor;
 }
 
 function material(kind: SolidKind, col: number, map: Texture | null = null) {
@@ -79,7 +91,7 @@ function material(kind: SolidKind, col: number, map: Texture | null = null) {
   const m = new MeshStandardMaterial({
     color: col,
     map,
-    roughness: kind === "glass" ? 0.1 : 0.85,
+    roughness: kind === "glass" ? 0.1 : kind === "frame" ? 0.5 : 0.85,
     metalness: 0,
     transparent,
     opacity: kind === "glass" ? 0.35 : kind === "slab" ? 0.55 : 1,
@@ -345,10 +357,10 @@ export function applyView(group: Group, v: ViewState) {
     if (d.kind === "slab") o.visible = !(d.levelId === v.level && v.mode !== "full");
     setGhost(o, ghost);
   }
-  // a window pane goes with the upper part of its wall
+  // panes, frames and door leaves go with the upper part of their wall
   for (const o of group.children) {
     const d = o.userData as { kind?: string; host?: string };
-    if (d.kind === "glass") o.visible = !(d.host && lowered.has(d.host));
+    if (d.host) o.visible = !lowered.has(d.host);
   }
 }
 

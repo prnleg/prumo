@@ -39,6 +39,11 @@ const props = defineProps<{
   /** Findings: element id → worst severity. */
   marks?: Readonly<Record<string, Mark>>;
   dark?: boolean;
+  /**
+   * Where the sun is (ADR-057): azimuth from the plan's +y ("north") turning towards +x, and elevation
+   * above the horizon, radians. Missing = a fixed light from the front-right.
+   */
+  sun?: { azimuth: number; elevation: number };
   /** Change it to frame the whole building again. */
   fitKey?: number;
 }>();
@@ -56,12 +61,12 @@ let userMoved = false;
 const scene = new Scene();
 const camera = new PerspectiveCamera(45, 1, 0.05, 2000);
 camera.position.set(12, 10, 14);
-const sun = new DirectionalLight(0xffffff, 2.2);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.bias = -0.0005;
-sun.shadow.normalBias = 0.03; // no stripes (shadow acne) on the walls
-scene.add(new HemisphereLight(0xffffff, 0x8a8378, 1.4), sun, sun.target);
+const sunLight = new DirectionalLight(0xffffff, 2.2);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.bias = -0.0005;
+sunLight.shadow.normalBias = 0.03; // no stripes (shadow acne) on the walls
+scene.add(new HemisphereLight(0xffffff, 0x8a8378, 1.4), sunLight, sunLight.target);
 
 let pending = 0;
 /** Walls up / low / see-inside + faint floors above; cheap, so it runs whenever the camera turns. */
@@ -131,9 +136,18 @@ function placeGround() {
   grid.raycast = () => undefined;
   scene.add(ground, grid);
   const r = size / 2;
-  sun.position.set(mid.x + r * 0.6, r * 1.2, mid.z + r * 0.8);
-  sun.target.position.copy(mid);
-  const sc = sun.shadow.camera;
+  if (props.sun) {
+    const { azimuth: a, elevation: e } = props.sun;
+    const d = r * 1.6;
+    // plan (sin a, cos a) → scene (x, −z)
+    sunLight.position.set(
+      mid.x + d * Math.cos(e) * Math.sin(a),
+      d * Math.sin(e),
+      mid.z - d * Math.cos(e) * Math.cos(a),
+    );
+  } else sunLight.position.set(mid.x + r * 0.6, r * 1.2, mid.z + r * 0.8);
+  sunLight.target.position.copy(mid);
+  const sc = sunLight.shadow.camera;
   sc.left = sc.bottom = -r;
   sc.right = sc.top = r;
   sc.far = r * 4;
@@ -233,6 +247,13 @@ onBeforeUnmount(() => {
 });
 
 watch(() => [props.model, props.selection, props.dark, props.marks, props.faces], rebuild);
+watch(
+  () => props.sun,
+  () => {
+    placeGround();
+    render();
+  },
+);
 watch(
   () => [props.mode, props.level, props.above],
   () => {
