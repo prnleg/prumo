@@ -765,6 +765,20 @@ const selection3d = computed(() =>
     id.startsWith(ROOM_PREFIX) ? `room:${level.value}:${id.slice(ROOM_PREFIX.length)}` : id,
   ),
 );
+/** Findings in 3D (Phase 4): worst severity per element; chases / protections light up their wall. */
+const marks3d = computed(() => {
+  const out: Record<string, "critical" | "warning" | "advisory" | "info"> = {};
+  const order = { critical: 0, warning: 1, advisory: 2, info: 3 } as const;
+  // like the plan's "!" badges: the element each finding is about (its first id)
+  for (const f of checks.value?.findings ?? [])
+    for (const id of f.elementIds.slice(0, 1)) {
+      const e = project.value.elements[id];
+      const target = isChase(e) ? e.host.elementId : isProtection(e) ? (protectionData(e)?.wallId ?? id) : id;
+      const cur = out[target];
+      if (!cur || order[f.severity] < order[cur]) out[target] = f.severity;
+    }
+  return out;
+});
 /** A click in 3D selects in the plan too (switching floor if needed). */
 function pick3d(id: string | null) {
   if (tool.value !== "select") setTool("select");
@@ -2021,6 +2035,10 @@ if (demo === "loads" || demo === "lintel" || demo === "3d" || demo === "split") 
       }, 50);
     });
 }
+if (demo === "3d-problems") {
+  const ex = EXAMPLES.find((e) => e.id === "problems");
+  if (ex) void startExample(ex).then(() => setViewMode("3d"));
+}
 if (demo === "slabs" || demo === "slab-pick") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -2466,7 +2484,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           />
         </div>
         <div v-if="show3d" class="pane" :style="split ? { left: `${splitAt * 100}%` } : undefined">
-          <View3D :solids="solids3d" :selection="selection3d" :dark="prefersDark" :fit-key="fit3d" @pick="pick3d">
+          <View3D
+            :solids="solids3d"
+            :selection="selection3d"
+            :marks="marks3d"
+            :dark="prefersDark"
+            :fit-key="fit3d"
+            @pick="pick3d"
+          >
             <template #failed>{{ t("view3d.noWebgl") }}</template>
           </View3D>
         </div>

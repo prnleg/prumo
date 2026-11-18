@@ -36,4 +36,11 @@ describe("3D meshes (ADR-053)", () => {
     expect(col(meshes[1] as Mesh)).toBe(LIGHT.selected);
     expect(col(meshes[0] as Mesh)).toBe(LIGHT.wall);
   });
+
+  it("a finding colours its element; pieces around an opening follow the opening", () => {
+    const g = buildGroup([wall, { ...wall, id: "a", of: "o" }], LIGHT, new Set(), { o: "warning" });
+    const meshes = g.children.filter((o): o is Mesh => o instanceof Mesh);
+    const col = (m: Mesh) => (m.material as unknown as { color: { getHex(): number } }).color.getHex();
+    expect(meshes.map(col)).toEqual([LIGHT.wall, LIGHT.warning]);
+  });
 });

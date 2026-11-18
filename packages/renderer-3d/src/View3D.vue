@@ -23,11 +23,13 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { buildGroup, DARK, disposeGroup, LIGHT } from "./mesh";
+import { buildGroup, DARK, disposeGroup, LIGHT, type Mark } from "./mesh";
 
 const props = defineProps<{
   solids: readonly Solid[];
   selection: readonly string[];
+  /** Findings: element id → worst severity. */
+  marks?: Readonly<Record<string, Mark>>;
   dark?: boolean;
   /** Change it to frame the whole building again. */
   fitKey?: number;
@@ -69,7 +71,7 @@ function rebuild() {
   }
   const c = props.dark ? DARK : LIGHT;
   scene.background = new Color(props.dark ? 0x1d1f22 : 0xf4f5f7);
-  building = buildGroup(props.solids, c, new Set(props.selection));
+  building = buildGroup(props.solids, c, new Set(props.selection), props.marks ?? {});
   scene.add(building);
   placeGround();
   render();
@@ -198,7 +200,7 @@ onBeforeUnmount(() => {
   renderer?.domElement.remove();
 });
 
-watch(() => [props.solids, props.selection, props.dark], rebuild);
+watch(() => [props.solids, props.selection, props.dark, props.marks], rebuild);
 watch(
   () => props.fitKey,
   () => {

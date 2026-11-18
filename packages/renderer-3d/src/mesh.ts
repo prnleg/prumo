@@ -24,6 +24,9 @@ export interface Palette {
   floor: number;
   edge: number;
   selected: number;
+  critical: number;
+  warning: number;
+  advisory: number;
 }
 
 export const LIGHT: Palette = {
@@ -34,23 +37,30 @@ export const LIGHT: Palette = {
   floor: 0xcfb995,
   edge: 0x4a4a4a,
   selected: 0x2f7de1,
+  critical: 0xd64545,
+  warning: 0xe08a1e,
+  advisory: 0x4a90d9,
 };
 export const DARK: Palette = { ...LIGHT, edge: 0x222222 };
 
 const M = 1 / 1000;
 
-function material(kind: SolidKind, wallKind: Solid["wallKind"], c: Palette, selected: boolean) {
+export type Mark = "critical" | "warning" | "advisory" | "info";
+
+function material(kind: SolidKind, wallKind: Solid["wallKind"], c: Palette, selected: boolean, mark?: Mark) {
   const color = selected
     ? c.selected
-    : kind === "wall"
-      ? wallKind && wallKind !== "full"
-        ? c.wallLow
-        : c.wall
-      : kind === "glass"
-        ? c.glass
-        : kind === "slab"
-          ? c.slab
-          : c.floor;
+    : mark && mark !== "info"
+      ? c[mark]
+      : kind === "wall"
+        ? wallKind && wallKind !== "full"
+          ? c.wallLow
+          : c.wall
+        : kind === "glass"
+          ? c.glass
+          : kind === "slab"
+            ? c.slab
+            : c.floor;
   const transparent = kind === "glass" || kind === "slab";
   return new MeshStandardMaterial({
     color,
@@ -76,13 +86,21 @@ export function prism(s: Solid): BufferGeometry {
  * The building as a Group. Every mesh carries `userData.id` (element id, or "room:…" for floors) so a
  * click can select it. `selected` ids are drawn in the accent colour.
  */
-export function buildGroup(solids: readonly Solid[], c: Palette, selected: ReadonlySet<string>): Group {
+export function buildGroup(
+  solids: readonly Solid[],
+  c: Palette,
+  selected: ReadonlySet<string>,
+  /** Findings (ADR-053): element id → worst severity. Wall pieces around an opening follow the opening. */
+  marks: Readonly<Record<string, Mark>> = {},
+): Group {
   const group = new Group();
   const edgeMat = new LineBasicMaterial({ color: c.edge, transparent: true, opacity: 0.6 });
   for (const s of solids) {
     if (s.outline.length < 3) continue;
     const geo = prism(s);
-    const mesh = new Mesh(geo, material(s.kind, s.wallKind, c, selected.has(s.id)));
+    const sel = selected.has(s.id) || (s.of !== undefined && selected.has(s.of));
+    const mark = (s.of !== undefined ? marks[s.of] : undefined) ?? marks[s.id];
+    const mesh = new Mesh(geo, material(s.kind, s.wallKind, c, sel, mark));
     mesh.userData = { id: s.id, kind: s.kind };
     mesh.castShadow = s.kind !== "glass";
     mesh.receiveShadow = true;

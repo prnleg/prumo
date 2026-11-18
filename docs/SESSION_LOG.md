@@ -938,4 +938,6 @@ Branch `phase4/3d-view`, stacked on `phase3/lintel`. Owner: library that allows 
 
 **Tests**: core +6, renderer-3d +2. Screenshots checked (dark 3D, split, light 3D; WebGL via SwiftShader).
 
-**Next**: findings highlighted in 3D (Phase 4 scope), "hide slabs" toggle.
+**Findings in 3D** (same branch): each finding colours its element like the plan's "!" (first element; red critical, orange warning, blue advice); wall pieces under/over an opening follow the opening (`Solid.of`); chases / protections colour their wall. Dev `?demo=3d-problems`. renderer-3d +1, core test extended.
+
+**Next**: "hide slabs" toggle; seams between wall pieces; then Phase 5 rules (engineer) or polish.

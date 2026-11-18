@@ -20,6 +20,8 @@ export interface Solid {
   outline: V[];
   z0: number;
   z1: number;
+  /** Wall pieces under / over an opening: that opening's id (so a finding about it can light them up). */
+  of?: Id;
   /** Wall kind ("full", "half"…) for walls; else undefined. */
   wallKind?: Wall["kind"];
 }
@@ -80,10 +82,12 @@ export function wallSolids(w: Wall, polygon: readonly V[], openings: readonly Op
   const top = base + w.height;
   const u = norm(sub(w.end, w.start));
   const s = (q: V) => dot(sub(q, w.start), u);
-  const piece = (s0: number, s1: number, z0: number, z1: number, kind: SolidKind = "wall", id = w.id): Solid[] => {
+  const piece = (s0: number, s1: number, z0: number, z1: number, of?: Id): Solid[] => {
     if (z1 - z0 < 1e-6 || s1 - s0 < 1e-6) return [];
     const outline = clipAlong(polygon, s, s0, s1);
-    return outline.length >= 3 ? [{ id, kind, levelId: w.levelId, outline, z0, z1, wallKind: w.kind }] : [];
+    if (outline.length < 3) return [];
+    const sol: Solid = { id: w.id, kind: "wall", levelId: w.levelId, outline, z0, z1, wallKind: w.kind };
+    return [of ? { ...sol, of } : sol];
   };
   const os = [...openings].sort((a, b) => a.host.offset - b.host.offset || (a.id < b.id ? -1 : 1));
   const res: Solid[] = [];
@@ -94,8 +98,8 @@ export function wallSolids(w: Wall, polygon: readonly V[], openings: readonly Op
     res.push(...piece(from, o0, base, top));
     const sill = base + (o.kind === "door" ? 0 : o.sillHeight);
     const head = Math.min(top, sill + o.height);
-    res.push(...piece(o0, o1, base, sill));
-    res.push(...piece(o0, o1, head, top));
+    res.push(...piece(o0, o1, base, sill, o.id));
+    res.push(...piece(o0, o1, head, top, o.id));
     if (o.kind === "window") {
       // a thin pane on the middle of the body
       const { l, r } = faceOffsets(w);

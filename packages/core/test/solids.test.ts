@@ -66,6 +66,7 @@ describe("building solids (ADR-053)", () => {
       [1000, 2200, 2200, 2700],
       [2200, 4000, 0, 2700],
     ]);
+    expect(walls.filter((x) => x.of === "w")).toHaveLength(2);
     const glass = s.find((x) => x.kind === "glass");
     expect(glass?.id).toBe("w");
     expect([glass?.z0, glass?.z1]).toEqual([1000, 2200]);
