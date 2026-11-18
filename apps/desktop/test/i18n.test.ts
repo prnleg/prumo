@@ -60,6 +60,7 @@ describe("UI i18n (ADR-021/034)", () => {
             d: "10",
             fck: "15–25",
             bearing: "0,2",
+            floor: "Andar 1",
           }),
         ).not.toThrow();
     }

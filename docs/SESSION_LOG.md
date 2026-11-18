@@ -953,3 +953,13 @@ Branch `phase4/wall-modes`, stacked on `phase4/3d-view`. Owner: Sims-like modes 
 **Tests**: core +1 (shells), renderer-3d +3 (face groups, modes, door line). Screenshots: the 3 modes in pt-BR, brick outside.
 
 **Next (proposal)**: hide-slabs is covered by the modes. Candidates: (a) Phase 5 rules (need the engineer), (b) polish pass on the 3D (doors/window frames as objects, sun/time of day), (c) Phase 5c export (PDF plan / image).
+
+### Session #12, part 8 — loads from the floors above (Phase 5, ADR-055), 2026-11-18
+
+Branch `phase5/upper-loads`, stacked on `phase4/wall-modes`. Owner: "Yes" (Phase 5 in order).
+
+**Done**: `stack.ts` (`support`: which lower walls hold an upper wall + unsupported stretches; `levelAboveId`). `wallLoads` recursive: own floor + "walls of the floor above standing on it" line (max per-metre of those walls), their not-counted items carried down, "upper walls with no wall under them" note. Lintel includes the upper line. UI: line text with floor name, empty "Not counted" header hidden. 4 strings (−1). Dev `?demo=upper`. E-45 (parked).
+
+**Decided alone (reversible):** "on" = parallel + centre lines within half the thicker wall; per-metre = the most loaded upper wall (no 45° spreading); a floor's slab stays with the floor whose ceiling it is (no double count).
+
+**Tests**: structural +9 (hand calc 20.328 … 27.828 kN/m on a 2-storey wall; support geometry).

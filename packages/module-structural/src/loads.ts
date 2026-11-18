@@ -7,8 +7,10 @@
 //   which area goes where  = solid slab: 45° split (NBR 6118:2014 14.7.6.1) = each point goes to its
 //                            nearest edge, computed on a grid so any shape works; joist slab: shared
 //                            evenly by the edges the joists rest on (the ones across the joists)
-// Anything unknown widens the range instead of being guessed. Not counted (listed): floors above, roofs,
-// slab edges with no wall under them, concrete frames (beams/columns aren't drawn).
+//   floors above (ADR-055) = the per-metre load of the walls of the floor above standing on this wall
+//                            (the most loaded one), itself computed the same way, floor by floor
+// Anything unknown widens the range instead of being guessed. Not counted (listed): roofs, slab edges
+// with no wall under them, upper walls with no wall under them, concrete frames (not drawn).
 import {
   detectRooms,
   dist,
@@ -41,6 +43,7 @@ import { STRUCTURAL } from "./manifest";
 import { unitWeight } from "./materials";
 import { packRegion } from "./packs";
 import { canCarry } from "./roles";
+import { levelAboveId, support } from "./stack";
 
 export interface Range {
   lo: number;
@@ -84,8 +87,45 @@ interface Area {
   maybeNothing: boolean;
 }
 
-/** Load on every wall of `levelId` that can carry, sorted by wall id. */
+/**
+ * Load on every wall of `levelId` that can carry, sorted by wall id — including what the walls of the
+ * floors above bring down onto it (ADR-055).
+ */
 export function wallLoads(p: Project, levelId: Id, packs: PackSet): Map<Id, WallLoad> {
+  const own = levelLoads(p, levelId, packs);
+  const upId = levelAboveId(p, levelId);
+  if (!upId) return own;
+  const upper = wallLoads(p, upId, packs);
+  const lowers = wallsOnLevel(p, levelId).filter(canCarry);
+  const uppers = wallsOnLevel(p, upId)
+    .filter(canCarry)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+  const hanging = uppers.some((u) => support(u, lowers).unsupported.length > 0);
+  for (const w of lowers) {
+    const L = own.get(w.id);
+    if (!L) continue;
+    const on = uppers.filter((u) => support(u, [w]).by.length);
+    const loads = on.flatMap((u) => upper.get(u.id) ?? []);
+    if (loads.length) {
+      L.lines.push({
+        key: "load.line.upper",
+        params: { ref: `level:${upId}`, count: on.length },
+        lo: Math.max(...loads.map((x) => x.lo)),
+        hi: Math.max(...loads.map((x) => x.hi)),
+      });
+      for (const x of loads) for (const k of x.notCounted) if (!L.notCounted.includes(k)) L.notCounted.push(k);
+    }
+    if (hanging && !L.notCounted.includes("load.nc.unsupported")) L.notCounted.push("load.nc.unsupported");
+    L.lo = L.lines.reduce((s, x) => s + x.lo, 0);
+    L.hi = L.lines.reduce((s, x) => s + x.hi, 0);
+    const vals = new Map([...L.values, ...loads.flatMap((x) => x.values)].map((v) => [v.key, v]));
+    L.values = [...vals.values()].sort((a, b) => (a.key < b.key ? -1 : 1));
+  }
+  return own;
+}
+
+/** One floor on its own: own weight + the slabs over it. */
+function levelLoads(p: Project, levelId: Id, packs: PackSet): Map<Id, WallLoad> {
   const region = packRegion(p);
   const used = new Map<string, ResolvedValue>();
   const val = (key: string): number | null => {
@@ -98,8 +138,7 @@ export function wallLoads(p: Project, levelId: Id, packs: PackSet): Map<Id, Wall
     .filter(canCarry)
     .sort((a, b) => (a.id < b.id ? -1 : 1));
   const out = new Map<Id, WallLoad>();
-  for (const w of walls)
-    out.set(w.id, { wallId: w.id, lo: 0, hi: 0, lines: [], notCounted: ["load.nc.upper"], values: [] });
+  for (const w of walls) out.set(w.id, { wallId: w.id, lo: 0, hi: 0, lines: [], notCounted: [], values: [] });
 
   // --- the wall's own weight ---------------------------------------------------------------------
   const known = WALL_MATERIALS.map((m) => unitWeight(packs, p, m)).filter((v): v is ResolvedValue => !!v);

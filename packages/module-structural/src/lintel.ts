@@ -119,7 +119,9 @@ export function lintelCheck(
   }
   // slabs resting on this wall (ADR-051 lines), all of it on the lintel (no arching, Q-033)
   for (const l of wallLoad.lines)
-    if (l.key.startsWith("load.line.slab"))
+    if (l.key === "load.line.upper")
+      lines.push({ key: "lintel.line.upper", params: { ...l.params }, lo: l.lo, hi: l.hi });
+    else if (l.key.startsWith("load.line.slab"))
       lines.push({ key: "lintel.line.slab", params: { ...l.params }, lo: l.lo, hi: l.hi });
 
   const w: Range = { lo: sum(lines, "lo"), hi: sum(lines, "hi") };
