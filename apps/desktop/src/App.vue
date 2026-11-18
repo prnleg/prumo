@@ -115,6 +115,7 @@ import {
   type JoistDir,
   type ChaseDir,
   type CheckResult,
+  type Finding,
   type ConstructionSystem,
   type FindingsDiff,
   type RoleOrigin,
@@ -159,7 +160,16 @@ import LayersPanel from "./LayersPanel.vue";
 import MenuBar, { type Menu } from "./MenuBar.vue";
 import HandoffDialog from "./HandoffDialog.vue";
 import ExportDialog, { type ExportOptions } from "./ExportDialog.vue";
-import { drawSheet, exportManifest, layoutSheet, PAPERS, pdfWithImage } from "@prumo/module-export";
+import {
+  drawNotesPage,
+  drawSheet,
+  exportManifest,
+  layoutNotes,
+  layoutSheet,
+  PAPERS,
+  pdfWithImages,
+  type NotesInput,
+} from "@prumo/module-export";
 import NotePopover from "./NotePopover.vue";
 import NotesPanel from "./NotesPanel.vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
@@ -170,7 +180,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { lintelText, paramText, unitWeightText, wallLoadText } from "./structural-ui";
+import { findingText, lintelText, paramText, unitWeightText, wallLoadText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -508,12 +518,12 @@ function protectionMid(e: Parameters<typeof protectionData>[0]): V | null {
   const d = protectionData(e);
   return d ? { x: (d.wall.start.x + d.wall.end.x) / 2, y: (d.wall.start.y + d.wall.end.y) / 2 } : null;
 }
-const badges = computed(() => {
-  const c = checks.value;
-  if (!c) return [];
+const badges = computed(() => badgePoints(checks.value?.findings ?? []));
+/** Where each finding's "!" goes: on the element it's about (first id); one per element. */
+function badgePoints(findings: readonly Finding[]) {
   const p = project.value;
   const seen = new Set<string>();
-  return c.findings.flatMap((f) => {
+  return findings.flatMap((f) => {
     const id = f.elementIds[0] ?? "";
     if (seen.has(id)) return [];
     seen.add(id);
@@ -535,7 +545,7 @@ const badges = computed(() => {
               : null;
     return at ? [{ at, severity: f.severity, id }] : [];
   });
-});
+}
 function selectFromCheck(ids: string[]) {
   setTool("select");
   selectTool.selection = ids.filter((id) => history.current.elements[id]).slice(0, 1);
@@ -601,9 +611,11 @@ function setOpeningLintelSize(id: string, size: LintelSize) {
 function setOpeningLintel(id: string, has: boolean) {
   run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
 }
-const detected = computed(() => {
-  const rs = detectRooms(project.value, level.value);
-  const tags = matchRoomTags(rs, roomTags(project.value, level.value));
+const detected = computed(() => detectedOn(level.value));
+/** Rooms of one floor with their labels (the plan, the export). */
+function detectedOn(levelId: string) {
+  const rs = detectRooms(project.value, levelId);
+  const tags = matchRoomTags(rs, roomTags(project.value, levelId));
   return rs.map((r) => {
     const tag = tags.get(r.key);
     const data = tag ? architectData(tag) : {};
@@ -613,7 +625,7 @@ const detected = computed(() => {
     const up = tag ? aboveOf(tag) : { above: null, joists: null };
     return { ...r, name: tag?.name ?? "", label, roomType: data.roomType ?? "", floorFinish: data.floor, ...up };
   });
-});
+}
 
 // Painted faces (Architect finishes): a strip just inside each painted face, clipped by the renderer.
 const faces = computed(() => {
@@ -1202,9 +1214,15 @@ const showHandoff = ref(false);
 
 // --- export a picture / PDF of the current floor (ADR-056) ------------------------------------------
 const showExport = ref(false);
-/** Draws the current floor's sheet on `canvas`; null when the floor has no walls. */
-function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number) {
-  const g = planGeometry(project.value, level.value);
+/** Structure checks for the export (same baseline as the panel); null when the module is off. */
+const checksFor = (levelId: string) =>
+  structuralOn.value ? runChecks(history.current, levelId, { baseline: session.baselineProject() }) : null;
+/**
+ * Draws one floor's sheet on `canvas` (default: the current floor); null when it has no walls. With
+ * `o.marks`, findings get numbers from `first` on, shown on the plan; they are returned for the notes page.
+ */
+function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number, levelId = level.value, first = 1) {
+  const g = planGeometry(project.value, levelId);
   const pts = g.walls.flatMap((w) => w.polygon);
   if (!pts.length) return null;
   const bounds = {
@@ -1222,6 +1240,13 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number) {
     const e = project.value.elements[id];
     return e?.type === "wall" ? e.kind : "full";
   };
+  const checked = o.marks ? checksFor(levelId) : null;
+  const numbered = (checked?.findings ?? []).map((f, i) => ({ n: first + i, f }));
+  // one mark per element: its numbers, coloured by the worst finding (findings come worst first)
+  const marks = badgePoints(checked?.findings ?? []).map((b) => {
+    const ns = numbered.filter((x) => x.f.elementIds[0] === b.id).map((x) => x.n);
+    return { at: b.at, severity: b.severity, label: ns.join(",") };
+  });
   const date = new Intl.DateTimeFormat(locale.value, { dateStyle: "medium" }).format(new Date());
   drawSheet(
     ctx,
@@ -1229,15 +1254,16 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number) {
       walls: g.walls.map((w) => ({ polygon: w.polygon, kind: kindOf(w.id) })),
       outline: g.outline,
       openings: g.openings,
-      rooms: detected.value.map((r) => ({
+      rooms: detectedOn(levelId).map((r) => ({
         at: r.labelAt,
         lines: [r.label, formatArea(r.floorArea, locale.value)].filter((x): x is string => !!x),
       })),
+      marks,
       bounds,
       texts: {
         title: project.value.name || t("export.untitled"),
         subtitle: t("export.subtitle", {
-          floor: currentFloorName.value,
+          floor: floorName(project.value, levelId),
           n: L.scale,
           paper: o.paper.toUpperCase(),
           date,
@@ -1250,35 +1276,89 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number) {
     L,
     px,
   );
-  return { scale: L.scale, fits: L.fits };
+  return { scale: L.scale, fits: L.fits, numbered, checksRun: checked?.checksRun.length ?? 0 };
 }
-/** 200 dots per inch: sharp on paper, a few hundred KB. */
+/** 200 dots per inch: sharp on paper, a few hundred KB a page. */
 const EXPORT_PX = 200 / 25.4;
+const canvasBytes = async (c: HTMLCanvasElement, type: string) => {
+  const blob = await new Promise<Blob | null>((res) => c.toBlob(res, type, 0.92));
+  return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+};
+/** Every page of an export as canvases: one sheet per floor, then the notes pages (PDF with marks). */
+function exportCanvases(o: ExportOptions) {
+  const pdf = o.format === "pdf";
+  const levels = pdf && o.floors === "all" ? levelsByElevation(project.value).map((l) => l.id) : [level.value];
+  const sheets: HTMLCanvasElement[] = [];
+  const notes: HTMLCanvasElement[] = [];
+  const sections: NotesInput["sections"] = [];
+  let next = 1;
+  for (const lv of levels) {
+    const canvas = document.createElement("canvas");
+    const r = drawExport(canvas, o, EXPORT_PX, lv, next);
+    if (!r) continue;
+    next += r.numbered.length;
+    sheets.push(canvas);
+    sections.push({
+      heading: floorName(project.value, lv),
+      items: r.numbered.map(({ n, f }) => ({
+        label: String(n),
+        severity: f.severity,
+        tag: t(`severity.${f.severity}`),
+        text: findingText(f, project.value, locale.value),
+      })),
+      empty: t("export.notes.none", { count: r.checksRun }),
+    });
+  }
+  const paper = PAPERS[o.paper];
+  if (pdf && o.marks && sections.length) {
+    // the notes: what each number on the plans means
+    const m = document.createElement("canvas").getContext("2d");
+    const measure = (text: string, size: number, bold: boolean) => {
+      if (!m) return text.length * size * 0.5;
+      m.font = `${bold ? "600 " : ""}${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+      return m.measureText(text).width;
+    };
+    const pages = layoutNotes(
+      { title: t("export.notes.title"), intro: t("export.notes.intro"), sections, disclaimer: t("checks.disclaimer") },
+      paper,
+      measure,
+    );
+    for (const lines of pages) {
+      const c = document.createElement("canvas");
+      c.width = Math.round(paper.w * EXPORT_PX);
+      c.height = Math.round(paper.h * EXPORT_PX);
+      const g = c.getContext("2d");
+      if (!g) continue;
+      drawNotesPage(g, lines, paper, EXPORT_PX);
+      notes.push(c);
+    }
+  }
+  return { levels, sheets, notes };
+}
 async function doExport(o: ExportOptions) {
-  const canvas = document.createElement("canvas");
-  if (!drawExport(canvas, o, EXPORT_PX)) return;
-  const blob = await new Promise<Blob | null>((res) =>
-    canvas.toBlob(res, o.format === "pdf" ? "image/jpeg" : "image/png", 0.92),
-  );
   showExport.value = false;
-  if (!blob) return;
-  const image = new Uint8Array(await blob.arrayBuffer());
-  const name = `${project.value.name || t("export.untitled")} - ${currentFloorName.value}`;
-  const bytes =
-    o.format === "pdf"
-      ? pdfWithImage({
-          jpeg: image,
-          width: canvas.width,
-          height: canvas.height,
-          pageMm: PAPERS[o.paper],
-          title: name,
-          producer: `Prumo ${await platform.appVersion()}`,
-        })
-      : image;
+  const pdf = o.format === "pdf";
+  const { levels, sheets, notes } = exportCanvases(o);
+  if (!sheets.length) return;
+  const name =
+    `${project.value.name || t("export.untitled")}` +
+    (levels.length > 1 ? "" : ` - ${floorName(project.value, levels[0] ?? "")}`);
+  let out: Uint8Array | null;
+  if (pdf) {
+    const pages: { jpeg: Uint8Array; width: number; height: number }[] = [];
+    for (const c of [...sheets, ...notes]) {
+      const jpeg = await canvasBytes(c, "image/jpeg");
+      if (jpeg) pages.push({ jpeg, width: c.width, height: c.height });
+    }
+    out = pages.length
+      ? pdfWithImages({ pages, pageMm: PAPERS[o.paper], title: name, producer: `Prumo ${await platform.appVersion()}` })
+      : null;
+  } else out = sheets[0] ? await canvasBytes(sheets[0], "image/png") : null;
+  if (!out) return;
   const path = await platform.pickSavePath(name, { label: o.format.toUpperCase(), ext: o.format });
   if (!path) return;
   try {
-    await platform.writeFile(path, bytes);
+    await platform.writeFile(path, out);
     notice.value = "";
   } catch (e) {
     notice.value = t("export.failed", { error: String(e) });
@@ -2197,13 +2277,14 @@ if (
     });
 }
 if (demo === "export" || demo === "export-full") {
-  const ex = EXAMPLES.find((e) => e.id === "house");
+  const ex = EXAMPLES.find((e) => e.id === "problems");
   if (ex)
     void startExample(ex).then(() => {
       if (demo === "export") return void (showExport.value = true);
       // the real 200 dpi sheet, shown as an image over the app (checking the output)
-      const c = document.createElement("canvas");
-      drawExport(c, { format: "png", paper: "a4", scale: "fit" }, EXPORT_PX);
+      const all = exportCanvases({ format: "pdf", paper: "a4", scale: "fit", floors: "all", marks: true });
+      const c = new URLSearchParams(location.search).has("notes") ? all.notes[0] : all.sheets[0];
+      if (!c) return;
       const img = document.createElement("img");
       img.src = c.toDataURL("image/png");
       img.style.cssText = "position:fixed;inset:0;z-index:99;width:100vw;background:#fff";
@@ -2781,6 +2862,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           v-if="showExport"
           :locale="locale"
           :floor="currentFloorName"
+          :floor-count="project.levels.length"
+          :structure="structuralOn"
           :draw="drawExport"
           @export="doExport"
           @cancel="showExport = false"

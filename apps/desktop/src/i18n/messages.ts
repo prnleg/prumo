@@ -106,6 +106,14 @@ export const en = {
   "export.disclaimer":
     "Drawn with Prumo, a learning tool. Not a construction drawing and not engineering advice: check every measurement on site.",
   "export.failed": "Couldn't save the file: {error}",
+  "export.allFloors": "All {count} floors (one page each)",
+  "export.marks": "Show the structure checks",
+  "export.marks.tip": "Numbered marks on the plan; in a PDF, a last page says what each number means.",
+  "export.notes.title": "Structure checks",
+  "export.notes.intro":
+    "What each numbered mark on the plans means. These are possible issues found by simplified checks: an engineer should look at them.",
+  "export.notes.none":
+    "{count, plural, =0 {No checks ran on this floor.} one {No possible issues found by the # check that ran on this floor.} other {No possible issues found by the # checks that ran on this floor.}}",
   "start.system.title": "How will this building be built?",
   "start.system.why":
     "Prumo's checks depend on it. Not sure? Choose \"I don't know\": Prumo uses the more cautious rules and tells you so.",
@@ -871,6 +879,14 @@ export const ptBR: Record<MessageKey, string> = {
   "export.disclaimer":
     "Desenhado no Prumo, uma ferramenta de aprendizado. Não é projeto executivo nem orientação de engenharia: confira cada medida na obra.",
   "export.failed": "Não deu para salvar o arquivo: {error}",
+  "export.allFloors": "Todos os {count} andares (uma página cada)",
+  "export.marks": "Mostrar as verificações da estrutura",
+  "export.marks.tip": "Marcas numeradas na planta; no PDF, uma última página diz o que cada número significa.",
+  "export.notes.title": "Verificações da estrutura",
+  "export.notes.intro":
+    "O que cada marca numerada nas plantas significa. São possíveis problemas encontrados por verificações simplificadas: um engenheiro deve olhar.",
+  "export.notes.none":
+    "{count, plural, =0 {Nenhuma verificação rodou neste andar.} one {Nenhum possível problema encontrado pela # verificação que rodou neste andar.} other {Nenhum possível problema encontrado pelas # verificações que rodaram neste andar.}}",
   "start.system.title": "Como esta construção vai ser feita?",
   "start.system.why":
     'As verificações do Prumo dependem disso. Em dúvida? Escolha "Não sei": o Prumo usa as regras mais cautelosas e avisa.',

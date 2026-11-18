@@ -18,12 +18,15 @@ export function pdfString(s: string): string {
   return `<${hex.toUpperCase()}>`;
 }
 
-export interface PdfImagePage {
+export interface PdfImage {
   /** JPEG bytes (baseline, RGB). */
   jpeg: Uint8Array;
   /** Image size, px. */
   width: number;
   height: number;
+}
+
+export interface PdfImagePage extends PdfImage {
   /** Page size, mm (the image fills it). */
   pageMm: { w: number; h: number };
   title: string;
@@ -31,8 +34,17 @@ export interface PdfImagePage {
   producer: string;
 }
 
-/** The PDF file's bytes. */
-export function pdfWithImage(o: PdfImagePage): Uint8Array {
+/** One page holding one image. */
+export const pdfWithImage = (o: PdfImagePage): Uint8Array =>
+  pdfWithImages({ pages: [o], pageMm: o.pageMm, title: o.title, producer: o.producer });
+
+/** The PDF file's bytes: one page per image, each image filling its page (same page size). */
+export function pdfWithImages(o: {
+  pages: readonly PdfImage[];
+  pageMm: { w: number; h: number };
+  title: string;
+  producer: string;
+}): Uint8Array {
   const W = (o.pageMm.w / 25.4) * 72;
   const H = (o.pageMm.h / 25.4) * 72;
   const f = (x: number) => x.toFixed(2);
@@ -50,25 +62,32 @@ export function pdfWithImage(o: PdfImagePage): Uint8Array {
     for (const b of Array.isArray(body) ? body : [body]) push(b);
     push(`\nendobj\n`);
   };
+  // objects: 1 catalog, 2 pages, 3 info, then per page k: page, image, contents
+  const n = o.pages.length;
+  const pageObj = (k: number) => 4 + 3 * k;
   push("%PDF-1.4\n");
   obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
-  obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-  obj(
-    3,
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(W)} ${f(H)}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
-  );
-  obj(4, [
-    `<< /Type /XObject /Subtype /Image /Width ${o.width} /Height ${o.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${o.jpeg.length} >>\nstream\n`,
-    o.jpeg,
-    "\nendstream",
-  ]);
-  obj(5, `<< /Length ${enc.encode(content).length} >>\nstream\n${content}endstream`);
-  obj(6, `<< /Title ${pdfString(o.title)} /Producer ${pdfString(o.producer)} >>`);
+  obj(2, `<< /Type /Pages /Kids [${o.pages.map((_, k) => `${pageObj(k)} 0 R`).join(" ")}] /Count ${n} >>`);
+  obj(3, `<< /Title ${pdfString(o.title)} /Producer ${pdfString(o.producer)} >>`);
+  o.pages.forEach((pg, k) => {
+    const p = pageObj(k);
+    obj(
+      p,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(W)} ${f(H)}] /Resources << /XObject << /Im0 ${p + 1} 0 R >> >> /Contents ${p + 2} 0 R >>`,
+    );
+    obj(p + 1, [
+      `<< /Type /XObject /Subtype /Image /Width ${pg.width} /Height ${pg.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.jpeg.length} >>\nstream\n`,
+      pg.jpeg,
+      "\nendstream",
+    ]);
+    obj(p + 2, `<< /Length ${enc.encode(content).length} >>\nstream\n${content}endstream`);
+  });
+  const total = 3 + 3 * n;
   const xref = size;
-  let table = `xref\n0 7\n0000000000 65535 f \n`;
-  for (let n = 1; n <= 6; n++) table += `${String(offsets[n]).padStart(10, "0")} 00000 n \n`;
+  let table = `xref\n0 ${total + 1}\n0000000000 65535 f \n`;
+  for (let k = 1; k <= total; k++) table += `${String(offsets[k]).padStart(10, "0")} 00000 n \n`;
   push(table);
-  push(`trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  push(`trailer\n<< /Size ${total + 1} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
   const out = new Uint8Array(size);
   let at = 0;
   for (const p of parts) {

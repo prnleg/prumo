@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoutSheet, pdfString, pdfWithImage, scaleBar } from "../src";
+import { layoutNotes, layoutSheet, pdfString, pdfWithImage, pdfWithImages, scaleBar } from "../src";
 
 const dec = new TextDecoder("latin1");
 
@@ -54,8 +54,59 @@ describe("PDF writer (ADR-056)", () => {
     expect(text).toContain("/MediaBox [0 0 841.89 595.28]");
     expect(text).toContain("/Filter /DCTDecode /Length 4");
   });
+  it("several pages: one page object per image, all listed in Pages, xref still exact", () => {
+    const b = dec.decode(
+      pdfWithImages({
+        pages: [
+          { jpeg, width: 1, height: 1 },
+          { jpeg, width: 1, height: 1 },
+        ],
+        pageMm: { w: 297, h: 210 },
+        title: "x",
+        producer: "p",
+      }),
+    );
+    expect(b).toContain("/Kids [4 0 R 7 0 R] /Count 2");
+    const xref = Number(/startxref\n(\d+)/.exec(b)?.[1]);
+    const rows = b.slice(xref).split("\n").slice(3, 12);
+    rows.forEach((r, i) => expect(b.slice(Number(r.slice(0, 10)), Number(r.slice(0, 10)) + 7)).toBe(`${i + 1} 0 obj`));
+  });
+
   it("titles: ASCII escaped, accents as UTF-16BE", () => {
     expect(pdfString("a (b) \\")).toBe("(a \\(b\\) \\\\)");
     expect(pdfString("Térreo")).toBe("<FEFF005400E9007200720065006F>");
+  });
+});
+
+describe("notes pages", () => {
+  // every character 1 mm wide: easy to reason about wrapping
+  const measure = (t: string) => t.length;
+  const page = { w: 297, h: 210 };
+  it("wraps long findings and repeats the disclaimer at the foot of every page", () => {
+    const items = Array.from({ length: 60 }, (_, i) => ({
+      label: String(i + 1),
+      severity: "warning" as const,
+      tag: "Warning",
+      text: "word ".repeat(80).trim(),
+    }));
+    const pages = layoutNotes(
+      { title: "T", intro: "I", sections: [{ heading: "Ground", items, empty: "" }], disclaimer: "D" },
+      page,
+      measure,
+    );
+    expect(pages.length).toBeGreaterThan(1);
+    for (const p of pages) expect(p[p.length - 1]).toEqual({ kind: "footer", text: "D" });
+    const first = pages[0]?.find((l) => l.kind === "item");
+    expect(first && "label" in first ? first.label : null).toBe("1");
+    // text column: 297 − 20 − 8 − 28 = 241 mm → at most 241 characters a line (+ slack)
+    for (const p of pages) for (const l of p) expect(l.text.length).toBeLessThanOrEqual(259);
+  });
+  it("a floor with no findings shows its 'empty' text", () => {
+    const [p] = layoutNotes(
+      { title: "T", intro: "I", sections: [{ heading: "Ground", items: [], empty: "None" }], disclaimer: "D" },
+      page,
+      measure,
+    );
+    expect(p?.some((l) => l.kind === "empty" && l.text === "None")).toBe(true);
   });
 });
