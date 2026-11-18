@@ -7,10 +7,18 @@ export type WallRole = "bearing" | "non-bearing";
 export type RoleOrigin = "drawing" | "professional" | "own-judgement";
 export const ROLE_ORIGINS: readonly RoleOrigin[] = ["drawing", "professional", "own-judgement"];
 
+export type WallEnd = "start" | "end";
+
 export interface StructuralData {
   role?: WallRole;
   origin?: RoleOrigin;
   lintel?: true;
+  /** Window: has a sill reinforcement (contraverga). */
+  contraverga?: true;
+  /** Wall: has a tie beam (cinta de respaldo) on top. */
+  tieBeam?: true;
+  /** Wall: bonded (interlocked / tied) to the walls meeting it at that end. */
+  bonded?: { start?: true; end?: true };
   [more: string]: unknown;
 }
 export const STRUCTURAL_DATA_VERSION = 1;
@@ -41,6 +49,21 @@ export function setWallRole(w: Wall, role: WallRole | undefined, origin?: RoleOr
 
 export function setLintel(o: Opening, has: boolean): Opening {
   return withStructuralData(o, { ...structuralData(o), lintel: has ? true : undefined });
+}
+
+export function setContraverga(o: Opening, has: boolean): Opening {
+  return withStructuralData(o, { ...structuralData(o), contraverga: has ? true : undefined });
+}
+
+export function setTieBeam(w: Wall, has: boolean): Wall {
+  return withStructuralData(w, { ...structuralData(w), tieBeam: has ? true : undefined });
+}
+
+export function setBonded(w: Wall, end: WallEnd, bonded: boolean): Wall {
+  const d = structuralData(w);
+  const b = { ...d.bonded, [end]: bonded ? true : undefined };
+  const clean = Object.fromEntries(Object.entries(b).filter(([, v]) => v));
+  return withStructuralData(w, { ...d, bonded: Object.keys(clean).length ? clean : undefined });
 }
 
 // --- construction system (project.profileId = "<country>/<system>", ADR-004/009/042) ----------------

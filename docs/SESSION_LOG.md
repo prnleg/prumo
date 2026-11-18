@@ -703,3 +703,15 @@ Owner approved the baseline design → **ADR-043**. Branch `phase2/baseline`, st
 **Tests**: 373 (+11): no baseline → listed not run; unchanged → nothing; removed (no element to point at) / moved 1 m / turned into a fence / 0.5 mm nudge ignored / was marked partition → may go; new door critical, widened warning, slid nothing, taller warning, moved to another wall = new; partition wall not this rule; session: mark → unsaved, snapshot without pointer, unaffected by later edits, survives save → open, undo clears.
 
 **Next**: rules needing new data (contraverga flag R-OPEN-006, tie beam R-RING-001, bonding R-JOINT-001, chases R-WALL-004 — small ADR-042 additions); ghost of a removed wall on the plan; Phase 2 exit needs ≥ 8 rules (have 4).
+
+### Session #11, part 40 — Phase 2 slice 4: contraverga, tie beam, bonded junctions, 2026-11-17
+
+Owner approved the three data additions. Branch `phase2/more-rules` from main.
+
+**Done**: data `contraverga`, `tieBeam`, `bonded {start,end}` + setters (empty → removed); rules **R-OPEN-006** (advisory), **R-RING-001** (warning, full walls only), **R-JOINT-001** (warning, one finding per junction; junction detection = wall end within 5 mm of another load-bearing wall's end or body, the drawing's join tolerance); `junctionsOf` for the panel. Panel: contraverga (windows), tie beam (full walls), one "bonded" box per end that meets another wall, labelled by the end's position on the plan (top/bottom/left/right) + the other wall — no start/end jargon. Examples all marked; "house with problems" = 2 × R-OPEN-001 + R-OPEN-006 + R-ROLE-001. Older tests pinned to the first four rules (`rules: FIRST`) so each test still checks one thing.
+
+**Tests**: 385 (+12: 8 rule tests incl. L / T / three-way junctions and wrong-end marks; data cleanup).
+
+**Noticed**: a stale dev server from an earlier run held port 5199 and served a blank page; killed by pid.
+
+**Next**: Phase 2 exit needs ≥ 8 rules → R-WALL-004 (chases: a new element + tool, approved "later"). Threshold rules (R-OPEN-002/003/004, R-WALL-001/006) wait for batch 2b.

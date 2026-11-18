@@ -8,7 +8,10 @@ import {
   type Wall,
 } from "@prumo/core";
 import { describe, expect, it } from "vitest";
-import { runChecks, setLintel, setWallRole } from "../src";
+import { R_OPEN_001, R_OPEN_NEW, R_ROLE_001, R_WALL_002, runChecks, setLintel, setWallRole } from "../src";
+
+/** The first four rules (these tests predate R-OPEN-006 / R-RING-001 / R-JOINT-001, tested in more-rules). */
+const FIRST = [R_OPEN_001, R_ROLE_001, R_WALL_002, R_OPEN_NEW];
 
 const wall = (id: string, y: number, o: Partial<Wall> = {}): Wall => ({
   id,
@@ -46,11 +49,13 @@ const base = (els: Element[]): Project =>
   putElements(emptyProject({ id: "p", levelId: "l", name: "t", now: "", profileId: "br-nbr/structural-masonry" }), els);
 const original = base([wall("a", 0), wall("b", 3000), door("d", "a", 1000)]);
 const check = (now: Project, baseline: Project | null = original) =>
-  runChecks(now, "l", { baseline }).findings.map((f) => `${f.ruleId}.${f.messageKey.split(".").pop()}:${f.severity}`);
+  runChecks(now, "l", { baseline, rules: FIRST }).findings.map(
+    (f) => `${f.ruleId}.${f.messageKey.split(".").pop()}:${f.severity}`,
+  );
 
 describe("renovation checks need the existing building (ADR-043)", () => {
   it("without one they don't run and are listed as needing it", () => {
-    const r = runChecks(original, "l");
+    const r = runChecks(original, "l", { rules: FIRST });
     expect(r.checksRun.map((x) => x.id)).toEqual(["R-OPEN-001", "R-ROLE-001"]);
     expect(r.needBaseline.map((x) => x.id)).toEqual(["R-OPEN-NEW", "R-WALL-002"]);
   });
@@ -61,7 +66,7 @@ describe("renovation checks need the existing building (ADR-043)", () => {
 
 describe("R-WALL-002: a load-bearing wall removed, moved or changed", () => {
   it("removed → critical, nothing to point at on the plan", () => {
-    const r = runChecks(removeElements(original, ["b"]), "l", { baseline: original });
+    const r = runChecks(removeElements(original, ["b"]), "l", { baseline: original, rules: FIRST });
     expect(r.findings).toMatchObject([
       { ruleId: "R-WALL-002", severity: "critical", elementIds: [], messageKey: "rule.R-WALL-002.removed" },
     ]);

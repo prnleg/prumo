@@ -108,6 +108,32 @@ export const en = {
   "settings.modules.tip":
     "Turning a module off hides its tools and checks on this computer. Its data stays in your files.",
   "cmd.setSystem": "change construction system",
+  "cmd.setContraverga": "change sill reinforcement",
+  "cmd.setTieBeam": "change tie beam",
+  "cmd.setBonded": "change wall bonding",
+  "props.tieBeam": "Has a tie beam on top (cinta)",
+  "tieBeam.tip":
+    "A tie beam is a reinforced concrete band along the top of the walls, under the slab or roof. It ties the walls together.",
+  "props.bonded.top": "Top end bonded to {other}",
+  "props.bonded.bottom": "Bottom end bonded to {other}",
+  "props.bonded.left": "Left end bonded to {other}",
+  "props.bonded.right": "Right end bonded to {other}",
+  "bonded.tip":
+    "Bonded = the blocks interlock where the walls meet, or they're tied with steel or grout. Unbonded junctions can crack apart.",
+  "props.contraverga": "Has a sill reinforcement (contraverga)",
+  "contraverga.tip":
+    "A small beam under the window. Without it, cracks often start at the lower corners of the window.",
+  "rule.R-OPEN-006.name": "Window without a sill reinforcement",
+  "rule.R-OPEN-006.message":
+    "Advice: {opening} in {wall} has no sill reinforcement (contraverga) marked. Without one, cracks often start at the lower corners.",
+  "rule.R-RING-001.name": "Load-bearing wall without a tie beam",
+  "rule.R-RING-001.message": "Possible issue: {wall} has no tie beam (cinta) marked on top.",
+  "rule.R-JOINT-001.name": "Walls meeting without being bonded",
+  "rule.R-JOINT-001.message":
+    "Possible issue: {wall} and {other} meet without being marked as bonded (interlocked blocks, ties or grout).",
+  "nc.contravergaSize": "whether the sill reinforcement is long or strong enough",
+  "nc.tieBeamSize": "the tie beam's size and reinforcement",
+  "nc.bondDetail": "how the bonding is actually done",
   "baseline.snapshotName": "Existing building",
   "cmd.setBaseline": "mark the existing building",
   "cmd.clearBaseline": "stop comparing with the existing building",
@@ -135,8 +161,8 @@ export const en = {
   "props.role": "Does this wall hold the building up?",
   "role.tip":
     "Load-bearing walls carry the floors and roof above and keep the building standing. Removing or cutting them needs a professional.",
-  "role.default.structural-masonry": "Not marked (counts as load-bearing in structural masonry)",
-  "role.default.unknown": "Not marked (counts as load-bearing: system not known)",
+  "role.default.structural-masonry": "Not marked (load-bearing by default)",
+  "role.default.unknown": "Not marked (load-bearing: system unknown)",
   "role.default.rc-frame": "Not marked",
   "role.bearing": "Yes, load-bearing",
   "role.non-bearing": "No, only a partition",
@@ -504,6 +530,32 @@ export const ptBR: Record<MessageKey, string> = {
   "settings.modules.tip":
     "Desligar um módulo esconde as ferramentas e verificações dele neste computador. Os dados continuam nos seus arquivos.",
   "cmd.setSystem": "mudar sistema construtivo",
+  "cmd.setContraverga": "mudar contraverga",
+  "cmd.setTieBeam": "mudar cinta",
+  "cmd.setBonded": "mudar amarração das paredes",
+  "props.tieBeam": "Tem cinta no topo",
+  "tieBeam.tip":
+    "A cinta é uma faixa de concreto armado no topo das paredes, embaixo da laje ou do telhado. Ela amarra as paredes entre si.",
+  "props.bonded.top": "Ponta de cima amarrada à {other}",
+  "props.bonded.bottom": "Ponta de baixo amarrada à {other}",
+  "props.bonded.left": "Ponta da esquerda amarrada à {other}",
+  "props.bonded.right": "Ponta da direita amarrada à {other}",
+  "bonded.tip":
+    "Amarrada = os blocos se intertravam no encontro das paredes, ou há grampo de aço ou graute. Encontros sem amarração podem trincar e se separar.",
+  "props.contraverga": "Tem contraverga",
+  "contraverga.tip":
+    "Uma pequena viga embaixo da janela. Sem ela, é comum aparecerem trincas nos cantos de baixo da janela.",
+  "rule.R-OPEN-006.name": "Janela sem contraverga",
+  "rule.R-OPEN-006.message":
+    "Orientação: {opening}, na {wall}, não tem contraverga marcada. Sem ela, é comum aparecerem trincas nos cantos de baixo.",
+  "rule.R-RING-001.name": "Parede estrutural sem cinta",
+  "rule.R-RING-001.message": "Possível problema: a {wall} não tem cinta marcada no topo.",
+  "rule.R-JOINT-001.name": "Paredes que se encontram sem amarração",
+  "rule.R-JOINT-001.message":
+    "Possível problema: a {wall} e a {other} se encontram sem amarração marcada (blocos intertravados, grampo ou graute).",
+  "nc.contravergaSize": "se a contraverga tem comprimento ou resistência suficientes",
+  "nc.tieBeamSize": "o tamanho e a armadura da cinta",
+  "nc.bondDetail": "como a amarração é feita de fato",
   "baseline.snapshotName": "Construção existente",
   "cmd.setBaseline": "marcar a construção existente",
   "cmd.clearBaseline": "parar de comparar com a construção existente",
@@ -532,8 +584,8 @@ export const ptBR: Record<MessageKey, string> = {
   "props.role": "Esta parede sustenta a construção?",
   "role.tip":
     "Paredes estruturais carregam as lajes e o telhado e mantêm a construção de pé. Remover ou cortar exige um profissional.",
-  "role.default.structural-masonry": "Não marcada (conta como estrutural na alvenaria estrutural)",
-  "role.default.unknown": "Não marcada (conta como estrutural: sistema desconhecido)",
+  "role.default.structural-masonry": "Não marcada (estrutural por padrão)",
+  "role.default.unknown": "Não marcada (estrutural: sistema desconhecido)",
   "role.default.rc-frame": "Não marcada",
   "role.bearing": "Sim, é estrutural",
   "role.non-bearing": "Não, só vedação",

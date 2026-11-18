@@ -12,7 +12,7 @@ import {
   type Wall,
 } from "@prumo/core";
 import { DEFAULT_OPENING_SIZES, setRoomType, type RoomType } from "@prumo/module-architect";
-import { setLintel, setWallRole } from "@prumo/module-structural";
+import { setBonded, setContraverga, setLintel, setTieBeam, setWallRole } from "@prumo/module-structural";
 
 type Translate = (key: string) => string;
 
@@ -87,7 +87,10 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
   };
   const D = DEFAULT_OPENING_SIZES.door,
     W = DEFAULT_OPENING_SIZES.window;
-  const lintel = <T extends Opening>(o: T, spec: { noLintel?: boolean }) => setLintel(o, !spec.noLintel);
+  // examples are built "by the book": lintel, contraverga (windows), tie beams, bonded junctions —
+  // except what the "house with problems" leaves out on purpose
+  const lintel = <T extends Opening>(o: T, spec: { noLintel?: boolean }) =>
+    setLintel(o.kind === "window" ? setContraverga(o, !spec.noLintel) : o, !spec.noLintel);
   for (const d of plan.doors)
     els.push(
       lintel(
@@ -131,6 +134,8 @@ function assemble(plan: Plan, a: ExampleArgs): Project {
         r.type,
       ),
     );
+  for (const [i, e] of els.entries())
+    if (e.type === "wall") els[i] = setBonded(setBonded(setTieBeam(e, true), "start", true), "end", true);
   for (const key of plan.partitions ?? []) {
     const i = els.findIndex((e) => e.id === wallId.get(key));
     const w = els[i];
