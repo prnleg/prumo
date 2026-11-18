@@ -275,5 +275,6 @@ Revised with the engineer contact (E-05, 2026-11-17). Shown as part of "what was
 - Doesn't consider roof thrust (unbraced trusses/rafters pushing the top of the wall).
 - Doesn't consider point loads or load sharing between walls (spread at ~45°, wall groups).
 - Doesn't consider construction sequence or shoring: opening a wall without propping is dangerous even if the final layout is fine.
+- **Doesn't check floors against each other** (ADR-048, 2026-11-18): each floor is checked on its own — walls upstairs that don't stand on a wall below and weight adding up floor by floor are not checked (R-WALL-005 and Phase 5 load rules wait on the engineer).
 - Walls treated as uniform; no workmanship variability.
 - Openings rectangular.

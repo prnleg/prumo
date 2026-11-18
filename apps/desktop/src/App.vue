@@ -11,6 +11,12 @@ import {
   planGeometry,
   randomIds,
   wallsOnLevel,
+  addLevelCommand,
+  deleteLevelCommand,
+  levelBelow,
+  levelsByElevation,
+  renameLevelCommand,
+  type NewLevelStart,
   deleteCommand,
   detectRooms,
   isHosted,
@@ -125,6 +131,7 @@ import {
   Undo2,
 } from "@lucide/vue";
 import FindingsPanel from "./FindingsPanel.vue";
+import AddFloorDialog from "./AddFloorDialog.vue";
 import LayersPanel from "./LayersPanel.vue";
 import MenuBar, { type Menu } from "./MenuBar.vue";
 import HandoffDialog from "./HandoffDialog.vue";
@@ -296,16 +303,19 @@ function setChaseDir(d: ChaseDir) {
   sync();
 }
 
-/** After New/Open the level ids change: point every tool at the project's first level. */
+/** After New/Open (or undoing "add floor") the level is gone: go to the lowest floor. */
 history.subscribe((e) => {
   if (e.project.levels.some((l) => l.id === level.value)) return;
-  const first = e.project.levels[0];
-  if (!first) return;
-  level.value = first.id;
-  for (const tl of [wallTool, openingTool, roomTool, selectTool, chaseTool])
-    tl.options = { ...tl.options, levelId: first.id };
-  selectTool.selection = [];
+  const first = levelsByElevation(e.project)[0];
+  if (first) pointToolsAt(first.id, first.defaultWallHeight);
 });
+function pointToolsAt(id: string, wallHeight: number) {
+  level.value = id;
+  for (const tl of [openingTool, selectTool, chaseTool]) tl.options = { ...tl.options, levelId: id };
+  wallTool.options = { ...wallTool.options, levelId: id, height: wallHeight };
+  roomTool.options = { ...roomTool.options, levelId: id, height: wallHeight };
+  selectTool.selection = [];
+}
 
 const selectTool = new SelectTool(history, { levelId: firstLevelId, grid: DEFAULT_SNAP.grid, dragPx: 4, pickPx: 6 });
 const selection = ref<string[]>([]);
@@ -609,6 +619,71 @@ const panelRooms = computed(() =>
     joists: r.joists,
   })),
 );
+// --- floors (ADR-048) ------------------------------------------------------------------------------
+/** Generated names follow the floor's place from the bottom: Ground floor, Floor 1, Floor 2… */
+function floorName(p: Project, id: string): string {
+  const ls = levelsByElevation(p);
+  const i = ls.findIndex((l) => l.id === id);
+  const l = ls[i];
+  return l?.name ?? (i <= 0 ? t("level.ground") : t("level.n", { n: i }));
+}
+/** Top floor first, like the building. */
+const floorList = computed(() =>
+  levelsByElevation(project.value)
+    .reverse()
+    .map((l) => ({ id: l.id, name: floorName(project.value, l.id) })),
+);
+const currentFloorName = computed(() => floorName(project.value, level.value));
+const showAddFloor = ref(false);
+const showBelow = ref(true);
+function setLevel(id: string) {
+  const l = project.value.levels.find((x) => x.id === id);
+  if (!l || id === level.value) return;
+  endTools();
+  pointToolsAt(id, l.defaultWallHeight);
+  hiddenRooms.value = new Set();
+  sync();
+  recheck(false);
+}
+function addFloor(name: string, height: number, start: NewLevelStart) {
+  showAddFloor.value = false;
+  const id = randomIds();
+  // the suggested name stays generated (null), so it follows the language
+  const suggested = t("level.n", { n: levelsByElevation(project.value).length });
+  const cmd = addLevelCommand(history.current, {
+    id,
+    name: name && name !== suggested ? name : null,
+    below: level.value,
+    height,
+    start,
+    newId: randomIds,
+  });
+  if (run(cmd)) setLevel(id);
+}
+function renameLevel(id: string, name: string) {
+  if (name.trim() === floorName(project.value, id)) return;
+  run(renameLevelCommand(id, name));
+}
+async function deleteLevel(id: string) {
+  const count = Object.values(project.value.elements).filter((e) => e.levelId === id).length;
+  const yes = await platform.ask(t("floor.delete.message", { name: floorName(project.value, id), count }), {
+    title: t("floor.delete.title"),
+    ok: t("floor.delete"),
+    cancel: t("handoff.take.cancel"),
+  });
+  if (!yes) return;
+  const was = level.value;
+  if (run(deleteLevelCommand(id)) && id === was) {
+    const first = levelsByElevation(history.current)[0];
+    if (first) setLevel(first.id);
+  }
+}
+/** The floor below, faded under the plan (owner: yes, toggle in View). Not pickable: it's only drawn. */
+const ghostBelow = computed(() => {
+  const below = showBelow.value ? levelBelow(project.value, level.value) : null;
+  return below ? planGeometry(project.value, below.id).walls.map((w) => w.polygon) : [];
+});
+
 // --- layers panel (Q-141): hidden rooms are view state only (not saved, not undoable) ------------
 const showLayers = ref(false);
 const hiddenRooms = ref<ReadonlySet<string>>(new Set());
@@ -1366,6 +1441,12 @@ const menus = computed<Menu[]>(() => {
         { id: "fit", label: t("action.fit") },
         "sep",
         { id: "layers", label: t("layers.title"), checked: showLayers.value },
+        {
+          id: "showBelow",
+          label: t("menu.showBelow"),
+          checked: showBelow.value,
+          disabled: !levelBelow(project.value, level.value),
+        },
         { id: "structure", label: t("menu.structureChecks"), checked: structuralOn.value },
       ],
     },
@@ -1414,6 +1495,7 @@ function onMenu(id: string) {
     fit: fitAll,
     structure: () => (structuralOn.value = !structuralOn.value),
     layers: () => (showLayers.value = !showLayers.value),
+    showBelow: () => (showBelow.value = !showBelow.value),
     tour: () => (showTour.value = true),
   };
   acts[id]?.();
@@ -1619,6 +1701,17 @@ if (demo === "layers") {
       showLayers.value = true;
       const bath = detected.value.find((r) => r.roomType === "bathroom") ?? detected.value[0];
       if (bath) toggleRoom(bath.key);
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
+if (demo === "floors" || demo === "add-floor") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      showLayers.value = true;
+      if (demo === "add-floor") showAddFloor.value = true;
+      else addFloor("", 2800, "outside");
       sync();
       setTimeout(fitAll, 0);
     });
@@ -1920,6 +2013,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </button>
       </span>
       <span class="spacer" />
+      <button v-if="project.levels.length > 1" class="floor-chip" :title="t('layers.tip')" @click="showLayers = true">
+        <LayersIcon :size="14" /> {{ t("floor.on", { name: currentFloorName }) }}
+      </button>
       <label v-if="snapshots.length" class="cmp-pick" :title="t('compare.tip')">
         <GitCompare :size="14" />
         <select
@@ -1971,6 +2067,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :badges="badges"
           :arrows="joistArrows"
           :dimmed="[...hiddenIds]"
+          :ghost="ghostBelow"
           :locks="protectionMarks.locks"
           :ghosts="protectionMarks.ghosts"
           :compare="comparison"
@@ -1989,18 +2086,25 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           @add="addNote"
           @cancel="noteDraft = null"
         />
+        <AddFloorDialog
+          v-if="showAddFloor"
+          :locale="locale"
+          :below="currentFloorName"
+          :suggested="t('level.n', { n: levelsByElevation(project).length })"
+          @add="addFloor"
+          @cancel="showAddFloor = false"
+        />
         <LayersPanel
           v-if="showLayers"
           :locale="locale"
-          :levels="
-            project.levels.map((l, i) => ({
-              id: l.id,
-              name: l.name ?? (i === 0 ? t('level.ground') : t('level.n', { n: i })),
-            }))
-          "
+          :levels="floorList"
           :level="level"
           :rooms="layerRooms"
           @toggle="toggleRoom"
+          @pick-level="setLevel"
+          @add-level="showAddFloor = true"
+          @rename-level="renameLevel"
+          @delete-level="deleteLevel"
           @remove="removeRoom"
           @select="selectRoom"
           @close="showLayers = false"
@@ -2156,6 +2260,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
+}
+.floor-chip {
+  font-weight: 600;
 }
 .optbar button,
 .seg button,
