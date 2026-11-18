@@ -520,7 +520,7 @@ Status: **ACCEPTED (2026-11-18)** — owner: "all usual types"; the proposed lis
 - **Why a string, not an enum check:** a newer version's types must survive in older versions (rule 13) — an unknown style draws the default symbol and is saved untouched. **No schema bump**: the field is optional and older Prumo keeps it (its validation ignores unknown fields).
 - **Side:** `handing` = the side a sliding / pocket / folding leaf goes to (the hinge side for hinged); `swing` = which face. Sliding, casement and top-hung windows use `swing` too and flip it on mirror like doors (property test: every type's symbol mirrors exactly).
 - **Symbols** (core `openingPlan`, hand-checked tests): CAD-style plan conventions — staggered panes for sliding, swing arcs for hinged/casement, dashed for hidden or "when open" parts (pocket inside the wall, garage / top-hung sweep), zig-zag for folding, tick marks for tilting panes, double glass line for fixed.
-- **Not decided:** the opening tool's default type (today: hinged door, plain window); choosing a type before placing waits for the options bar (ADR-047).
+- **Placing a type** (`ui/opening-type`): the options bar of the Door / Window tools has a "Type" picker (this session only; defaults hinged door / plain window). Drawing-default widths for wide types: double 1.20 m, sliding 2 leaves 1.60 m, garage 2.50 m (UX values, editable; not structural).
 
 ## ADR-047 — In-app menu bar, tool strip, options bar; Lucide icons (Q-138)
 Status: **ACCEPTED (2026-11-18)** — owner: native OS menus are "not OK" (Windows menus look dated); "a simple toolbar aligned with the market" (Premiere / Vegas) → chose **menu + side tools**; icons → **Lucide**.

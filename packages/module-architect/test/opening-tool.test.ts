@@ -111,4 +111,17 @@ describe("opening tool", () => {
     h.undo();
     expect(openings()).toEqual([]);
   });
+
+  it("type option (ADR-046): a double door is placed 1200 wide, centred: cursor 2000 → 2000 − 600 = 1400", () => {
+    const { tool, at, openings } = setup(undefined, "door");
+    tool.options = { ...tool.options, style: "double" };
+    tool.click(at(2000, 30));
+    expect(openings().map((o) => [o.host.offset, o.width, o.style])).toEqual([[1400, 1200, "double"]]);
+  });
+
+  it("no type option → no style field (old files look the same)", () => {
+    const { tool, at, openings } = setup(undefined, "door");
+    tool.click(at(2000, 30));
+    expect(openings()[0]?.style).toBeUndefined();
+  });
 });
