@@ -13,3 +13,4 @@ export * from "./modules";
 export * from "./module-data";
 export * from "./persistence";
 export * from "./geometry";
+export * from "./handoff";

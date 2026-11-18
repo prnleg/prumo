@@ -42,6 +42,11 @@ export interface HistoryOptions {
    * checked, e.g. `anchorOutsideWalls`. Must be pure and deterministic; undo/redo/load don't run it.
    */
   normalize?: (before: Project, after: Project) => Project;
+  /**
+   * Whole-document gate checked after the invariants, e.g. the hand-off lock (someone else holds the
+   * project → only notes may change). Problems refuse the change like an invariant does.
+   */
+  guard?: (before: Project, after: Project) => Problem[];
 }
 
 export class HistoryError extends Error {}
@@ -199,6 +204,8 @@ export class History {
     const next = this.opts.normalize && !cmd.exact ? this.opts.normalize(base, applied) : applied;
     const problems = checkInvariants(next, changedIds(base, next));
     if (problems.length) return { ok: false, problems };
+    const refused = this.opts.guard?.(base, next) ?? [];
+    if (refused.length) return { ok: false, problems: refused };
     return { ok: true, project: this.prepare(next) };
   }
 

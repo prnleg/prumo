@@ -117,6 +117,24 @@ export interface Level {
   defaultWallHeight: number;
 }
 
+/** One hand-off event (ADR-029/044): "hand" = passed on by the holder; "take" = taken over by someone else. */
+export interface HandoffEntry {
+  kind: "hand" | "take";
+  from: string;
+  to: string;
+  /** ISO 8601, UTC. */
+  at: string;
+  message?: string;
+  /** The named snapshot made when handing off ("Sent to Bruno #1"). */
+  snapshotId?: Id;
+}
+
+/** Who holds the project ("baton", ADR-029). Missing = solo use, nothing is locked. */
+export interface Handoff {
+  holder: string;
+  log: HandoffEntry[];
+}
+
 export const PROJECT_FORMAT = "prumo-project";
 /** 2 = notes (ADR-044). */
 export const SCHEMA_VERSION = 2;
@@ -135,6 +153,8 @@ export interface Project {
   elements: Record<Id, Element>;
   /** Modules that have ever written data into this project, with the version that last wrote it. */
   modules: Record<ModuleId, { version: string }>;
+  /** ADR-044 slice 3. Optional: absent in solo use and in older files. */
+  handoff?: Handoff;
   settings: {
     gridSize: number;
     /** Outside walls keep their drawn line as the outside face (ADR-038). Missing = off (older files). */

@@ -2,11 +2,13 @@
 // missing-module stop, read-only files. Framework-free and platform-injected, so it is unit-tested.
 import {
   SaveError,
+  handOffCommand,
   openWithModules,
   removeModuleCommand,
   saveProjectFile,
   setBaselineCommand,
   snapshotBefore,
+  takeOverCommand,
   type History,
   type IdSource,
   type ModuleHost,
@@ -110,6 +112,36 @@ export class Session {
     );
     this.snapshots = [...this.snapshots, snap];
     this.history.execute(setBaselineCommand(snap.id));
+  }
+
+  /**
+   * Hand the project to someone (ADR-044 slice 3): a named snapshot "Sent to Bruno #n" + the log entry.
+   * The caller saves afterwards. Returns false if the hand-off was refused (then no snapshot is kept).
+   */
+  handOff(a: { from: string; to: string; message?: string }): boolean {
+    const n = (this.history.current.handoff?.log ?? []).filter((e) => e.kind === "hand" && e.to === a.to).length + 1;
+    const snap = snapshotBefore(this.history.current, {
+      id: this.ids(),
+      name: this.t("handoff.snapshotName", { name: a.to, n }),
+      now: this.now(),
+      author: a.from,
+    });
+    const r = this.history.execute(
+      handOffCommand({ ...a, at: this.now(), snapshotId: snap.id, ...(a.message ? { message: a.message } : {}) }),
+    );
+    if (r.ok) this.snapshots = [...this.snapshots, snap];
+    return r.ok;
+  }
+
+  /** Take the project over from its holder, after a warning (logged in the file). */
+  async takeOver(name: string): Promise<boolean> {
+    const holder = this.history.current.handoff?.holder ?? "";
+    const yes = await this.platform.ask(this.t("handoff.take.message", { name: holder }), {
+      title: this.t("handoff.take.title"),
+      ok: this.t("handoff.take.ok"),
+      cancel: this.t("handoff.take.cancel"),
+    });
+    return yes && this.history.execute(takeOverCommand(name, this.now())).ok;
   }
 
   clearBaseline(): void {

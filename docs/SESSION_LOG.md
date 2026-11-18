@@ -765,3 +765,19 @@ Owner merged handoff-design + notes and left me working alone ("do whatever isn'
 **Tests**: 409 (structural +6). Screenshot checked.
 
 **Next**: slice 3 — hand-off.
+
+### Session #11, part 45 — ADR-044 slice 3: hand-off ("baton"), 2026-11-17
+
+Branch `phase2/handoff`, stacked on `phase2/protection`.
+
+**Done**: core `Project.handoff?: { holder, log[] }` (+ validation, optional so no schema bump), `handOffCommand`, `takeOverCommand`, `isHolder`, `handoffGuard(me)` + new History option **`guard`** (checked after invariants; refusal = Problem `not-your-turn`): a non-holder may only add / edit / delete notes, or take over (only when nothing else changes in the same step — a test caught my first version letting anything through with a take-over). Session `handOff` (snapshot "Sent to {name} #{n}", author = sender) and `takeOver` (platform "ask" warning first). App: "Hand to…" + `HandoffDialog.vue`, banner + "Take over…", edit tools disabled (buttons and keyboard shortcuts), 21 strings, dev `?demo=handoff` / `?demo=handoff-dialog`.
+
+**Decided alone (reversible)**: take over without a name → Settings opens with a notice (window.prompt isn't reliable in the desktop webview); you can't hand to yourself; the sender can Undo a hand-off they just made (undo isn't guarded — convention, not security, ADR-029); renaming yourself in Settings to the holder's name "unlocks" — same reason, names aren't verified (Q-092).
+
+**Tests**: core +5 (hand-off), desktop +1 (session: snapshot + log + save → open + take-over with a "no" then "yes"). Screenshots checked.
+
+**Next**: ADR-044 done. Other unblocked items (owner away).
+
+### Session #11, part 46 — notes list, 2026-11-17
+
+Branch `phase2/notes-list`, stacked on `phase2/handoff`. `NotesPanel.vue` (bottom-right, collapsible): open notes newest first ("Ana — Can we open…"), resolved behind "▸ N resolved"; click = select the note. Hidden while something is selected (the properties panel uses that corner's column) and when the level has no notes. 3 strings (ICU plurals). Dev `?demo=notes-list`. Screenshot checked. No new tests (pure view; sorting is a one-liner).

@@ -73,7 +73,9 @@ export type ProblemCode =
   | "opening-above-wall"
   | "openings-overlap"
   | "walls-overlap"
-  | "level-missing";
+  | "level-missing"
+  /** The hand-off lock: someone else holds the project (ADR-044); only notes may change. */
+  | "not-your-turn";
 
 export interface Problem {
   code: ProblemCode;
