@@ -128,3 +128,80 @@ export function newChase(id: Id, wall: Wall, offset: number, dir: ChaseDir, leng
     components: { [STRUCTURAL]: { v: STRUCTURAL_DATA_VERSION, data: { dir } } },
   };
 }
+
+// --- protection markers ("load-bearing, don't remove", ADR-029 / ADR-044 slice 2) ----------------------
+
+export const PROTECTION = `${STRUCTURAL}:protection` as const;
+export interface ProtectionData {
+  wallId: Id;
+  /** The wall as it was when protected: moving it, removing it or changing its kind is what gets flagged. */
+  wall: { start: { x: number; y: number }; end: { x: number; y: number }; kind: Wall["kind"] };
+  /** Display name (Q-092); "" = not known. */
+  author: string;
+  createdAt: string;
+}
+export type Protection = ModuleElement & { type: typeof PROTECTION };
+
+export const isProtection = (e: Element | undefined): e is Protection => e?.type === PROTECTION && !isHosted(e);
+export const protectionData = (p: Protection): ProtectionData | null => {
+  const d = p.components[STRUCTURAL]?.data as Partial<ProtectionData> | undefined;
+  return d && typeof d.wallId === "string" && d.wall && typeof d.author === "string" ? (d as ProtectionData) : null;
+};
+
+/** Protections on a level, sorted by id. */
+export function protectionsOn(p: Project, levelId: Id): Protection[] {
+  return Object.values(p.elements)
+    .filter(isProtection)
+    .filter((e) => e.levelId === levelId)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+/** The protection on this wall (by wall id), if any. Several (older files): the first by id. */
+export function protectionOf(p: Project, wallId: Id): Protection | null {
+  return (
+    Object.values(p.elements)
+      .filter(isProtection)
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .find((e) => protectionData(e)?.wallId === wallId) ?? null
+  );
+}
+
+/**
+ * Protect a wall as it is now — or renew an existing protection ("protect it where it is now"), which
+ * clears R-PROT-001 for a moved wall. One undo step. `id` is used only when there's no protection yet.
+ */
+export function protectCommand(wall: Wall, author: string, now: string, id: Id): Command {
+  return {
+    label: { key: "cmd.protect" },
+    apply: (p) => {
+      const old = protectionOf(p, wall.id);
+      const w = p.elements[wall.id];
+      const cur = w?.type === "wall" ? w : wall;
+      const data: ProtectionData = {
+        wallId: cur.id,
+        wall: { start: cur.start, end: cur.end, kind: cur.kind },
+        author,
+        createdAt: now,
+      };
+      const el: Protection = {
+        id: old?.id ?? id,
+        type: PROTECTION,
+        ownerModule: STRUCTURAL,
+        levelId: cur.levelId,
+        components: { [STRUCTURAL]: { v: STRUCTURAL_DATA_VERSION, data } },
+      };
+      return { ...p, elements: { ...p.elements, [el.id]: el } };
+    },
+  };
+}
+
+/** Remove a protection ("I know — remove the protection"). One undo step. */
+export function unprotectCommand(protectionId: Id): Command {
+  return {
+    label: { key: "cmd.unprotect" },
+    apply: (p) => {
+      if (!isProtection(p.elements[protectionId])) return p;
+      return { ...p, elements: Object.fromEntries(Object.entries(p.elements).filter(([id]) => id !== protectionId)) };
+    },
+  };
+}

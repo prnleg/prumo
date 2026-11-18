@@ -11,6 +11,8 @@ export function paramText(p: Param, project: Project, locale: Locale): string {
       return formatLength(p.mm, locale);
     case "text":
       return t(p.key);
+    case "name":
+      return p.name || t("someone");
     case "element": {
       const e = project.elements[p.id];
       if (e?.type === "wall") return t("el.wall", { length: formatLength(wallLength(e), locale) });

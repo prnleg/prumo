@@ -16,7 +16,15 @@ const props = defineProps<{
   /** When "the existing building" was marked (ISO), or null (ADR-043). */
   baseline: string | null;
 }>();
-const emit = defineEmits<{ select: [ids: string[]]; system: []; mark: []; clearBaseline: [] }>();
+const emit = defineEmits<{
+  select: [ids: string[]];
+  system: [];
+  mark: [];
+  clearBaseline: [];
+  /** R-PROT-001 actions (ADR-044): renew the marker where the wall is now / remove it. */
+  protectAgain: [protectionId: string];
+  unprotect: [protectionId: string];
+}>();
 const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateStyle: "medium", timeStyle: "short" });
 const t = (key: string, params?: Params) => translate(props.locale, key, params);
 
@@ -63,6 +71,12 @@ const count = computed(() => props.result.findings.length);
         <ul>
           <li v-for="f in c.findings" :key="f.fingerprint">
             <button class="link" @click="emit('select', f.elementIds)">{{ findingText(f, project, locale) }}</button>
+            <span v-if="f.ruleId === 'R-PROT-001'" class="actions">
+              <button v-if="f.elementIds.length > 1" @click="emit('protectAgain', f.elementIds.at(-1) ?? '')">
+                {{ t("protect.again") }}
+              </button>
+              <button @click="emit('unprotect', f.elementIds.at(-1) ?? '')">{{ t("protect.remove") }}</button>
+            </span>
           </li>
         </ul>
         <p v-for="a in c.assumptions" :key="a" class="assume">{{ t("checks.assumption") }}: {{ a }}</p>
@@ -214,6 +228,22 @@ ul {
 }
 .card li {
   margin: 3px 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 3px 0 2px;
+}
+.actions button {
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
 }
 .assume {
   margin: 4px 0;
