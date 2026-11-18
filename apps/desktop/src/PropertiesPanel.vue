@@ -65,6 +65,8 @@ const props = defineProps<{
   }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
+  /** The selected wall's estimated load (ADR-051), already formatted; null = none / structure off. */
+  load?: { headline: string; range: string; lines: string[]; notCounted: string[] } | null;
   /** Installed data packs (ADR-049): material values shown with their source. */
   packs?: PackSet | null;
   /** The project's construction system when the Structural module is on; null = module off. */
@@ -446,6 +448,24 @@ function commitLength(w: Wall, ev: Event) {
         </p>
         <p v-else-if="wallMaterial(wall)" class="ro">{{ t("material.noValue") }}</p>
         <p v-if="wallMaterial(wall) === 'drywall'" class="ro">{{ t("material.drywall.note") }}</p>
+        <div v-if="load" class="load">
+          <p>
+            <strong>{{ load.headline }}</strong><br />
+            <span class="ro">{{ load.range }} · </span
+            ><span class="unverified">{{ t("value.review.unverified") }}</span>
+          </p>
+          <details>
+            <summary>{{ t("load.show") }}</summary>
+            <ul>
+              <li v-for="(l, k) in load.lines" :key="k">{{ l }}</li>
+            </ul>
+            <p class="ro">{{ t("load.notCounted") }}</p>
+            <ul class="ro">
+              <li v-for="(n, k) in load.notCounted" :key="k">{{ n }}</li>
+            </ul>
+            <p class="ro">{{ t("load.disclaimer") }}</p>
+          </details>
+        </div>
         <label class="stack" :title="t('role.tip')">
           {{ t("props.role") }}
           <select
@@ -777,5 +797,23 @@ input.text {
 }
 .unverified {
   color: var(--warn);
+}
+.load {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.load p {
+  margin: 0 0 4px;
+}
+.load ul {
+  margin: 2px 0 6px;
+  padding-left: 16px;
+}
+.load summary {
+  cursor: pointer;
+  color: var(--accent);
 }
 </style>

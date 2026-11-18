@@ -102,6 +102,7 @@ import {
   type SlabMode,
   STRUCTURAL,
   materialTable,
+  wallLoads,
   structuralPacks,
   setWallMaterial,
   type WallMaterial,
@@ -155,7 +156,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { paramText, unitWeightText } from "./structural-ui";
+import { paramText, unitWeightText, wallLoadText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -689,6 +690,22 @@ const slabMarks = computed(() => {
       selected: selection.value.includes(g.id),
     };
   });
+});
+
+/** The selected wall's load (ADR-051), structure on only; computed for the one wall shown. */
+const selectedLoad = computed(() => {
+  if (!structuralOn.value || selection.value.length !== 1) return null;
+  const id = selection.value[0] ?? "";
+  const w = project.value.elements[id];
+  if (w?.type !== "wall") return null;
+  const L = wallLoads(project.value, level.value, packs).get(id);
+  if (!L) return null;
+  const nameOf = (ref: string) => {
+    if (ref.startsWith("slab:")) return t("slab.badge");
+    const r = detected.value.find((x) => x.key === ref.slice(5));
+    return r ? r.label || formatArea(r.floorArea, locale.value) : t("finish.outside");
+  };
+  return wallLoadText(L, locale.value, nameOf);
 });
 
 // --- floors (ADR-048) ------------------------------------------------------------------------------
@@ -1854,6 +1871,31 @@ if (demo === "materials" || demo === "values") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "loads") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      setTool("slab");
+      setSlabNewKind("joist");
+      for (const r of detected.value) slabTool.click({ at: r.labelAt, scale: 0.1, free: false });
+      slabTool.finish();
+      setTool("select");
+      const s = Object.values(history.current.elements).find((e) => e.type === "slab");
+      if (s) editSlab(s.id, { kind: "joist", joists: "short" });
+      const w = Object.values(history.current.elements)
+        .filter((e): e is Wall => e.type === "wall")
+        .sort((a, b) => wallLength(b) - wallLength(a))[0];
+      if (w) {
+        setMaterial(w.id, "ceramic-block");
+        selectTool.selection = [w.id];
+      }
+      sync();
+      setTimeout(() => {
+        fitAll();
+        document.querySelector(".load details")?.setAttribute("open", "");
+      }, 50);
+    });
+}
 if (demo === "slabs" || demo === "slab-pick") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -2313,6 +2355,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           v-if="tool === 'select'"
           v-model:keep-original="keepOriginal"
           :packs="structuralOn ? packs : null"
+          :load="selectedLoad"
           :project="project"
           :selection="selection"
           :locale="locale"

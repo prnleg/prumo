@@ -905,3 +905,13 @@ Branch `phase3/slabs`, stacked on `phase3/materials`. Owner: "click rooms + draw
 **Decided alone (reversible):** Slab as a **core** element (shape only) so transforms need no module hooks; slab belongs to the level whose ceiling it is; picked by its badge; holes not supported (logged); duplicate/paste skip slabs for now; Portuguese hint avoids "segure" (the banned-words test catches "segur").
 
 **Tests**: core +6, structural +5. Screenshots checked.
+
+### Session #12, part 4 — load takedown per wall (Phase 3 step 4, ADR-051), 2026-11-18
+
+Branch `phase3/loads`, stacked on `phase3/slabs`. Owner: numbers "rounded + range".
+
+**Done**: Brazil pack 2026.11.2 (+ live load sourced; finishes, joist-slab weight, solid thickness range as UNSOURCED placeholders). `loads.ts`: own weight, slab q, two-way 45° split by nearest-edge grid (fitted grid, ties split — first version had a 4 % left/right bias, caught by the hand-calc test), one-way share, unknowns → ranges, "don't know" → 0 low end, not-counted list (upper floors, roofs, free edges, RC frame). UI: wall panel box (headline kN/m + tonnes, range, UNVERIFIED, "Show the calculation" with lines + not counted + disclaimer); `sig2` 2-significant-digit formatting. 17 strings. Dev `?demo=loads`. STRUCTURAL_ANALYSIS §4.x hand calcs + §6 register; E-43 (parked).
+
+**Decided alone (reversible):** unknown wall material ranges over every material with a value (incl. concrete, 13–25); openings not subtracted; per-wall value = most loaded stretch; the selected wall only (computed on demand; 45° shares memoized).
+
+**Tests**: structural +7 (hand-calculated). Screenshot checked (whole-house joist slab: 3.5 q = 12–21 kN/m + 4.9 own weight).

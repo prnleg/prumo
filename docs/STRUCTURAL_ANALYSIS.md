@@ -125,6 +125,14 @@ Lintel L-3 over opening O-7
  ...
 ```
 
+### 4.x Load takedown per wall (implemented 2026-11-18, ADR-051 — UNVERIFIED, information only)
+
+Hand calculations (`module-structural/test/loads.test.ts`), room 4 × 3 m on centre lines, walls 14 cm × 2.70 m ceramic block (13 kN/m³):
+- Own weight: 0.14 × 2.70 × 13 = **4.914 kN/m**.
+- Solid slab 10 cm: q = 0.10 × 25 + (0.5…1.5) + 1.5 = **4.5…5.5 kN/m²**. 45° split: short edges lx²/4 = 9/4 = 2.25 m² → 0.75 q = 3.375…4.125 kN/m; long edges (12 − 4.5)/2 = 3.75 m² → 3.75 q / 4 = 4.219…5.156 kN/m (grid within 1 %).
+- Joist slab spanning 3 m: q = (1.5…3.0) + (0.5…1.5) + 1.5 = **3.5…6.0 kN/m²**; rests on the 4 m walls: 12 × 4/8 = 6 m² each → 1.5 q = 5.25…9.0 kN/m; 3 m walls get only their own weight.
+- Joist direction unknown: the 3 m walls range 0…(2 q = 12) kN/m from the slab.
+
 ## 5. Validation cases (must exist before any calculator ships)
 
 Every calculator needs **≥ 2 hand-calculated cases** written here *and* as tests. Template:
@@ -262,6 +270,10 @@ Every placeholder threshold/material value lives here until verified.
 | material.ceramic-block.unitWeight | 13 | kN/m³ | Brazil pack (`packs/br.json`) | NBR 6120:1980, Tabela 1 (tijolos furados) — 1980 edition; 2019 lists walls per m² (E-42) | UNVERIFIED |
 | material.solid-brick.unitWeight | 18 | kN/m³ | Brazil pack | NBR 6120:1980, Tabela 1 (tijolos maciços) (E-42) | UNVERIFIED |
 | material.concrete.unitWeight | 25 | kN/m³ | Brazil pack | NBR 6118:2014, 8.2.2 (reinforced concrete) | UNVERIFIED |
+| load.live.residential | 1.5 | kN/m² | Brazil pack | NBR 6120:1980, Tabela 2 (residential rooms) (E-43) | UNVERIFIED |
+| load.finishes.min / max | 0.5 / 1.5 | kN/m² | Brazil pack | UNSOURCED – placeholder (E-43) | UNVERIFIED |
+| slab.joist.selfWeight.min / max | 1.5 / 3.0 | kN/m² | Brazil pack | UNSOURCED – placeholder (E-43) | UNVERIFIED |
+| slab.solid.thickness.min / max | 80 / 150 | mm | Brazil pack | UNSOURCED – placeholder, used only when unknown (E-43) | UNVERIFIED |
 | material.concrete-block.unitWeight / drywall | — (no value: none I can cite) | — | Brazil pack | asked in E-42 | missing |
 
 Since ADR-049 the values live in data packs, not in code; this register mirrors the Brazil pack.
