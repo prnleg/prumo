@@ -38,6 +38,8 @@ const props = defineProps<{
     selected?: boolean;
     fill?: string;
   }[];
+  /** Double-headed arrows inside rooms (joist direction, structure on). */
+  arrows?: readonly { key: string; a: V; b: V }[];
   /** Painted wall faces: a strip along `line`, clipped to the wall's drawn shape (clean corners). */
   faces?: readonly { key: string; wallId: string; line: readonly [V, V]; color: string }[];
   /** Rubber band (model coords); "touching" draws dashed (CAD convention). */
@@ -106,6 +108,16 @@ const roomLabels = computed(() =>
   }),
 );
 const selected = computed(() => new Set(props.selectedIds ?? []));
+/** Screen-space arrow head at `to`, pointing away from `from` (8 px). */
+function arrowHead(from: V, to: V): string {
+  const a = S(from);
+  const b = S(to);
+  const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const u = { x: (b.x - a.x) / l, y: (b.y - a.y) / l };
+  const n = { x: -u.y, y: u.x };
+  const p = (s: number, t: number) => `${b.x - u.x * s + n.x * t},${b.y - u.y * s + n.y * t}`;
+  return `${b.x},${b.y} ${p(8, 4)} ${p(8, -4)}`;
+}
 const cmpAdded = computed(() => new Set(props.compare?.added ?? []));
 const cmpChanged = computed(() => new Set(props.compare?.changed ?? []));
 
@@ -203,6 +215,12 @@ function wheel(e: WheelEvent) {
         :class="{ selected: r.selected }"
         :style="r.fill && !r.selected ? { fill: r.fill } : undefined"
       />
+      <!-- drawn 18 px below the room's label point so it never strikes through the label -->
+      <g v-for="ar in arrows ?? []" :key="'ar' + ar.key" class="arrow" transform="translate(0 18)">
+        <line :x1="S(ar.a).x" :y1="S(ar.a).y" :x2="S(ar.b).x" :y2="S(ar.b).y" />
+        <polygon :points="arrowHead(ar.a, ar.b)" />
+        <polygon :points="arrowHead(ar.b, ar.a)" />
+      </g>
       <template v-for="r in roomLabels" :key="r.key + 't'">
         <text :x="r.x" :y="r.y" :style="{ fontSize: `${r.size}px` }">
           <tspan v-for="(line, i) in r.lines" :key="i" :x="r.x" :dy="i === 0 ? r.dy0 : r.size * 1.25">{{ line }}</tspan>
@@ -388,6 +406,14 @@ function wheel(e: WheelEvent) {
 .rooms polygon.selected {
   fill: var(--accent-soft);
   fill-opacity: 0.5;
+}
+.rooms .arrow line {
+  stroke: var(--plan-arrow, #8a6d3b);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 3;
+}
+.rooms .arrow polygon {
+  fill: var(--plan-arrow, #8a6d3b);
 }
 .rooms text {
   font:

@@ -80,6 +80,11 @@ import {
   setTieBeam,
   setWallRole,
   structuralManifest,
+  aboveOf,
+  joistDirection,
+  setAbove,
+  type Above,
+  type JoistDir,
   type ChaseDir,
   type CheckResult,
   type ConstructionSystem,
@@ -497,7 +502,8 @@ const detected = computed(() => {
     // Label: the user's name, else the room type ("Quarto"), else nothing (area only).
     const typeKey = roomTypeKey(data.roomType);
     const label = tag?.name || (typeKey ? t(typeKey) : "");
-    return { ...r, name: tag?.name ?? "", label, roomType: data.roomType ?? "", floorFinish: data.floor };
+    const up = tag ? aboveOf(tag) : { above: null, joists: null };
+    return { ...r, name: tag?.name ?? "", label, roomType: data.roomType ?? "", floorFinish: data.floor, ...up };
   });
 });
 
@@ -561,8 +567,54 @@ const panelRooms = computed(() =>
     area: r.floorArea,
     floor: r.floorFinish ?? "",
     roomType: r.roomType,
+    above: r.above,
+    joists: r.joists,
   })),
 );
+/** Joist arrows (structure on): through the label point, 60% of the room's space that way. */
+const joistArrows = computed(() => {
+  if (!structuralOn.value || !checks.value) return [];
+  return detected.value.flatMap((r) => {
+    const u = r.above === "joist-slab" ? joistDirection(r.floor, r.joists) : null;
+    if (!u) return [];
+    const half = 0.3 * Math.min(roomReach(r.floor, r.labelAt, u), 4000);
+    const at = r.labelAt;
+    return [
+      {
+        key: r.key,
+        a: { x: at.x - u.x * half, y: at.y - u.y * half },
+        b: { x: at.x + u.x * half, y: at.y + u.y * half },
+      },
+    ];
+  });
+});
+/** Distance across the room through `at` along ±u (to the nearest edge each way, doubled). */
+function roomReach(poly: readonly V[], at: V, u: V): number {
+  let best = Infinity;
+  for (const [i, a] of poly.entries()) {
+    const b = poly[(i + 1) % poly.length] ?? a;
+    const e = { x: b.x - a.x, y: b.y - a.y };
+    const den = u.x * e.y - u.y * e.x;
+    if (Math.abs(den) < 1e-9) continue;
+    const w = { x: a.x - at.x, y: a.y - at.y };
+    const t = (w.x * e.y - w.y * e.x) / den;
+    const s2 = (w.x * u.y - w.y * u.x) / den;
+    if (s2 >= 0 && s2 <= 1) best = Math.min(best, Math.abs(t));
+  }
+  return Number.isFinite(best) ? 2 * best : 0;
+}
+function setRoomAbove(key: string, above: Above | undefined, joists: JoistDir | undefined) {
+  run(
+    editRoomCommand(
+      history.current,
+      level.value,
+      key,
+      { key: "cmd.above" },
+      (tg) => setAbove(tg, above, joists),
+      randomIds,
+    ),
+  );
+}
 function paintSide(wallId: string, side: "left" | "right", finishId: string) {
   run(
     updateCommand({ key: "cmd.paint" }, [wallId], (e) =>
@@ -1209,6 +1261,21 @@ if (demo === "handoff" || demo === "handoff-dialog") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "above") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      const rs = [...detected.value].sort((a, b) => b.floorArea - a.floorArea);
+      const [big, second, third] = rs;
+      if (big) setRoomAbove(big.key, "joist-slab", "short");
+      if (second) setRoomAbove(second.key, "joist-slab", "long");
+      if (third) setRoomAbove(third.key, "roof", undefined);
+      setTool("select");
+      if (big) selectTool.selection = [ROOM_PREFIX + big.key];
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "protect") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -1538,6 +1605,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :box="box"
         :labels="labels"
         :badges="badges"
+        :arrows="joistArrows"
         :locks="protectionMarks.locks"
         :ghosts="protectionMarks.ghosts"
         :compare="comparison"
@@ -1577,6 +1645,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @paint-side="paintSide"
         @paint-floor="paintFloor"
         @room-type="typeRoom"
+        @above="setRoomAbove"
         @delete="deleteSelection"
         @duplicate="duplicateSelection"
         @rotate="rotateSelection"

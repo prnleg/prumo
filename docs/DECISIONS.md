@@ -501,7 +501,8 @@ Not now: per-element `createdBy / modifiedBy` (noisy in diffs; later if the comp
 Confidence: medium. Biggest doubt: the schema bump (cheap now, before any public release).
 
 ## ADR-045 — What's above: slabs and roofs ("o que tem em cima")
-Status: **PROPOSED (2026-11-17)** — drafted while the owner was away; nothing implemented. Needs the owner's choice (A / B / C) and engineer input (E-40).
+Status: **ACCEPTED (2026-11-18): C** — owner: "A now, B later". A implemented on `phase2/what-above`: the room tag's structural data gets `above: "solid-slab" | "joist-slab" | "roof" | "open"` (missing = "don't know") and, for a joist slab, `joists: "long" | "short"` — **relative to the room's long side** (its longest edge), so rotate/mirror never need to touch the tag. Unknown values read as "don't know". No rules use it yet (R-WALL-005 / R-SLAB-001 wait on E-40; engineering deferred by the owner). Plan: a dashed double arrow in the room shows the joist direction (structure on).
+(Drafted 2026-11-17 as PROPOSED.)
 Why now: ROADMAP Phase 2 scope ("minimal what's above: slab/roof regions with span direction"); ADR-017 option B (explain the load path, never downgrade a wall); R-WALL-005 (no vertical continuity), R-SLAB-001; Phase 3 loads; Phase 5 floors (the ceiling of floor 1 is the floor of floor 2 — owner's Q-140).
 Options:
 - **A) Per room ("what's above this room?")** — each detected room gets a choice in the panel: *solid slab (laje maciça)* · *joist slab (laje de vigota/treliçada) + which way the joists run* · *roof on the walls (telhado)* · *nothing / open* · *don't know*. Stored as Structural data on the room's tag (`components["org.prumo.structural"].above`), like a floor finish. (+) No new drawing; beginner-friendly; one click per room; "don't know" is honest. (−) A slab that covers several rooms as one piece is several entries; balconies/eaves outside rooms can't be described.

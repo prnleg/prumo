@@ -1,6 +1,8 @@
 // Structural data on walls and openings (ADR-042) + the construction system (project.profileId).
 import {
   isHosted,
+  type RoomTag,
+  type Vec2,
   type Command,
   type Element,
   type Id,
@@ -28,6 +30,10 @@ export interface StructuralData {
   tieBeam?: true;
   /** Wall: bonded (interlocked / tied) to the walls meeting it at that end. */
   bonded?: { start?: true; end?: true };
+  /** Room (on its tag): what's above it (ADR-045 A). Missing = "don't know". */
+  above?: Above;
+  /** Room with a joist slab: which way the joists run, relative to the room's long side. */
+  joists?: JoistDir;
   [more: string]: unknown;
 }
 export const STRUCTURAL_DATA_VERSION = 1;
@@ -204,4 +210,52 @@ export function unprotectCommand(protectionId: Id): Command {
       return { ...p, elements: Object.fromEntries(Object.entries(p.elements).filter(([id]) => id !== protectionId)) };
     },
   };
+}
+
+// --- what's above a room (ADR-045 option A: one answer per room, stored on its tag) ------------------
+
+export type Above = "solid-slab" | "joist-slab" | "roof" | "open";
+export const ABOVE: readonly Above[] = ["solid-slab", "joist-slab", "roof", "open"];
+export type JoistDir = "long" | "short";
+
+/** What's above this room; unreadable values count as "don't know" (null). */
+export function aboveOf(t: RoomTag): { above: Above | null; joists: JoistDir | null } {
+  const d = structuralData(t);
+  const above = (ABOVE as readonly unknown[]).includes(d.above) ? (d.above as Above) : null;
+  const joists = above === "joist-slab" && (d.joists === "long" || d.joists === "short") ? d.joists : null;
+  return { above, joists };
+}
+
+/** Set what's above (undefined = "don't know"). Joists are kept only for a joist slab. */
+export function setAbove(t: RoomTag, above: Above | undefined, joists?: JoistDir): RoomTag {
+  return withStructuralData(t, {
+    ...structuralData(t),
+    above,
+    joists: above === "joist-slab" ? joists : undefined,
+  });
+}
+
+/**
+ * Unit direction of a room's long side: its longest edge (first one on a tie, in polygon order).
+ * Relative directions survive rotate / mirror without touching the tag. Null for a degenerate polygon.
+ */
+export function longSide(poly: readonly Vec2[]): Vec2 | null {
+  let best: Vec2 | null = null;
+  let len = 0;
+  for (const [i, a] of poly.entries()) {
+    const b = poly[(i + 1) % poly.length] ?? a;
+    const l = Math.hypot(b.x - a.x, b.y - a.y);
+    if (l > len + 1e-6) {
+      len = l;
+      best = { x: (b.x - a.x) / l, y: (b.y - a.y) / l };
+    }
+  }
+  return best;
+}
+
+/** Direction the joists run in plan, or null when unknown. */
+export function joistDirection(poly: readonly Vec2[], dir: JoistDir | null): Vec2 | null {
+  const u = dir ? longSide(poly) : null;
+  if (!u) return null;
+  return dir === "long" ? u : { x: -u.y, y: u.x };
 }
