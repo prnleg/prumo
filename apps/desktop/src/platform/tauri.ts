@@ -17,7 +17,7 @@ import {
   writeFile,
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
-import { PRUMO_EXT, baseName, type Platform } from "./types";
+import { PRUMO_EXT, PRUMO_FILE, baseName, withExt, type Platform } from "./types";
 
 const filters = [{ name: "Prumo", extensions: [PRUMO_EXT] }];
 const AppData = { baseDir: BaseDirectory.AppData };
@@ -25,10 +25,9 @@ const dirOf = (name: string) => name.split("/").slice(0, -1).join("/");
 
 export const tauriPlatform: Platform = {
   kind: "desktop",
-  async pickSavePath(suggestedName) {
-    const p = await save({ defaultPath: suggestedName, filters });
-    if (!p) return null;
-    return p.toLowerCase().endsWith(`.${PRUMO_EXT}`) ? p : `${p}.${PRUMO_EXT}`;
+  async pickSavePath(suggestedName, type = PRUMO_FILE) {
+    const p = await save({ defaultPath: suggestedName, filters: [{ name: type.label, extensions: [type.ext] }] });
+    return p ? withExt(p, type.ext) : null;
   },
   async pickOpenFile() {
     const p = await open({ multiple: false, directory: false, filters });

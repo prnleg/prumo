@@ -145,7 +145,7 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 - **Q-114/115** — The default room-type list is OK; add more gradually (packs/users can extend). — 2026-11-15 — DATA_MODEL
 - **Q-116** — Numbers follow the **UI language's format**, for display *and* input (pt-BR: `3,50`; en: `3.50`). Side benefit: no ambiguity for `1.000` (one thousand in pt-BR, one in en). — 2026-11-15 — ADR-021
 - **Q-117** — Floor names follow the UI language by default and are customizable. Same principle for every locale-dependent default (room-type names, units display). — 2026-11-15 — ADR-021
-- **Q-118** — Image/PDF export only through a dedicated **rendering/export module**, not in the core. To refine later. Not in Phase 1. — 2026-11-15 — ADR-019, ROADMAP
+- **Q-118** — Image/PDF export only through a dedicated **rendering/export module**, not in the core. → **Done 2026-11-18 (ADR-056)**: `module-export`, PNG + PDF of the current floor. — 2026-11-15 — ADR-019, ROADMAP
 - **Q-111** — Autosave: yes. — 2026-11-15 — ROADMAP Phase 1
 - **Q-112** — Snapshots as full copies (option A); the owner notes the file will keep growing → Q-124. — 2026-11-15 — ADR-008
 - **Q-113** — A missing module **stops the user**: install it, or remove that module's items. When exporting, show the modules used and allow removing them from the copy. Modules = big, install-if-you-want; plugins = smaller (languages, external compatibility). — 2026-11-15 — ADR-032, MODULES §6–8

@@ -44,6 +44,9 @@ importers:
       '@prumo/module-architect':
         specifier: workspace:*
         version: link:../../packages/module-architect
+      '@prumo/module-export':
+        specifier: workspace:*
+        version: link:../../packages/module-export
       '@prumo/module-structural':
         specifier: workspace:*
         version: link:../../packages/module-structural
@@ -95,6 +98,12 @@ importers:
         version: 0.8.3
 
   packages/module-architect:
+    dependencies:
+      '@prumo/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/module-export:
     dependencies:
       '@prumo/core':
         specifier: workspace:*

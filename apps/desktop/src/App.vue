@@ -158,6 +158,8 @@ import AddFloorDialog from "./AddFloorDialog.vue";
 import LayersPanel from "./LayersPanel.vue";
 import MenuBar, { type Menu } from "./MenuBar.vue";
 import HandoffDialog from "./HandoffDialog.vue";
+import ExportDialog, { type ExportOptions } from "./ExportDialog.vue";
+import { drawSheet, exportManifest, layoutSheet, PAPERS, pdfWithImage } from "@prumo/module-export";
 import NotePopover from "./NotePopover.vue";
 import NotesPanel from "./NotesPanel.vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
@@ -181,7 +183,7 @@ const t = (key: string, params?: Params) => translate(locale.value, key, params)
 const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
-const MANIFESTS = [architectManifest, structuralManifest];
+const MANIFESTS = [architectManifest, structuralManifest, exportManifest];
 const modules = new ModuleHost(MANIFESTS);
 const PROFILE = "br-nbr/structural-masonry";
 
@@ -1197,6 +1199,91 @@ function addNote(text: string, name: string) {
 }
 // --- Hand-off "baton" (ADR-044 slice 3) ---------------------------------------------------------------
 const showHandoff = ref(false);
+
+// --- export a picture / PDF of the current floor (ADR-056) ------------------------------------------
+const showExport = ref(false);
+/** Draws the current floor's sheet on `canvas`; null when the floor has no walls. */
+function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number) {
+  const g = planGeometry(project.value, level.value);
+  const pts = g.walls.flatMap((w) => w.polygon);
+  if (!pts.length) return null;
+  const bounds = {
+    minX: Math.min(...pts.map((p) => p.x)),
+    minY: Math.min(...pts.map((p) => p.y)),
+    maxX: Math.max(...pts.map((p) => p.x)),
+    maxY: Math.max(...pts.map((p) => p.y)),
+  };
+  const L = layoutSheet(bounds, o.paper, o.scale);
+  canvas.width = Math.round(L.page.w * px);
+  canvas.height = Math.round(L.page.h * px);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const kindOf = (id: string) => {
+    const e = project.value.elements[id];
+    return e?.type === "wall" ? e.kind : "full";
+  };
+  const date = new Intl.DateTimeFormat(locale.value, { dateStyle: "medium" }).format(new Date());
+  drawSheet(
+    ctx,
+    {
+      walls: g.walls.map((w) => ({ polygon: w.polygon, kind: kindOf(w.id) })),
+      outline: g.outline,
+      openings: g.openings,
+      rooms: detected.value.map((r) => ({
+        at: r.labelAt,
+        lines: [r.label, formatArea(r.floorArea, locale.value)].filter((x): x is string => !!x),
+      })),
+      bounds,
+      texts: {
+        title: project.value.name || t("export.untitled"),
+        subtitle: t("export.subtitle", {
+          floor: currentFloorName.value,
+          n: L.scale,
+          paper: o.paper.toUpperCase(),
+          date,
+        }),
+        disclaimer: t("export.disclaimer"),
+        length: (mm) => formatLength(mm, locale.value),
+        metres: (m) => `${new Intl.NumberFormat(locale.value).format(m)} m`,
+      },
+    },
+    L,
+    px,
+  );
+  return { scale: L.scale, fits: L.fits };
+}
+/** 200 dots per inch: sharp on paper, a few hundred KB. */
+const EXPORT_PX = 200 / 25.4;
+async function doExport(o: ExportOptions) {
+  const canvas = document.createElement("canvas");
+  if (!drawExport(canvas, o, EXPORT_PX)) return;
+  const blob = await new Promise<Blob | null>((res) =>
+    canvas.toBlob(res, o.format === "pdf" ? "image/jpeg" : "image/png", 0.92),
+  );
+  showExport.value = false;
+  if (!blob) return;
+  const image = new Uint8Array(await blob.arrayBuffer());
+  const name = `${project.value.name || t("export.untitled")} - ${currentFloorName.value}`;
+  const bytes =
+    o.format === "pdf"
+      ? pdfWithImage({
+          jpeg: image,
+          width: canvas.width,
+          height: canvas.height,
+          pageMm: PAPERS[o.paper],
+          title: name,
+          producer: `Prumo ${await platform.appVersion()}`,
+        })
+      : image;
+  const path = await platform.pickSavePath(name, { label: o.format.toUpperCase(), ext: o.format });
+  if (!path) return;
+  try {
+    await platform.writeFile(path, bytes);
+    notice.value = "";
+  } catch (e) {
+    notice.value = t("export.failed", { error: String(e) });
+  }
+}
 /** Someone else holds this project: you can look and leave notes (tools that edit are off). */
 const notMyTurn = computed(() => !isHolder(project.value, myName.value));
 const holder = computed(() => project.value.handoff?.holder ?? "");
@@ -1683,6 +1770,7 @@ const menus = computed<Menu[]>(() => {
         "sep",
         { id: "save", label: t("action.save"), shortcut: keyName("Mod+S"), disabled: !!readOnly.value },
         { id: "saveAs", label: t("menu.saveAs"), shortcut: keyName("Mod+Shift+S") },
+        { id: "exportSheet", label: t("export.menu") },
         { id: "exportClean", label: t("versions.exportClean"), disabled: !snapshots.value.length },
         "sep",
         { id: "handoff", label: t("handoff.button"), disabled: locked },
@@ -1769,6 +1857,7 @@ function onMenu(id: string) {
     save: () => void doSave(false),
     saveAs: () => void doSave(true),
     exportClean: () => void file(() => session.exportClean()),
+    exportSheet: () => (showExport.value = true),
     handoff: () => (showHandoff.value = true),
     viewPlan: () => setViewMode("plan"),
     view3d: () => setViewMode("3d"),
@@ -2105,6 +2194,20 @@ if (
         fitAll();
         document.querySelectorAll(".load details").forEach((d) => d.setAttribute("open", ""));
       }, 50);
+    });
+}
+if (demo === "export" || demo === "export-full") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      if (demo === "export") return void (showExport.value = true);
+      // the real 200 dpi sheet, shown as an image over the app (checking the output)
+      const c = document.createElement("canvas");
+      drawExport(c, { format: "png", paper: "a4", scale: "fit" }, EXPORT_PX);
+      const img = document.createElement("img");
+      img.src = c.toDataURL("image/png");
+      img.style.cssText = "position:fixed;inset:0;z-index:99;width:100vw;background:#fff";
+      document.body.append(img);
     });
 }
 if (demo === "3d-problems") {
@@ -2674,6 +2777,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           <span>{{ t("handoff.banner", { name: holder }) }}</span>
           <button @click="takeOver">{{ t("handoff.takeOver") }}</button>
         </div>
+        <ExportDialog
+          v-if="showExport"
+          :locale="locale"
+          :floor="currentFloorName"
+          :draw="drawExport"
+          @export="doExport"
+          @cancel="showExport = false"
+        />
         <HandoffDialog
           v-if="showHandoff"
           :locale="locale"
