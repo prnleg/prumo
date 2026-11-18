@@ -781,3 +781,7 @@ Branch `phase2/handoff`, stacked on `phase2/protection`.
 ### Session #11, part 46 — notes list, 2026-11-17
 
 Branch `phase2/notes-list`, stacked on `phase2/handoff`. `NotesPanel.vue` (bottom-right, collapsible): open notes newest first ("Ana — Can we open…"), resolved behind "▸ N resolved"; click = select the note. Hidden while something is selected (the properties panel uses that corner's column) and when the level has no notes. 3 strings (ICU plurals). Dev `?demo=notes-list`. Screenshot checked. No new tests (pure view; sorting is a one-liner).
+
+### Session #11, part 47 — Q-140 scale probe, 2026-11-17
+
+Branch `phase2/scale-bench`, stacked on `phase2/notes-list`. `module-structural/test/scale.perf.test.ts` (skipped unless `PRUMO_PERF=1`): grids of 6…1000 rooms → plan geometry, room detection, all checks, invariants, save. Results in Q-140: a hotel floor is instant; ~quadratic growth; > 200 rooms on one level gets laggy during drags. Recommendation logged (spatial index when needed, no dependency). No product code changed.
