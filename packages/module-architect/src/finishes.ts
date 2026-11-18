@@ -10,6 +10,8 @@ export interface Finish {
   use: "wall" | "floor";
   /** Plan colour (sRGB hex). */
   color: string;
+  /** How the 3D view draws the surface (ADR-054). Missing = plain. A drawing hint, no geometry. */
+  pattern?: "brick" | "block" | "tile" | "boards";
 }
 
 export const FINISHES: readonly Finish[] = [
@@ -19,7 +21,11 @@ export const FINISHES: readonly Finish[] = [
   { id: "paint-blue", use: "wall", color: "#7fa6cf" },
   { id: "paint-green", use: "wall", color: "#93b98b" },
   { id: "paint-terracotta", use: "wall", color: "#c7774f" },
-  { id: "tile-white", use: "wall", color: "#dfe7ea" },
+  { id: "tile-white", use: "wall", color: "#dfe7ea", pattern: "tile" },
+  { id: "brick-exposed", use: "wall", color: "#b4643f", pattern: "brick" },
+  { id: "block-exposed", use: "wall", color: "#b9b5ac", pattern: "block" },
+  { id: "drywall", use: "wall", color: "#f1efe9", pattern: "boards" },
+  { id: "plaster", use: "wall", color: "#d6cdbd" },
   { id: "floor-ceramic", use: "floor", color: "#d9cbb3" },
   { id: "floor-wood", use: "floor", color: "#b98a5a" },
   { id: "floor-vinyl", use: "floor", color: "#c9c0b0" },

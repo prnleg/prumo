@@ -56,7 +56,8 @@ import {
   type Wall,
   type Label,
   type Project,
-  buildingSolids,
+  buildingModel,
+  wallSides,
 } from "@prumo/core";
 import {
   DEFAULT_OPENING_SIZES,
@@ -121,9 +122,12 @@ import {
   type WallRole,
 } from "@prumo/module-structural";
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
-import { View3D } from "@prumo/renderer-3d";
+import { View3D, type Surface, type WallMode } from "@prumo/renderer-3d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import {
+  ArrowDownToLine,
+  ArrowUpToLine,
+  Eye,
   Box,
   BrickWall,
   Columns2,
@@ -757,9 +761,38 @@ const fit3d = ref(0);
 const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
 const prefersDark = ref(darkQuery?.matches ?? false);
 darkQuery?.addEventListener?.("change", (e) => (prefersDark.value = e.matches));
-const solids3d = computed(() =>
-  show3d.value ? buildingSolids(project.value, { slabThickness: (s) => slabInfo(s).thickness }) : [],
+const EMPTY_MODEL = { solids: [], shells: [] };
+const model3d = computed(() =>
+  show3d.value ? buildingModel(project.value, { slabThickness: (s) => slabInfo(s).thickness }) : EMPTY_MODEL,
 );
+/** Walls of the floor being edited in 3D (ADR-054): low / see inside (default) / full. */
+const wallMode = ref<WallMode>("cutaway");
+const WALL_MODES = [
+  { id: "low", icon: ArrowDownToLine },
+  { id: "cutaway", icon: Eye },
+  { id: "full", icon: ArrowUpToLine },
+] as const;
+const levelsAbove = computed(() => {
+  const here = project.value.levels.find((l) => l.id === level.value)?.elevation ?? 0;
+  return project.value.levels.filter((l) => l.elevation > here).map((l) => l.id);
+});
+/** Each wall face's finish as a 3D surface (colour + pattern). */
+const faces3d = computed(() => {
+  const out: Record<string, { left?: Surface; right?: Surface }> = {};
+  if (!show3d.value) return out;
+  const surf = (id: string | undefined): Surface | undefined => {
+    const f = finishById(id);
+    return f ? { color: parseInt(f.color.slice(1), 16), pattern: f.pattern ?? "plain" } : undefined;
+  };
+  for (const e of Object.values(project.value.elements)) {
+    if (e.type !== "wall") continue;
+    const sides = architectData(e).sides ?? {};
+    const l = surf(sides.left);
+    const r = surf(sides.right);
+    if (l || r) out[e.id] = { ...(l ? { left: l } : {}), ...(r ? { right: r } : {}) };
+  }
+  return out;
+});
 const selection3d = computed(() =>
   selection.value.map((id) =>
     id.startsWith(ROOM_PREFIX) ? `room:${level.value}:${id.slice(ROOM_PREFIX.length)}` : id,
@@ -1998,7 +2031,14 @@ if (demo === "materials" || demo === "values") {
       setTimeout(fitAll, 0);
     });
 }
-if (demo === "loads" || demo === "lintel" || demo === "3d" || demo === "split") {
+if (
+  demo === "loads" ||
+  demo === "lintel" ||
+  demo === "3d" ||
+  demo === "3d-low" ||
+  demo === "3d-full" ||
+  demo === "split"
+) {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
@@ -2026,7 +2066,13 @@ if (demo === "loads" || demo === "lintel" || demo === "3d" || demo === "split") 
         setOpeningLintelSize(o.id, { height: 100, bars: { count: 2, diameter: 8 } });
         selectTool.selection = [o.id];
       }
-      if (demo === "3d") setViewMode("3d");
+      if (demo === "3d" || demo === "3d-low" || demo === "3d-full") {
+        // outside faces in exposed brick, one room's walls in drywall (shows the patterns)
+        for (const [id, side] of wallSides(history.current, level.value).outside) paintSide(id, side, "brick-exposed");
+        setViewMode("3d");
+        wallMode.value = demo === "3d-low" ? "low" : demo === "3d-full" ? "full" : "cutaway";
+        selectTool.selection = [];
+      }
       if (demo === "split") split.value = true;
       sync();
       setTimeout(() => {
@@ -2484,8 +2530,23 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           />
         </div>
         <div v-if="show3d" class="pane" :style="split ? { left: `${splitAt * 100}%` } : undefined">
+          <span class="seg walls3d" role="group" :aria-label="t('view3d.walls')">
+            <button
+              v-for="m in WALL_MODES"
+              :key="m.id"
+              :class="{ on: wallMode === m.id }"
+              :title="t(`view3d.walls.${m.id}.tip`)"
+              @click="wallMode = m.id"
+            >
+              <component :is="m.icon" :size="14" /> {{ t(`view3d.walls.${m.id}`) }}
+            </button>
+          </span>
           <View3D
-            :solids="solids3d"
+            :model="model3d"
+            :mode="wallMode"
+            :level="level"
+            :above="levelsAbove"
+            :faces="faces3d"
             :selection="selection3d"
             :marks="marks3d"
             :dark="prefersDark"
@@ -2868,6 +2929,15 @@ button:disabled {
   background: var(--panel);
   color: var(--muted);
   cursor: col-resize;
+}
+.walls3d {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  background: var(--panel);
+  border-radius: 7px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
 }
 .split-grip:hover {
   color: var(--accent);

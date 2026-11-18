@@ -941,3 +941,15 @@ Branch `phase4/3d-view`, stacked on `phase3/lintel`. Owner: library that allows 
 **Findings in 3D** (same branch): each finding colours its element like the plan's "!" (first element; red critical, orange warning, blue advice); wall pieces under/over an opening follow the opening (`Solid.of`); chases / protections colour their wall. Dev `?demo=3d-problems`. renderer-3d +1, core test extended.
 
 **Next**: "hide slabs" toggle; seams between wall pieces; then Phase 5 rules (engineer) or polish.
+
+### Session #12, part 7 — 3D wall modes + surfaces (ADR-054), 2026-11-18
+
+Branch `phase4/wall-modes`, stacked on `phase4/3d-view`. Owner: Sims-like modes (only the current floor; above = you decide), smooth the wall pieces, textures per wall (bricks, drywall, blank).
+
+**Done**: core `buildingModel` + `WallShell` (whole-wall outline, holes, faces, outward side via `wallSides`), glass knows its host wall, 1 mm overlap of sill/head pieces. renderer-3d: `wallFaceGroups` (left / right / rest groups, metre UVs), `shellLines` (outline without seams, opening frames, no line across doors), full + 15 cm stub per wall, `applyView` (modes, see-inside by camera direction, ghost floors above), `patterns.ts` (brick / block / tile / boards drawn on a canvas, cached), polygon offset on ends. App: floating mode buttons on the 3D view, floors above, finishes → surfaces. Architect: `Finish.pattern` + 4 finishes. 14 strings. Dev `?demo=3d` (see inside, brick outside), `?demo=3d-low`, `?demo=3d-full`.
+
+**Decided alone (reversible):** default mode See inside; floors above at 8 % opacity, not clickable; slab only in Full walls; facing threshold 0.25; "drywall" is a finish (the surface look) separate from "Built with: drywall" (structure) — not linked automatically (logged; could suggest the finish later).
+
+**Tests**: core +1 (shells), renderer-3d +3 (face groups, modes, door line). Screenshots: the 3 modes in pt-BR, brick outside.
+
+**Next (proposal)**: hide-slabs is covered by the modes. Candidates: (a) Phase 5 rules (need the engineer), (b) polish pass on the 3D (doors/window frames as objects, sun/time of day), (c) Phase 5c export (PDF plan / image).

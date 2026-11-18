@@ -7,7 +7,7 @@ import { isDivider, type Id, type Opening, type Project, type Slab, type Wall } 
 import { add, dot, mul, norm, perp, sub, type V } from "./vec";
 import { planGeometry } from "./plan";
 import { faceOffsets } from "./joins";
-import { detectRooms } from "./rooms";
+import { detectRooms, wallSides } from "./rooms";
 
 export type SolidKind = "wall" | "glass" | "slab" | "floor";
 
@@ -20,10 +20,42 @@ export interface Solid {
   outline: V[];
   z0: number;
   z1: number;
+  /** A window pane: the wall it sits in (hidden with that wall's upper part). */
+  host?: Id;
   /** Wall pieces under / over an opening: that opening's id (so a finding about it can light them up). */
   of?: Id;
   /** Wall kind ("full", "half"…) for walls; else undefined. */
   wallKind?: Wall["kind"];
+}
+
+/**
+ * One whole wall, for what the pieces can't say (ADR-054): its outline lines without seams, its holes,
+ * which way its faces look, and — for an outside wall — which way is out (the "see inside" mode drops
+ * the outside walls that face the camera).
+ */
+export interface WallShell {
+  id: Id;
+  levelId: Id;
+  kind: Wall["kind"];
+  /** Joined plan outline (CCW), mm. */
+  outline: V[];
+  z0: number;
+  z1: number;
+  /** Wall start and unit direction (start → end): positions along the wall and the face directions. */
+  start: V;
+  dir: V;
+  /** Face offsets from the drawn line (left positive), mm. */
+  left: number;
+  right: number;
+  /** Outward normal (plan) for a wall on the outside of its block; null for an inside wall. */
+  outward: V | null;
+  /** Openings: along-wall span and heights (mm above project zero). */
+  holes: { of: Id; s0: number; s1: number; z0: number; z1: number }[];
+}
+
+export interface BuildingModel {
+  solids: Solid[];
+  shells: WallShell[];
 }
 
 export interface SolidOptions {
@@ -34,9 +66,13 @@ export interface SolidOptions {
 const GLASS = 20; // mm: thickness of the pane drawn in a window (drawing value)
 const FLOOR = 20; // mm: thickness of a room's floor plate (drawing value)
 const SLAB = 100; // mm: slab thickness when not known (drawing value, not a structural one)
+const SEAM = 1; // mm: overlap between wall pieces (drawing value)
 
-export function buildingSolids(p: Project, opts: SolidOptions = {}): Solid[] {
+export const buildingSolids = (p: Project, opts: SolidOptions = {}): Solid[] => buildingModel(p, opts).solids;
+
+export function buildingModel(p: Project, opts: SolidOptions = {}): BuildingModel {
   const out: Solid[] = [];
+  const shells: WallShell[] = [];
   for (const lv of [...p.levels].sort((a, b) => a.elevation - b.elevation || (a.id < b.id ? -1 : 1))) {
     const g = planGeometry(p, lv.id);
     const walls = new Map(
@@ -45,17 +81,13 @@ export function buildingSolids(p: Project, opts: SolidOptions = {}): Solid[] {
         .map((w) => [w.id, w]),
     );
     const openings = Object.values(p.elements).filter((e): e is Opening => e.type === "opening" && e.levelId === lv.id);
+    const outside = wallSides(p, lv.id).outside;
     for (const wg of g.walls) {
       const w = walls.get(wg.id);
       if (!w) continue;
-      out.push(
-        ...wallSolids(
-          w,
-          wg.polygon,
-          openings.filter((o) => o.host.elementId === w.id),
-          lv.elevation,
-        ),
-      );
+      const own = openings.filter((o) => o.host.elementId === w.id);
+      out.push(...wallSolids(w, wg.polygon, own, lv.elevation));
+      shells.push(wallShell(w, wg.polygon, own, lv.elevation, outside.get(w.id) ?? null));
     }
     for (const s of g.slabs) {
       const e = p.elements[s.id];
@@ -73,7 +105,41 @@ export function buildingSolids(p: Project, opts: SolidOptions = {}): Solid[] {
         z1: lv.elevation + FLOOR,
       });
   }
-  return out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : a.z0 - b.z0 || a.outline.length - b.outline.length));
+  out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : a.z0 - b.z0 || a.outline.length - b.outline.length));
+  return { solids: out, shells: shells.sort((a, b) => (a.id < b.id ? -1 : 1)) };
+}
+
+function wallShell(
+  w: Wall,
+  polygon: readonly V[],
+  openings: readonly Opening[],
+  elevation: number,
+  out: "left" | "right" | null,
+): WallShell {
+  const base = elevation + w.baseOffset;
+  const top = base + w.height;
+  const dir = norm(sub(w.end, w.start));
+  const n = perp(dir); // the left side
+  const { l, r } = faceOffsets(w);
+  return {
+    id: w.id,
+    levelId: w.levelId,
+    kind: w.kind,
+    outline: [...polygon],
+    z0: base,
+    z1: top,
+    start: w.start,
+    dir,
+    left: l,
+    right: r,
+    outward: out === "left" ? n : out === "right" ? mul(n, -1) : null,
+    holes: [...openings]
+      .sort((a, b) => a.host.offset - b.host.offset || (a.id < b.id ? -1 : 1))
+      .map((o) => {
+        const z0 = base + (o.kind === "door" ? 0 : o.sillHeight);
+        return { of: o.id, s0: o.host.offset, s1: o.host.offset + o.width, z0, z1: Math.min(top, z0 + o.height) };
+      }),
+  };
 }
 
 /** One wall's pieces: full height between openings, under-sill and over-head pieces at each opening. */
@@ -98,8 +164,9 @@ export function wallSolids(w: Wall, polygon: readonly V[], openings: readonly Op
     res.push(...piece(from, o0, base, top));
     const sill = base + (o.kind === "door" ? 0 : o.sillHeight);
     const head = Math.min(top, sill + o.height);
-    res.push(...piece(o0, o1, base, sill, o.id));
-    res.push(...piece(o0, o1, head, top, o.id));
+    // under-sill / over-head pieces reach 1 mm into their neighbours: no hairline cracks where they meet
+    res.push(...piece(o0 - SEAM, o1 + SEAM, base, sill, o.id));
+    res.push(...piece(o0 - SEAM, o1 + SEAM, head, top, o.id));
     if (o.kind === "window") {
       // a thin pane on the middle of the body
       const { l, r } = faceOffsets(w);
@@ -109,6 +176,7 @@ export function wallSolids(w: Wall, polygon: readonly V[], openings: readonly Op
       res.push({
         id: o.id,
         kind: "glass",
+        host: w.id,
         levelId: w.levelId,
         outline: [P(o0, m - GLASS / 2), P(o1, m - GLASS / 2), P(o1, m + GLASS / 2), P(o0, m + GLASS / 2)],
         z0: sill,

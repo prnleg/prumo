@@ -1,6 +1,15 @@
 // 3D solids (ADR-053): walls split around openings, slabs on top of the walls, room floors.
 import { describe, expect, it } from "vitest";
-import { buildingSolids, clipAlong, emptyProject, putCommand, type Opening, type Project, type Wall } from "../src";
+import {
+  buildingModel,
+  buildingSolids,
+  clipAlong,
+  emptyProject,
+  putCommand,
+  type Opening,
+  type Project,
+  type Wall,
+} from "../src";
 
 const W = (id: string, x1: number, y1: number, x2: number, y2: number): Wall => ({
   id,
@@ -62,8 +71,8 @@ describe("building solids (ADR-053)", () => {
       .sort((a, b) => (a[0] ?? 0) - (b[0] ?? 0) || (a[2] ?? 0) - (b[2] ?? 0));
     expect(spans).toEqual([
       [0, 1000, 0, 2700],
-      [1000, 2200, 0, 1000],
-      [1000, 2200, 2200, 2700],
+      [999, 2201, 0, 1000], // 1 mm overlap into the neighbours (no cracks)
+      [999, 2201, 2200, 2700],
       [2200, 4000, 0, 2700],
     ]);
     expect(walls.filter((x) => x.of === "w")).toHaveLength(2);
@@ -112,6 +121,23 @@ describe("building solids (ADR-053)", () => {
       W("d", 0, 3000, 0, 0),
     ]);
     expect(buildingSolids(p).filter((x) => x.kind === "floor")).toHaveLength(1);
+  });
+
+  it("shells: one per wall, holes listed, outside walls know which way is out", () => {
+    const p = put([
+      W("a", 0, 0, 4000, 0),
+      W("b", 4000, 0, 4000, 3000),
+      W("c", 4000, 3000, 0, 3000),
+      W("d", 0, 3000, 0, 0),
+      O("w", "window", 1000, 1200, 1000, 1200),
+    ]);
+    const { shells } = buildingModel(p);
+    expect(shells.map((x) => x.id)).toEqual(["a", "b", "c", "d"]);
+    const a = shells[0];
+    expect(a?.holes).toEqual([{ of: "w", s0: 1000, s1: 2200, z0: 1000, z1: 2200 }]);
+    // the room is on the left of a (start → end runs +x, room at +y): out = −y
+    expect(a?.outward?.x).toBeCloseTo(0);
+    expect(a?.outward?.y).toBeCloseTo(-1);
   });
 
   it("clipAlong keeps the slice between two positions", () => {
