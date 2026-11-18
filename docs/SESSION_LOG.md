@@ -736,4 +736,6 @@ Owner merged more-rules + chases. Branch `phase2/exit-criteria`.
 
 **Not done / still open in Phase 2 scope** (not exit criteria, listed in CURRENT_STATE): engineer review of the rule list (batch 2b), slabs ("what's above"), notes + protection markers + handoff banner, data pack, EU profile.
 
-**Next**: batch 2b document for the owner to send.
+**Batch 2b brief**: shared Claude doc in Portuguese (same format as batch 1): how to answer (item numbers only, "conferir" ok, anonymous), fill-in table E-30/31/33–38 with what was said in batch 1, VC-005 hand calc (E-32), new **E-39** (confirm the detail choices of R-WALL-004, R-OPEN-006, R-RING-001, R-JOINT-001). Recorded in ENGINEER_QUESTIONS.
+
+**Next**: owner forwards batch 2b; then threshold rules (R-OPEN-002/003/004, R-WALL-001/006). Meanwhile Phase 2 scope still open: slabs / "what's above", notes + protection markers + handoff banner (ADR-029), data pack (ADR-030), Q-139 element types.
