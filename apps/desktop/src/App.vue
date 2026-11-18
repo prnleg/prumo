@@ -13,6 +13,8 @@ import {
   wallsOnLevel,
   deleteCommand,
   detectRooms,
+  isHosted,
+  roomOwnWalls,
   editRoomCommand,
   faceOffsets,
   inside,
@@ -106,6 +108,7 @@ import {
   DoorOpen,
   GitCompare,
   Grid2x2,
+  Layers as LayersIcon,
   Maximize,
   MessageSquare,
   MousePointer2,
@@ -122,6 +125,7 @@ import {
   Undo2,
 } from "@lucide/vue";
 import FindingsPanel from "./FindingsPanel.vue";
+import LayersPanel from "./LayersPanel.vue";
 import MenuBar, { type Menu } from "./MenuBar.vue";
 import HandoffDialog from "./HandoffDialog.vue";
 import NotePopover from "./NotePopover.vue";
@@ -578,17 +582,19 @@ const wallSideLabels = computed(() => {
   return { left: look(l + 200), right: look(r - 200) };
 });
 const rooms = computed(() =>
-  detected.value.map((r) => ({
-    key: r.key,
-    floor: r.floor,
-    at: r.labelAt,
-    label: [r.label, formatArea(r.floorArea, locale.value)],
-    selected: selection.value.includes(ROOM_PREFIX + r.key),
-    ...(() => {
-      const f = finishById(r.floorFinish);
-      return f ? { fill: f.color } : {};
-    })(),
-  })),
+  detected.value
+    .filter((r) => !hiddenRooms.value.has(r.key))
+    .map((r) => ({
+      key: r.key,
+      floor: r.floor,
+      at: r.labelAt,
+      label: [r.label, formatArea(r.floorArea, locale.value)],
+      selected: selection.value.includes(ROOM_PREFIX + r.key),
+      ...(() => {
+        const f = finishById(r.floorFinish);
+        return f ? { fill: f.color } : {};
+      })(),
+    })),
 );
 const panelRooms = computed(() =>
   detected.value.map((r) => ({
@@ -601,10 +607,63 @@ const panelRooms = computed(() =>
     joists: r.joists,
   })),
 );
+// --- layers panel (Q-141): hidden rooms are view state only (not saved, not undoable) ------------
+const showLayers = ref(false);
+const hiddenRooms = ref<ReadonlySet<string>>(new Set());
+const roomList = computed(() => detectRooms(project.value, level.value));
+/** Ids that are dimmed and can't be picked: hidden rooms' own walls + what sits on them + the rooms. */
+const hiddenIds = computed<ReadonlySet<string>>(() => {
+  const rs = roomList.value;
+  const walls = new Set(rs.filter((r) => hiddenRooms.value.has(r.key)).flatMap((r) => roomOwnWalls(rs, r.key)));
+  const out = new Set<string>(walls);
+  for (const e of Object.values(project.value.elements)) if (isHosted(e) && walls.has(e.host.elementId)) out.add(e.id);
+  for (const k of hiddenRooms.value) out.add(ROOM_PREFIX + k);
+  return out;
+});
+watch(hiddenIds, (h) => {
+  selectTool.options = { ...selectTool.options, hidden: h };
+  selectTool.selection = selectTool.selection.filter((id) => !h.has(id));
+  sync();
+});
+const layerRooms = computed(() =>
+  detected.value.map((r) => ({
+    key: r.key,
+    label: r.label || formatArea(r.floorArea, locale.value),
+    hidden: hiddenRooms.value.has(r.key),
+    canRemove: roomOwnWalls(roomList.value, r.key).length > 0,
+  })),
+);
+function toggleRoom(key: string) {
+  const next = new Set(hiddenRooms.value);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  hiddenRooms.value = next;
+}
+function selectRoom(key: string) {
+  setTool("select");
+  selectTool.selection = [ROOM_PREFIX + key];
+  sync();
+}
+async function removeRoom(key: string) {
+  const r = layerRooms.value.find((x) => x.key === key);
+  const walls = roomOwnWalls(roomList.value, key);
+  if (!r || !walls.length) return;
+  const yes = await platform.ask(t("layers.remove.message", { name: r.label, count: walls.length }), {
+    title: t("layers.remove.title"),
+    ok: t("layers.remove"),
+    cancel: t("handoff.take.cancel"),
+  });
+  if (!yes) return;
+  // the room's tag goes too: with its walls gone it would never match a room again
+  const tag = matchRoomTags(roomList.value, roomTags(project.value, level.value)).get(key);
+  run(deleteCommand(history.current, [...walls, ...(tag ? [tag.id] : [])]));
+}
+
 /** Joist arrows (structure on): through the label point, 60% of the room's space that way. */
 const joistArrows = computed(() => {
   if (!structuralOn.value || !checks.value) return [];
   return detected.value.flatMap((r) => {
+    if (hiddenRooms.value.has(r.key)) return [];
     const u = r.above === "joist-slab" ? joistDirection(r.floor, r.joists) : null;
     if (!u) return [];
     const half = 0.3 * Math.min(roomReach(r.floor, r.labelAt, u), 4000);
@@ -835,7 +894,10 @@ function selectNote(id: string) {
 // --- Compare view (ADR-029 b): this plan vs a saved version in the file -------------------------------
 const compareWith = ref<string | null>(null);
 const snapshots = computed(() => (void tick.value, void fileTick.value, session.snapshotList()));
-watch(fileTick, () => (compareWith.value = null)); // New / Open: the old file's versions are gone
+watch(fileTick, () => {
+  compareWith.value = null; // New / Open: the old file's versions are gone
+  hiddenRooms.value = new Set(); // and its hidden rooms (view state)
+});
 const comparison = computed(() => {
   const before = compareWith.value ? session.snapshotProject(compareWith.value) : null;
   return before ? compareLevel(before, project.value, level.value) : null;
@@ -1299,6 +1361,7 @@ const menus = computed<Menu[]>(() => {
       items: [
         { id: "fit", label: t("action.fit") },
         "sep",
+        { id: "layers", label: t("layers.title"), checked: showLayers.value },
         { id: "structure", label: t("menu.structureChecks"), checked: structuralOn.value },
       ],
     },
@@ -1346,6 +1409,7 @@ function onMenu(id: string) {
     },
     fit: fitAll,
     structure: () => (structuralOn.value = !structuralOn.value),
+    layers: () => (showLayers.value = !showLayers.value),
     tour: () => (showTour.value = true),
   };
   acts[id]?.();
@@ -1540,6 +1604,17 @@ if (demo === "place-type") {
     void startExample(ex).then(() => {
       setTool("door");
       setPlaceStyle("door", "folding");
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
+if (demo === "layers") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      showLayers.value = true;
+      const bath = detected.value.find((r) => r.roomType === "bathroom") ?? detected.value[0];
+      if (bath) toggleRoom(bath.key);
       sync();
       setTimeout(fitAll, 0);
     });
@@ -1871,6 +1946,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           <component :is="tb.icon" :size="20" :stroke-width="1.75" />
           <span>{{ t(tb.label) }}</span>
         </button>
+        <span class="grow" />
+        <button :class="{ on: showLayers }" :title="t('layers.tip')" @click="showLayers = !showLayers">
+          <LayersIcon :size="20" :stroke-width="1.75" />
+          <span>{{ t("layers.title") }}</span>
+        </button>
       </nav>
 
       <main class="canvas">
@@ -1886,6 +1966,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :labels="labels"
           :badges="badges"
           :arrows="joistArrows"
+          :dimmed="[...hiddenIds]"
           :locks="protectionMarks.locks"
           :ghosts="protectionMarks.ghosts"
           :compare="comparison"
@@ -1903,6 +1984,22 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :about="noteDraft.about"
           @add="addNote"
           @cancel="noteDraft = null"
+        />
+        <LayersPanel
+          v-if="showLayers"
+          :locale="locale"
+          :levels="
+            project.levels.map((l, i) => ({
+              id: l.id,
+              name: l.name ?? (i === 0 ? t('level.ground') : t('level.n', { n: i })),
+            }))
+          "
+          :level="level"
+          :rooms="layerRooms"
+          @toggle="toggleRoom"
+          @remove="removeRoom"
+          @select="selectRoom"
+          @close="showLayers = false"
         />
         <PropertiesPanel
           v-if="tool === 'select'"
@@ -2090,6 +2187,9 @@ button.icon:hover:not(:disabled) {
   background: var(--panel);
   border-right: 1px solid var(--line);
   overflow-y: auto;
+}
+.tools .grow {
+  flex: 1;
 }
 .tools button {
   display: flex;

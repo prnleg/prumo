@@ -847,3 +847,13 @@ Branch `ui/menu-bar`, stacked on `types/openings`. Q-138 resolved. New dependenc
 Branch `ui/opening-type`, stacked on `ui/menu-bar`. Door / Window tool options bar → "Type" select; `OpeningToolOptions.style` + `STYLE_WIDTHS` (double 1200, sliding 2 leaves 1600, garage 2500 mm — drawing defaults, logged as UX values). Hinged doors keep no `style` field (files look the same as before). Choice lasts for the session. Dev `?demo=place-type`.
 
 **Tests**: architect +2 (double door placed 1200 wide and centred; no option → no field). Screenshot checked (options bar).
+
+### Session #11, part 55 — layers panel (Q-141), 2026-11-18
+
+Branch `ui/layers`, stacked on `ui/opening-type`. Owner answered the three design questions (hide = floor + name + dim own walls; remove = own walls; floors = list now, add later).
+
+**Done**: core `roomOwnWalls(rooms, key)`; `hitTest` / `boxSelect` take an optional `skip` set; SelectTool `hidden` option (no click, box, select-all or room-floor pick on hidden things). Renderer `dimmed` prop (walls, their outline segments, openings at 25 %). App: hidden rooms = view state (`hiddenRooms`), `hiddenIds` (own walls + hosted on them + `room:` ids), selection drops hidden ids; rooms / joist arrows skip hidden rooms. `LayersPanel.vue` (top-left; floors list + rooms with eye / name → select / bin). Remove asks (platform dialog), then one `deleteCommand` (own walls + the room's tag; hosted openings/items go with their walls). Bin disabled when every wall is shared. Strip "Layers" button (bottom) + View → Layers ✓. Unnamed levels get "Ground floor" / "Floor N" (`level.ground` / `level.n`). 18 strings. Dev `?demo=layers`.
+
+**Decided alone (reversible):** hidden rooms reset when you open another file (view state); tag deleted with the room (else an orphan tag would wait forever); the room list follows detection order.
+
+**Tests**: core +2 (own walls; skip sets). Screenshot checked.

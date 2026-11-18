@@ -334,3 +334,14 @@ export function matchRoomTags(rooms: readonly Room[], tags: readonly RoomTag[]):
   }
   return out;
 }
+
+/**
+ * A room's "own" walls: on its boundary and on no other detected room's boundary (Q-141 — what the
+ * layers panel dims when the room is hidden and deletes when it's removed). Sorted.
+ */
+export function roomOwnWalls(rooms: readonly Room[], key: string): Id[] {
+  const room = rooms.find((r) => r.key === key);
+  if (!room) return [];
+  const shared = new Set(rooms.filter((r) => r.key !== key).flatMap((r) => r.wallIds));
+  return room.wallIds.filter((id) => !shared.has(id));
+}
