@@ -481,3 +481,22 @@ Decision:
 - Rules with `needsBaseline` run only when one is marked; otherwise the panel lists them under "Not checked — needs the existing building" with the button.
 - Comparison is by element id within a level: a wall that was load-bearing (by the baseline's own marks + the system default) and is now gone / moved or resized by > 1 mm / no longer full or half → R-WALL-002 (critical). An opening in a load-bearing wall that is new (id not in the baseline, or on another wall) → R-OPEN-NEW critical; wider, or reaching lower/higher → warning ("critical / warning", E-02); slid along the wall → nothing.
 - Later: the compare view (Q-104) starts from the same snapshot.
+
+## ADR-044 — Notes, protection markers and the handoff "baton" (ADR-029 mechanics)
+Status: **PROPOSED (2026-11-17)**. Owner asked for this next ("go with option 1").
+Three slices, each its own branch, in this order:
+1. **Who you are + notes.**
+   - Identity (Q-092 default): a local display name in the app's prefs (`settings.json` → `name`). Asked the first time it's needed (first note / first hand-off), changeable in Settings. Not verified, no accounts.
+   - Note = new **core element** `type: "note"`: `{ text, author, createdAt, at: Vec2, targets: Id[], resolved?: true }` (+ the usual `id`, `levelId`, `components`). Pinned to a point and, optionally, to elements (`targets`). Not hosted → **survives deleting its element** ("the wall this note was about was removed"). Undoable like any edit. Plan: a pin; side list "Notes" (open / resolved).
+   - **Schema 1 → 2** (new core type): migration is a no-op; an older Prumo opens a v2 file read-only (existing policy).
+2. **Protection markers** ("load-bearing, don't remove", Q-077 b).
+   - Module element `org.prumo.structural:protection`, **not hosted** (deleting the wall leaves it behind), data `{ wallId, wall: {start, end, kind}, author, createdAt }`: a copy of the wall as it was when protected. No core change.
+   - Rule **R-PROT-001** (critical): the protected wall is gone, moved, or no longer a wall/half wall → "A wall {author} marked 'load-bearing, don't remove' was removed". Never blocks (ADR-026). The marker stays until someone removes it ("I know — remove the protection") or re-protects the wall where it is now.
+   - Panel: "Protect: load-bearing, don't remove" on a wall; a small lock on the plan.
+3. **Hand-off (baton).**
+   - `project.handoff?: { holder: string; log: { kind: "hand" | "take"; from: string; to: string; at: string; message?: string; snapshotId?: Id }[] }`. No `handoff` = solo use: nothing changes.
+   - "Hand to…" (name + message) → named snapshot "Sent to {name} #{n}" + log entry + save.
+   - Opening a project whose holder ≠ your name → banner "Ana is working on this. You can look and add notes." + **Take over** (logged, with a warning). Read-only except notes. Convention + visibility, not security (copies exist).
+Not now: per-element `createdBy / modifiedBy` (noisy in diffs; later if the compare view needs it).
+Confidence: medium. Biggest doubt: the schema bump (cheap now, before any public release).
+
