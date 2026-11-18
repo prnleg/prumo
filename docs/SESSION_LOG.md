@@ -829,3 +829,15 @@ Branch `types/openings`, stacked on `phase2/what-above`. Q-139 resolved (owner a
 **Decided alone (reversible):** no schema bump (optional field, older versions keep it); missing window style = the old plain symbol, not "sliding"; the opening tool still places hinged doors / plain windows (type picked in the panel afterwards until the options bar lands).
 
 **Tests**: core +5 (4 hand-checked symbols, 1 mirror property over every type × side), structural +1. Screenshots checked (all 12 types on the house example).
+
+### Session #11, part 53 — menu bar, tool strip, options bar (ADR-047), 2026-11-18
+
+Branch `ui/menu-bar`, stacked on `types/openings`. Q-138 resolved. New dependency `@lucide/vue` 1.67.0 (ADR-047; 1.67 = newest release older than two weeks).
+
+**Done**: `MenuBar.vue` (generic: menus of items / separators, shortcut text, ticks, disabled; keyboard + click-outside); App: File (New, Open, Save, Save as, Export a clean copy, Hand to…, Settings), Edit (Undo, Redo, Cut, Copy, Paste, Duplicate, Delete, Rotate 90°, Select all), View (Fit, Structure checks ✓), Tools (all tools with their keys), Help (Guided tour); quick icons right; options bar; left tool strip (`toolButtons`, the single list the strip and the Tools menu share). Tour bubble opens to the right of strip controls. 13 strings. Dev `?demo=menu` (Edit menu open).
+
+**Decided alone (reversible):** strip keeps text labels under icons (beginner-first); compare picker + Hand to… live in the options bar's right end; macOS keeps the system's default app menu (Quit / copy-paste in fields), Windows has none; "Rotate 90°" in Edit (was only a key + panel button).
+
+**Not done**: the opening tool's type picker in the options bar (ADR-046 follow-up) and the layers panel (Q-141) — next.
+
+**Tests**: no new unit tests (view only; i18n parity test covers the strings). Screenshots checked: plan, open Edit menu, room options, tour step 1.

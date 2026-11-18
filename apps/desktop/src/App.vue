@@ -98,7 +98,29 @@ import {
 } from "@prumo/module-structural";
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import {
+  BrickWall,
+  Cable,
+  DoorOpen,
+  GitCompare,
+  Grid2x2,
+  Maximize,
+  MessageSquare,
+  MousePointer2,
+  MoveHorizontal,
+  MoveVertical,
+  Pentagon,
+  RectangleHorizontal,
+  Redo2,
+  Save,
+  Send,
+  Settings as SettingsIcon,
+  SquareDashed,
+  SquareSplitHorizontal,
+  Undo2,
+} from "@lucide/vue";
 import FindingsPanel from "./FindingsPanel.vue";
+import MenuBar, { type Menu } from "./MenuBar.vue";
 import HandoffDialog from "./HandoffDialog.vue";
 import NotePopover from "./NotePopover.vue";
 import NotesPanel from "./NotesPanel.vue";
@@ -1110,6 +1132,207 @@ const hint = computed(() => {
   return wallTool.active ? t("hint.wall.active") : t("hint.wall.idle");
 });
 
+// --- menu bar, tool strip, options bar (ADR-047) -------------------------------------------------
+const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
+const keyName = (k: string) => (isMac ? k.replace("Mod+", "⌘").replace("Shift+", "⇧") : k.replace("Mod+", "Ctrl+"));
+/** The left tool strip: icon + short label; `edits` = off while it's not your turn (hand-off). */
+const toolButtons = computed(() => [
+  {
+    id: "select",
+    icon: MousePointer2,
+    label: "tool.select",
+    tip: "tool.select.tip",
+    tour: "select",
+    edits: false,
+    on: tool.value === "select",
+    pick: () => setTool("select"),
+  },
+  {
+    id: "room",
+    icon: SquareDashed,
+    label: "tool.room",
+    tip: "tool.room.tip",
+    tour: "room",
+    edits: true,
+    on: tool.value === "room",
+    pick: () => setTool("room"),
+  },
+  {
+    id: "wall",
+    icon: BrickWall,
+    label: "tool.wall",
+    tip: "tool.wall.tip",
+    tour: "wall",
+    edits: true,
+    on: tool.value === "wall" && !dividerMode.value,
+    pick: () => setTool("wall"),
+  },
+  {
+    id: "divider",
+    icon: SquareSplitHorizontal,
+    label: "tool.divider",
+    tip: "tool.divider.tip",
+    tour: "divider",
+    edits: true,
+    on: tool.value === "wall" && dividerMode.value,
+    pick: () => setTool("wall", true),
+  },
+  {
+    id: "door",
+    icon: DoorOpen,
+    label: "tool.door",
+    tip: "tool.door.tip",
+    tour: "door",
+    edits: true,
+    on: tool.value === "door",
+    pick: () => setTool("door"),
+  },
+  {
+    id: "window",
+    icon: Grid2x2,
+    label: "tool.window",
+    tip: "tool.window.tip",
+    tour: undefined,
+    edits: true,
+    on: tool.value === "window",
+    pick: () => setTool("window"),
+  },
+  {
+    id: "note",
+    icon: MessageSquare,
+    label: "tool.note",
+    tip: "tool.note.tip",
+    tour: undefined,
+    edits: false,
+    on: tool.value === "note",
+    pick: () => setTool("note"),
+  },
+  ...(structuralOn.value
+    ? [
+        {
+          id: "chase",
+          icon: Cable,
+          label: "tool.chase",
+          tip: "tool.chase.tip",
+          tour: undefined,
+          edits: true,
+          on: tool.value === "chase",
+          pick: () => setTool("chase"),
+        },
+      ]
+    : []),
+]);
+const currentTool = computed(() => toolButtons.value.find((b) => b.on) ?? toolButtons.value[0]);
+const hasSelection = computed(() => selection.value.length > 0);
+const menus = computed<Menu[]>(() => {
+  const locked = !!readOnly.value || notMyTurn.value;
+  return [
+    {
+      id: "file",
+      label: t("menu.file"),
+      items: [
+        { id: "new", label: t("action.new"), shortcut: keyName("Mod+N") },
+        { id: "open", label: t("action.open"), shortcut: keyName("Mod+O") },
+        "sep",
+        { id: "save", label: t("action.save"), shortcut: keyName("Mod+S"), disabled: !!readOnly.value },
+        { id: "saveAs", label: t("menu.saveAs"), shortcut: keyName("Mod+Shift+S") },
+        { id: "exportClean", label: t("versions.exportClean"), disabled: !snapshots.value.length },
+        "sep",
+        { id: "handoff", label: t("handoff.button"), disabled: locked },
+        "sep",
+        { id: "settings", label: t("action.settings") + "…" },
+      ],
+    },
+    {
+      id: "edit",
+      label: t("menu.edit"),
+      items: [
+        { id: "undo", label: t("action.undo"), shortcut: keyName("Mod+Z"), disabled: !canUndo.value },
+        {
+          id: "redo",
+          label: t("action.redo"),
+          shortcut: keyName(isMac ? "Mod+Shift+Z" : "Mod+Y"),
+          disabled: !canRedo.value,
+        },
+        "sep",
+        { id: "cut", label: t("menu.cut"), shortcut: keyName("Mod+X"), disabled: !hasSelection.value || locked },
+        { id: "copy", label: t("menu.copy"), shortcut: keyName("Mod+C"), disabled: !hasSelection.value },
+        { id: "paste", label: t("menu.paste"), shortcut: keyName("Mod+V"), disabled: locked },
+        {
+          id: "duplicate",
+          label: t("action.duplicate"),
+          shortcut: keyName("Mod+D"),
+          disabled: !hasSelection.value || locked,
+        },
+        {
+          id: "delete",
+          label: t("action.delete"),
+          shortcut: isMac ? "⌫" : "Del",
+          disabled: !hasSelection.value || locked,
+        },
+        "sep",
+        { id: "rotate", label: t("menu.rotate"), shortcut: "R", disabled: !hasSelection.value || locked },
+        { id: "selectAll", label: t("menu.selectAll"), shortcut: keyName("Mod+A") },
+      ],
+    },
+    {
+      id: "view",
+      label: t("menu.view"),
+      items: [
+        { id: "fit", label: t("action.fit") },
+        "sep",
+        { id: "structure", label: t("menu.structureChecks"), checked: structuralOn.value },
+      ],
+    },
+    {
+      id: "tools",
+      label: t("menu.tools"),
+      items: toolButtons.value.map((b) => ({
+        id: "tool:" + b.id,
+        label: t(b.label),
+        checked: b.on,
+        disabled: b.edits && notMyTurn.value,
+        ...(TOOL_KEYS[b.id] ? { shortcut: TOOL_KEYS[b.id] } : {}),
+      })),
+    },
+    {
+      id: "help",
+      label: t("menu.help"),
+      items: [{ id: "tour", label: t("menu.tour") }],
+    },
+  ];
+});
+const TOOL_KEYS: Record<string, string> = { select: "V", room: "Q", wall: "W", divider: "L", door: "D", window: "J" };
+function onMenu(id: string) {
+  if (id.startsWith("tool:")) return toolButtons.value.find((b) => "tool:" + b.id === id)?.pick();
+  const acts: Record<string, () => void> = {
+    new: () => void doNew(),
+    open: () => void doOpen(),
+    save: () => void doSave(false),
+    saveAs: () => void doSave(true),
+    exportClean: () => void file(() => session.exportClean()),
+    handoff: () => (showHandoff.value = true),
+    settings: () => (showSettings.value = true),
+    undo,
+    redo,
+    cut: () => copySelection(true),
+    copy: () => copySelection(false),
+    paste,
+    duplicate: duplicateSelection,
+    delete: deleteSelection,
+    rotate: () => rotateSelection(90),
+    selectAll: () => {
+      setTool("select");
+      selectTool.selectAll();
+      sync();
+    },
+    fit: fitAll,
+    structure: () => (structuralOn.value = !structuralOn.value),
+    tour: () => (showTour.value = true),
+  };
+  acts[id]?.();
+}
+
 function onKey(e: KeyboardEvent) {
   if (showTour.value && e.key === "Escape") {
     endTour();
@@ -1494,285 +1717,271 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 
 <template>
   <div class="shell">
-    <header class="toolbar">
-      <strong class="brand">{{ t("app.name") }}</strong>
-      <div class="group">
-        <button :title="t('action.new.tip')" @click="doNew">{{ t("action.new") }}</button>
-        <button :title="t('action.open.tip')" @click="doOpen">{{ t("action.open") }}</button>
-        <button data-tour="save" :title="t('action.save.tip')" :disabled="!!readOnly" @click="doSave(false)">
-          {{ t("action.save") }}
+    <MenuBar :menus="menus" :start-open="demo === 'menu' ? 'edit' : null" @pick="onMenu">
+      <template #start
+        ><strong class="brand">{{ t("app.name") }}</strong></template
+      >
+      <template #end>
+        <div class="quick">
+          <button
+            class="icon"
+            data-tour="save"
+            :title="t('action.save.tip')"
+            :aria-label="t('action.save')"
+            :disabled="!!readOnly"
+            @click="doSave(false)"
+          >
+            <Save :size="16" />
+          </button>
+          <button
+            class="icon"
+            data-tour="undo"
+            :disabled="!canUndo"
+            :title="undoTip"
+            :aria-label="t('action.undo')"
+            @click="undo"
+          >
+            <Undo2 :size="16" />
+          </button>
+          <button class="icon" :disabled="!canRedo" :title="redoTip" :aria-label="t('action.redo')" @click="redo">
+            <Redo2 :size="16" />
+          </button>
+          <button class="icon" :title="t('action.fit')" :aria-label="t('action.fit')" @click="fitAll">
+            <Maximize :size="16" />
+          </button>
+          <button
+            class="icon"
+            data-tour="settings"
+            :title="t('action.settings.tip')"
+            :aria-label="t('action.settings')"
+            @click="showSettings = true"
+          >
+            <SettingsIcon :size="16" />
+          </button>
+        </div>
+      </template>
+    </MenuBar>
+
+    <!-- options bar: the current tool's name + its options; versions on the right (ADR-047) -->
+    <div class="optbar">
+      <template v-if="currentTool">
+        <component :is="currentTool.icon" :size="15" class="muted" />
+        <strong>{{ t(currentTool.label) }}</strong>
+      </template>
+      <span v-if="tool === 'room'" class="seg" role="group" :aria-label="t('roomShape.label')">
+        <button
+          :class="{ on: roomShape === 'rectangle' }"
+          :title="t('roomShape.rectangle.tip')"
+          @click="setRoomShape('rectangle')"
+        >
+          <RectangleHorizontal :size="14" /> {{ t("roomShape.rectangle") }}
         </button>
+        <button
+          :class="{ on: roomShape === 'polygon' }"
+          :title="t('roomShape.polygon.tip')"
+          @click="setRoomShape('polygon')"
+        >
+          <Pentagon :size="14" /> {{ t("roomShape.polygon") }}
+        </button>
+      </span>
+      <span v-if="tool === 'chase'" class="seg" role="group" :aria-label="t('chaseDir.label')">
+        <button
+          :class="{ on: chaseDirection === 'horizontal' }"
+          :title="t('chaseDir.horizontal.tip')"
+          @click="setChaseDir('horizontal')"
+        >
+          <MoveHorizontal :size="14" /> {{ t("chaseDir.horizontal") }}
+        </button>
+        <button
+          :class="{ on: chaseDirection === 'vertical' }"
+          :title="t('chaseDir.vertical.tip')"
+          @click="setChaseDir('vertical')"
+        >
+          <MoveVertical :size="14" /> {{ t("chaseDir.vertical") }}
+        </button>
+      </span>
+      <span class="spacer" />
+      <label v-if="snapshots.length" class="cmp-pick" :title="t('compare.tip')">
+        <GitCompare :size="14" />
         <select
-          v-if="snapshots.length"
           class="compare"
-          :title="t('compare.tip')"
           :value="compareWith ?? ''"
           @change="compareWith = ($event.target as HTMLSelectElement).value || null"
         >
           <option value="">{{ t("compare.off") }}</option>
           <option v-for="v in snapshots" :key="v.id" :value="v.id">{{ v.name }} · {{ whenShort(v.createdAt) }}</option>
         </select>
-        <button :title="t('handoff.tip')" :disabled="!!readOnly || notMyTurn" @click="showHandoff = true">
-          {{ t("handoff.button") }}
-        </button>
-      </div>
-      <div class="group">
-        <button
-          data-tour="select"
-          :class="{ on: tool === 'select' }"
-          :title="t('tool.select.tip')"
-          @click="setTool('select')"
-        >
-          {{ t("tool.select") }}
-        </button>
-        <button
-          data-tour="room"
-          :class="{ on: tool === 'room' }"
-          :title="t('tool.room.tip')"
-          :disabled="notMyTurn"
-          @click="setTool('room')"
-        >
-          {{ t("tool.room") }}
-        </button>
-        <span v-if="tool === 'room'" class="seg" role="group" :aria-label="t('roomShape.label')">
-          <button
-            :class="{ on: roomShape === 'rectangle' }"
-            :title="t('roomShape.rectangle.tip')"
-            @click="setRoomShape('rectangle')"
-          >
-            ▭ {{ t("roomShape.rectangle") }}
-          </button>
-          <button
-            :class="{ on: roomShape === 'polygon' }"
-            :title="t('roomShape.polygon.tip')"
-            @click="setRoomShape('polygon')"
-          >
-            ⬠ {{ t("roomShape.polygon") }}
-          </button>
-        </span>
-        <button
-          data-tour="wall"
-          :class="{ on: tool === 'wall' && !dividerMode }"
-          :title="t('tool.wall.tip')"
-          :disabled="notMyTurn"
-          @click="setTool('wall')"
-        >
-          {{ t("tool.wall") }}
-        </button>
-        <button
-          :class="{ on: tool === 'wall' && dividerMode }"
-          data-tour="divider"
-          :title="t('tool.divider.tip')"
-          :disabled="notMyTurn"
-          @click="setTool('wall', true)"
-        >
-          {{ t("tool.divider") }}
-        </button>
-        <button
-          data-tour="door"
-          :class="{ on: tool === 'door' }"
-          :title="t('tool.door.tip')"
-          :disabled="notMyTurn"
-          @click="setTool('door')"
-        >
-          {{ t("tool.door") }}
-        </button>
-        <button
-          :class="{ on: tool === 'window' }"
-          :title="t('tool.window.tip')"
-          :disabled="notMyTurn"
-          @click="setTool('window')"
-        >
-          {{ t("tool.window") }}
-        </button>
-        <button :class="{ on: tool === 'note' }" :title="t('tool.note.tip')" @click="setTool('note')">
-          {{ t("tool.note") }}
-        </button>
-        <button
-          v-if="structuralOn"
-          :class="{ on: tool === 'chase' }"
-          :title="t('tool.chase.tip')"
-          :disabled="notMyTurn"
-          @click="setTool('chase')"
-        >
-          {{ t("tool.chase") }}
-        </button>
-        <span v-if="tool === 'chase'" class="seg" role="group" :aria-label="t('chaseDir.label')">
-          <button
-            :class="{ on: chaseDirection === 'horizontal' }"
-            :title="t('chaseDir.horizontal.tip')"
-            @click="setChaseDir('horizontal')"
-          >
-            ⟷ {{ t("chaseDir.horizontal") }}
-          </button>
-          <button
-            :class="{ on: chaseDirection === 'vertical' }"
-            :title="t('chaseDir.vertical.tip')"
-            @click="setChaseDir('vertical')"
-          >
-            ↕ {{ t("chaseDir.vertical") }}
-          </button>
-        </span>
-      </div>
-      <div class="group">
-        <button data-tour="undo" :disabled="!canUndo" :title="undoTip" @click="undo">↶ {{ t("action.undo") }}</button>
-        <button :disabled="!canRedo" :title="redoTip" @click="redo">↷ {{ t("action.redo") }}</button>
-      </div>
-      <button @click="fitAll">{{ t("action.fit") }}</button>
-      <span class="spacer" />
-      <button data-tour="settings" :title="t('action.settings.tip')" @click="showSettings = true">
-        ⚙ {{ t("action.settings") }}
+      </label>
+      <button :title="t('handoff.tip')" :disabled="!!readOnly || notMyTurn" @click="showHandoff = true">
+        <Send :size="14" /> {{ t("handoff.button") }}
       </button>
-    </header>
+    </div>
 
-    <main class="canvas">
-      <PlanView
-        v-model:view="view"
-        :geometry="geometry"
-        :walls="walls"
-        :hover="tool === 'wall' || tool === 'room' ? hover : null"
-        :rooms="rooms"
-        :faces="faces"
-        :selected-ids="selection"
-        :box="box"
-        :labels="labels"
-        :badges="badges"
-        :arrows="joistArrows"
-        :locks="protectionMarks.locks"
-        :ghosts="protectionMarks.ghosts"
-        :compare="comparison"
-        :grid="gridSize"
-        @pointer="onPointer"
-        @resize="onResize"
-        @leave="onLeave"
-      />
-      <NotePopover
-        v-if="noteDraft && noteSpot"
-        :locale="locale"
-        :left="noteSpot.left"
-        :top="noteSpot.top"
-        :name="myName"
-        :about="noteDraft.about"
-        @add="addNote"
-        @cancel="noteDraft = null"
-      />
-      <PropertiesPanel
-        v-if="tool === 'select'"
-        v-model:keep-original="keepOriginal"
-        :project="project"
-        :selection="selection"
-        :locale="locale"
-        :rooms="panelRooms"
-        :wall-sides="wallSideLabels"
-        :structural="structuralOn ? (checks?.system ?? null) : null"
-        @role="setRole"
-        @lintel="setOpeningLintel"
-        @contraverga="setOpeningContraverga"
-        @tie-beam="setWallTieBeam"
-        @bonded="setWallBonded"
-        @protect="protectWall"
-        @unprotect="unprotect"
-        @apply="run"
-        @name="nameRoom"
-        @paint-side="paintSide"
-        @paint-floor="paintFloor"
-        @room-type="typeRoom"
-        @above="setRoomAbove"
-        @material="setMaterial"
-        @delete="deleteSelection"
-        @duplicate="duplicateSelection"
-        @rotate="rotateSelection"
-        @mirror="mirrorSelection"
-      />
-      <div v-if="crash" class="crash" role="status">
-        <span>{{ t("crash.message") }}</span>
-        <button @click="reportCrash">{{ t("crash.report") }}</button>
-        <button @click="crash = null">{{ t("crash.dismiss") }}</button>
-      </div>
-      <div v-if="comparison" class="cmp-bar" role="status">
-        <span>{{ t("compare.bar", { name: compareName }) }}</span>
-        <span class="key added">{{ t("compare.added", { count: comparison.added.length }) }}</span>
-        <span class="key changed">{{ t("compare.changed", { count: comparison.changed.length }) }}</span>
-        <span class="key gone">{{ t("compare.gone", { count: comparison.gone.length }) }}</span>
-        <button @click="compareWith = null">{{ t("compare.stop") }}</button>
-      </div>
-      <div v-if="notMyTurn" class="turn" role="status">
-        <span>{{ t("handoff.banner", { name: holder }) }}</span>
-        <button @click="takeOver">{{ t("handoff.takeOver") }}</button>
-      </div>
-      <HandoffDialog
-        v-if="showHandoff"
-        :locale="locale"
-        :name="myName"
-        @send="sendHandoff"
-        @cancel="showHandoff = false"
-      />
-      <p v-if="readOnly" class="blocked">{{ readOnly }}</p>
-      <p v-if="notice" class="blocked">{{ notice }}</p>
-      <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
-      <StartScreen
-        v-if="showStart"
-        :locale="locale"
-        :closable="true"
-        @blank="startBlank"
-        @example="startExample"
-        @open="startOpen"
-        @close="showStart = false"
-      />
-      <TourBubble v-if="showTour" :locale="locale" :steps="TOUR" @done="endTour" />
-      <RecoveryPanel
-        v-if="recoveries.length"
-        :locale="locale"
-        :entries="recoveries"
-        @recover="recoverEntry"
-        @discard="discardEntry"
-        @later="recoveries = []"
-      />
-      <NotesPanel
-        v-if="!(tool === 'select' && selection.length)"
-        :locale="locale"
-        :notes="levelNotes"
-        :selected="selection"
-        @select="selectNote"
-      />
-      <FindingsPanel
-        v-if="structuralOn && checks"
-        :locale="locale"
-        :project="project"
-        :result="checks"
-        :diff="checksDiff"
-        :baseline="(void tick, session.baselineDate())"
-        @mark="session.markBaseline()"
-        @clear-baseline="session.clearBaseline()"
-        @select="selectFromCheck"
-        @protect-again="protectAgain"
-        @unprotect="unprotect"
-        @system="showSettings = true"
-      />
-      <SettingsPanel
-        v-if="showSettings"
-        :locale="locale"
-        :grid="gridSize"
-        :angle="angleStep"
-        :outside-faces="project.settings.outsideFaces === true"
-        :system="constructionSystem(project)"
-        :structural="structuralOn"
-        :name="myName"
-        :versions="snapshots.map((v) => ({ ...v, inUse: v.id === project.settings.baseline }))"
-        :versions-size="(void tick, void fileTick, session.snapshotsSize())"
-        @delete-version="deleteVersion"
-        @export-clean="file(() => session.exportClean())"
-        @name="setMyName"
-        @system="(s) => run(setSystemCommand(s))"
-        @structural="(on) => (structuralOn = on)"
-        @grid="setGrid"
-        @angle="(a) => (angleStep = a)"
-        @outside-faces="(on) => run(setOutsideFacesCommand(on))"
-        @tour="((showSettings = false), (showTour = true))"
-        @locale="(l) => (locale = l)"
-        @close="showSettings = false"
-      />
-    </main>
+    <div class="work">
+      <nav class="tools" :aria-label="t('menu.tools')">
+        <button
+          v-for="tb in toolButtons"
+          :key="tb.id"
+          :data-tour="tb.tour"
+          :class="{ on: tb.on }"
+          :title="t(tb.tip)"
+          :disabled="tb.edits && notMyTurn"
+          @click="tb.pick()"
+        >
+          <component :is="tb.icon" :size="20" :stroke-width="1.75" />
+          <span>{{ t(tb.label) }}</span>
+        </button>
+      </nav>
+
+      <main class="canvas">
+        <PlanView
+          v-model:view="view"
+          :geometry="geometry"
+          :walls="walls"
+          :hover="tool === 'wall' || tool === 'room' ? hover : null"
+          :rooms="rooms"
+          :faces="faces"
+          :selected-ids="selection"
+          :box="box"
+          :labels="labels"
+          :badges="badges"
+          :arrows="joistArrows"
+          :locks="protectionMarks.locks"
+          :ghosts="protectionMarks.ghosts"
+          :compare="comparison"
+          :grid="gridSize"
+          @pointer="onPointer"
+          @resize="onResize"
+          @leave="onLeave"
+        />
+        <NotePopover
+          v-if="noteDraft && noteSpot"
+          :locale="locale"
+          :left="noteSpot.left"
+          :top="noteSpot.top"
+          :name="myName"
+          :about="noteDraft.about"
+          @add="addNote"
+          @cancel="noteDraft = null"
+        />
+        <PropertiesPanel
+          v-if="tool === 'select'"
+          v-model:keep-original="keepOriginal"
+          :project="project"
+          :selection="selection"
+          :locale="locale"
+          :rooms="panelRooms"
+          :wall-sides="wallSideLabels"
+          :structural="structuralOn ? (checks?.system ?? null) : null"
+          @role="setRole"
+          @lintel="setOpeningLintel"
+          @contraverga="setOpeningContraverga"
+          @tie-beam="setWallTieBeam"
+          @bonded="setWallBonded"
+          @protect="protectWall"
+          @unprotect="unprotect"
+          @apply="run"
+          @name="nameRoom"
+          @paint-side="paintSide"
+          @paint-floor="paintFloor"
+          @room-type="typeRoom"
+          @above="setRoomAbove"
+          @material="setMaterial"
+          @delete="deleteSelection"
+          @duplicate="duplicateSelection"
+          @rotate="rotateSelection"
+          @mirror="mirrorSelection"
+        />
+        <div v-if="crash" class="crash" role="status">
+          <span>{{ t("crash.message") }}</span>
+          <button @click="reportCrash">{{ t("crash.report") }}</button>
+          <button @click="crash = null">{{ t("crash.dismiss") }}</button>
+        </div>
+        <div v-if="comparison" class="cmp-bar" role="status">
+          <span>{{ t("compare.bar", { name: compareName }) }}</span>
+          <span class="key added">{{ t("compare.added", { count: comparison.added.length }) }}</span>
+          <span class="key changed">{{ t("compare.changed", { count: comparison.changed.length }) }}</span>
+          <span class="key gone">{{ t("compare.gone", { count: comparison.gone.length }) }}</span>
+          <button @click="compareWith = null">{{ t("compare.stop") }}</button>
+        </div>
+        <div v-if="notMyTurn" class="turn" role="status">
+          <span>{{ t("handoff.banner", { name: holder }) }}</span>
+          <button @click="takeOver">{{ t("handoff.takeOver") }}</button>
+        </div>
+        <HandoffDialog
+          v-if="showHandoff"
+          :locale="locale"
+          :name="myName"
+          @send="sendHandoff"
+          @cancel="showHandoff = false"
+        />
+        <p v-if="readOnly" class="blocked">{{ readOnly }}</p>
+        <p v-if="notice" class="blocked">{{ notice }}</p>
+        <p v-if="blocked.length" class="blocked">{{ blocked.map((c) => t(`problem.${c}`)).join(" ") }}</p>
+        <StartScreen
+          v-if="showStart"
+          :locale="locale"
+          :closable="true"
+          @blank="startBlank"
+          @example="startExample"
+          @open="startOpen"
+          @close="showStart = false"
+        />
+        <TourBubble v-if="showTour" :locale="locale" :steps="TOUR" @done="endTour" />
+        <RecoveryPanel
+          v-if="recoveries.length"
+          :locale="locale"
+          :entries="recoveries"
+          @recover="recoverEntry"
+          @discard="discardEntry"
+          @later="recoveries = []"
+        />
+        <NotesPanel
+          v-if="!(tool === 'select' && selection.length)"
+          :locale="locale"
+          :notes="levelNotes"
+          :selected="selection"
+          @select="selectNote"
+        />
+        <FindingsPanel
+          v-if="structuralOn && checks"
+          :locale="locale"
+          :project="project"
+          :result="checks"
+          :diff="checksDiff"
+          :baseline="(void tick, session.baselineDate())"
+          @mark="session.markBaseline()"
+          @clear-baseline="session.clearBaseline()"
+          @select="selectFromCheck"
+          @protect-again="protectAgain"
+          @unprotect="unprotect"
+          @system="showSettings = true"
+        />
+        <SettingsPanel
+          v-if="showSettings"
+          :locale="locale"
+          :grid="gridSize"
+          :angle="angleStep"
+          :outside-faces="project.settings.outsideFaces === true"
+          :system="constructionSystem(project)"
+          :structural="structuralOn"
+          :name="myName"
+          :versions="snapshots.map((v) => ({ ...v, inUse: v.id === project.settings.baseline }))"
+          :versions-size="(void tick, void fileTick, session.snapshotsSize())"
+          @delete-version="deleteVersion"
+          @export-clean="file(() => session.exportClean())"
+          @name="setMyName"
+          @system="(s) => run(setSystemCommand(s))"
+          @structural="(on) => (structuralOn = on)"
+          @grid="setGrid"
+          @angle="(a) => (angleStep = a)"
+          @outside-faces="(on) => run(setOutsideFacesCommand(on))"
+          @tour="((showSettings = false), (showTour = true))"
+          @locale="(l) => (locale = l)"
+          @close="showSettings = false"
+        />
+      </main>
+    </div>
 
     <footer class="status">
       <span :title="hint">{{ hint }}</span>
@@ -1790,12 +1999,77 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 <style scoped>
 .shell {
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto auto 1fr auto auto;
   /* minmax(0, …): long no-wrap status text must not widen the canvas past the window */
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
-.toolbar,
+.optbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 36px;
+  padding: 3px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.optbar button,
+.seg button,
+.quick button,
+.cmp-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.quick {
+  display: flex;
+  gap: 2px;
+}
+button.icon {
+  padding: 5px 7px;
+  border-color: transparent;
+  background: none;
+}
+button.icon:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.work {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 0;
+}
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 62px;
+  padding: 6px 4px;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.tools button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 2px 5px;
+  border-color: transparent;
+  background: none;
+  font-size: 10.5px;
+  line-height: 1.15;
+}
+.tools button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.tools button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
 .status {
   display: flex;
   gap: 12px;
@@ -1805,10 +2079,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
   border-bottom: 1px solid var(--line);
 }
 /* narrow windows: the toolbar wraps onto a second row instead of overflowing (row height is auto) */
-.toolbar {
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
 .status {
   border-top: 1px solid var(--line);
   border-bottom: none;
