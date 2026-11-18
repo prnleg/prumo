@@ -24,6 +24,7 @@ describe("UI i18n (ADR-021/034)", () => {
             modules: "org.example.electrical",
             time: "17 nov 2026 13:40",
             n: 1,
+            below: "Térreo",
             total: 8,
             wall: "a parede de 4,00 m",
             opening: "a janela (1,20 m)",

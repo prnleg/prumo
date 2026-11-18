@@ -38,6 +38,8 @@ const props = defineProps<{
     selected?: boolean;
     fill?: string;
   }[];
+  /** The floor below (ADR-048): wall shapes drawn faded under everything; never picked. */
+  ghost?: readonly (readonly V[])[];
   /** Dimmed (hidden room's own walls and what's on them, Q-141): drawn faded; picking is the tools' job. */
   dimmed?: readonly string[];
   /** Double-headed arrows inside rooms (joist direction, structure on). */
@@ -229,6 +231,9 @@ function wheel(e: WheelEvent) {
           <tspan v-for="(line, i) in r.lines" :key="i" :x="r.x" :dy="i === 0 ? r.dy0 : r.size * 1.25">{{ line }}</tspan>
         </text>
       </template>
+    </g>
+    <g class="below">
+      <polygon v-for="(g, k) in ghost ?? []" :key="k" :points="pts(g)" />
     </g>
     <g class="walls">
       <polygon
@@ -431,6 +436,13 @@ function wheel(e: WheelEvent) {
 }
 .wall {
   fill: var(--wall-full);
+}
+.below polygon {
+  fill: none;
+  stroke: var(--muted, #888);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.55;
 }
 .rooms polygon {
   fill: var(--room);

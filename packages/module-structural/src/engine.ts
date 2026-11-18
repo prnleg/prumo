@@ -63,4 +63,5 @@ export const NOT_CHECKED = [
   "notChecked.roofThrust",
   "notChecked.pointLoads",
   "notChecked.shoring",
+  "notChecked.floors",
 ] as const;

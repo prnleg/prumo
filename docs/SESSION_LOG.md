@@ -861,3 +861,15 @@ Branch `ui/layers`, stacked on `ui/opening-type`. Owner answered the three desig
 ### Session #11, part 56 — QA pass: pt-BR + light mode, 2026-11-18
 
 Branch `qa/pt-br`, stacked on `ui/layers`. Dev-only `?lang=pt-BR` (ignored in builds; overrides the remembered language) so screenshots can check Portuguese — the earlier `--lang` flag didn't work. Checked in pt-BR: menu (Editar open), door/window types panel, what's above, layers; light mode: layers. All text fits; nothing untranslated. Fix: the layers room list is now sorted by name (it followed detection order, which changes with random ids). Earlier "pt-BR not visually checked" gap closed.
+
+### Session #11, part 57 — floors (ADR-048, Phase 5 step 1), 2026-11-18
+
+Branch `phase5/floors`, stacked on `qa/pt-br`. Owner answers: ask each time what a new floor starts with (default outside walls); show the floor below faded, toggle in View.
+
+**Done**: core `levels.ts` — `addLevelCommand` (empty / outside / all; reuses copy/paste with a target level; room tags copied for "all"), `renameLevelCommand`, `deleteLevelCommand` (not the last), `levelsByElevation`, `levelBelow`, `outsideWalls` (ADR-038 `wallSides`). App: `AddFloorDialog.vue`; Layers floors list (top floor first; click = switch, pencil = rename inline, bin = delete with confirmation; "Add a floor above"); `setLevel` points every tool at the floor (wall/room tools take its wall height), clears selection + hidden rooms, re-runs checks; undoing "add floor" falls back to the lowest floor; options bar "Floor: …" chip; View → Show the floor below; renderer `ghost` prop. Structural NOT_CHECKED + "Floors on top of each other". 25 strings. Dev `?demo=floors`, `?demo=add-floor`.
+
+**Bug found by screenshot, fixed**: first version of "outside walls" counted walls on exactly one room — a long outer wall along several rooms was skipped (only 1 of 4 copied). Now uses `wallSides` (test added).
+
+**Decided alone (reversible):** 2.80 m floor-to-floor default (drawing value); new floor added above the *current* floor; suggested name kept generated (null) so it follows the language; notes/protections never copied.
+
+**Tests**: core +8. Screenshots checked (dialog, new floor with faded floor below).
