@@ -719,6 +719,7 @@ const selectedLoad = computed(() => {
 });
 function slabOrRoomName(ref: string) {
   if (ref.startsWith("slab:")) return t("slab.badge");
+  if (ref.startsWith("level:")) return floorName(project.value, ref.slice(6));
   const r = detected.value.find((x) => x.key === ref.slice(5));
   return r ? r.label || formatArea(r.floorArea, locale.value) : t("finish.outside");
 }
@@ -2033,6 +2034,7 @@ if (demo === "materials" || demo === "values") {
 }
 if (
   demo === "loads" ||
+  demo === "upper" ||
   demo === "lintel" ||
   demo === "3d" ||
   demo === "3d-low" ||
@@ -2065,6 +2067,13 @@ if (
         setOpeningLintel(o.id, true);
         setOpeningLintelSize(o.id, { height: 100, bars: { count: 2, diameter: 8 } });
         selectTool.selection = [o.id];
+      }
+      if (demo === "upper" && w) {
+        // a full copy of the ground floor on top (slab included), then back to the ground floor's wall
+        const ground = level.value;
+        addFloor("", 2800, "all");
+        setLevel(ground);
+        selectTool.selection = [w.id];
       }
       if (demo === "3d" || demo === "3d-low" || demo === "3d-full") {
         // outside faces in exposed brick, one room's walls in drywall (shows the patterns)

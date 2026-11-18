@@ -126,6 +126,8 @@ export function wallLoadText(
         gHi: sig2(Number(p.gHi), locale),
         w: span(l.lo, l.hi, locale),
       });
+    if (l.key === "load.line.upper")
+      return t(l.key, { floor: nameOf(String(p.ref)), count: Number(p.count), w: span(l.lo, l.hi, locale) });
     return t(l.key, {
       name: nameOf(String(p.ref)),
       kind: t(`load.kind.${String(p.kind)}`),
@@ -166,6 +168,7 @@ export function lintelText(
     const p = l.params;
     if (l.key === "lintel.line.span")
       return t(l.key, { width: s(Number(p.width)), bearing: s(Number(p.bearing)), L: s(Number(p.L)) });
+    if (l.key === "lintel.line.upper") return t(l.key, { floor: nameOf(String(p.ref)), w: span(l.lo, l.hi, locale) });
     if (l.key === "lintel.line.slab")
       return t(l.key, {
         name: nameOf(String(p.ref)),

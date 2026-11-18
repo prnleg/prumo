@@ -80,7 +80,7 @@ describe("load takedown (ADR-051)", () => {
     expect(bot.hi).toBeCloseTo(SELF + 5.15625, 1);
     // short wall: 0.75 q = 3.375 … 4.125
     expect(L.get("left")!.hi).toBeCloseTo(SELF + 4.125, 1);
-    expect(bot.notCounted).toContain("load.nc.upper");
+    expect(bot.notCounted).not.toContain("load.nc.upper"); // a single floor: nothing above to leave out
   });
 
   it("joist slab running the short way: long walls 1.5 q (q = 1.5…3.0 + 0.5…1.5 + 1.5 = 3.5…6.0), short walls only own weight", () => {

@@ -495,8 +495,8 @@ function commitLength(w: Wall, ev: Event) {
             <ul>
               <li v-for="(l, k) in load.lines" :key="k">{{ l }}</li>
             </ul>
-            <p class="ro">{{ t("load.notCounted") }}</p>
-            <ul class="ro">
+            <p v-if="load.notCounted.length" class="ro">{{ t("load.notCounted") }}</p>
+            <ul v-if="load.notCounted.length" class="ro">
               <li v-for="(n, k) in load.notCounted" :key="k">{{ n }}</li>
             </ul>
             <p class="ro">{{ t("load.disclaimer") }}</p>

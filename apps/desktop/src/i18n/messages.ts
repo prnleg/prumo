@@ -336,6 +336,7 @@ export const en = {
   "lintel.line.above": "Wall above the opening ({h} m, lintel included): {w} kN/m",
   "lintel.line.aboveUnknown": "Wall above the opening ({h} m, lintel size not known): {w} kN/m",
   "lintel.line.slab": "{name} ({kind}): its {w} kN/m on this wall, all of it on the lintel",
+  "lintel.line.upper": "{floor} above: its {w} kN/m on this wall, all of it on the lintel",
   "lintel.line.moment": "M = w × L² / 8 = {m} kN·m in the middle; V = w × L / 2 = {v} kN at each end",
   "lintel.line.strength": "Strength from the height, the bars and concrete of {fck} MPa (not known, so a range)",
   "lintel.notChecked": "Not checked or not counted:",
@@ -614,7 +615,9 @@ export const en = {
   "load.kind.joist": "joist slab",
   "load.kind.unknown": "type not set",
   "load.notCounted": "Not counted:",
-  "load.nc.upper": "Floors above this one",
+  "load.line.upper":
+    "{floor}: {count, plural, one {the wall} other {the walls}} standing on it bring {w} kN/m (counted the same way, floor by floor)",
+  "load.nc.unsupported": "Upper-floor walls with no wall under them (their weight goes to something not drawn)",
   "load.nc.roof": "Roofs resting on walls",
   "load.nc.freeEdge": "Slab edges with no wall under them (balconies, overhangs)",
   "load.nc.frame": "Slabs: in a concrete frame they rest on beams and columns, which aren't drawn",
@@ -1071,6 +1074,7 @@ export const ptBR: Record<MessageKey, string> = {
   "lintel.line.above": "Parede acima da abertura ({h} m, com a verga): {w} kN/m",
   "lintel.line.aboveUnknown": "Parede acima da abertura ({h} m, tamanho da verga não informado): {w} kN/m",
   "lintel.line.slab": "{name} ({kind}): os {w} kN/m nesta parede, todos sobre a verga",
+  "lintel.line.upper": "{floor} em cima: os {w} kN/m nesta parede, todos sobre a verga",
   "lintel.line.moment": "M = w × L² / 8 = {m} kN·m no meio; V = w × L / 2 = {v} kN em cada apoio",
   "lintel.line.strength":
     "Resistência pela altura, pelas barras e por concreto de {fck} MPa (não se sabe, então uma faixa)",
@@ -1354,7 +1358,10 @@ export const ptBR: Record<MessageKey, string> = {
   "load.kind.joist": "laje de vigota",
   "load.kind.unknown": "tipo não informado",
   "load.notCounted": "Não entra na conta:",
-  "load.nc.upper": "Andares acima deste",
+  "load.line.upper":
+    "{floor}: {count, plural, one {a parede} other {as paredes}} em cima dela {count, plural, one {traz} other {trazem}} {w} kN/m (calculado do mesmo jeito, andar por andar)",
+  "load.nc.unsupported":
+    "Paredes do andar de cima sem parede embaixo (o peso delas vai para algo que não está desenhado)",
   "load.nc.roof": "Telhados apoiados nas paredes",
   "load.nc.freeEdge": "Bordas de laje sem parede embaixo (sacadas, beirais)",
   "load.nc.frame": "Lajes: numa estrutura de concreto elas apoiam em vigas e pilares, que não estão desenhados",

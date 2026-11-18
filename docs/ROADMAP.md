@@ -149,7 +149,7 @@ What could go wrong: boolean cuts for openings (CSG) are fiddly; performance wit
 ## Phase 5 — Multi-storey & vertical load paths
 
 - Levels/storeys, walls stacked across levels.
-- Rules: wall on upper floor not supported below, openings misaligned vertically, load accumulation down storeys.
+- Rules: wall on upper floor not supported below, openings misaligned vertically, load accumulation down storeys. Load accumulation ✅ 2026-11-18 (ADR-055).
 
 What could go wrong: data model rework if ADR-015 chose "single storey only" in a way that hard-codes it. → keep `levelId` in the model from Phase 1 even if there's only one level.
 
