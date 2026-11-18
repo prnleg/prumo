@@ -873,3 +873,13 @@ Branch `phase5/floors`, stacked on `qa/pt-br`. Owner answers: ask each time what
 **Decided alone (reversible):** 2.80 m floor-to-floor default (drawing value); new floor added above the *current* floor; suggested name kept generated (null) so it follows the language; notes/protections never copied.
 
 **Tests**: core +8. Screenshots checked (dialog, new floor with faded floor below).
+
+### Session #12, part 1 — data pack format (ADR-049), 2026-11-18
+
+Owner asked whether we were skipping phases (Phase 5 floors merged). Answer: yes — floors step 1 was pulled forward without a priority call; logged in ROADMAP. Agreed order: Phase 2/3 groundwork (packs → materials → drawn slabs → loads → lintel), then Phase 4 (3D). Polish is continuous.
+
+Branch `phase3/data-packs` (from main). Owner approved JSON. **Done**: core `packs.ts` (`PACK_FORMAT`, `parsePack`, `PackSet`), structural `packs/br.json` (no values yet), `BUNDLED_PACKS`, `structuralPacks()`, `packRegion()`; `resolveJsonModule` on in the base tsconfig. No UI yet (nothing to show until materials). ADR-049, ROADMAP order note.
+
+**Decided alone (reversible):** pack format errors are in English (for pack authors, not end users); later packs with the same module + id replace earlier ones; region = profile country until projects can pick a state/city.
+
+**Tests**: core +4, structural +2. Production build checked (JSON import).

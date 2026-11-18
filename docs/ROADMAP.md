@@ -112,6 +112,8 @@ What could go wrong:
 
 ## Phase 3 — Materials + Tier 1 simplified calculations
 
+> **Order agreed 2026-11-18 (owner):** finish the Phase 2/3 groundwork before Phase 4 (3D): (1) data pack format ✅ ADR-049, (2) material library, (3) drawn slabs (ADR-045 B), (4) loads + load takedown with calculation traces, (5) lintel check. All values UNVERIFIED until the engineer reviews them (owner deferred engineering; batch later). **Note:** Phase 5 step 1 (editing floors, ADR-048) was pulled forward on 2026-11-18 without an explicit priority call; the Phase 5 rules still wait for Phase 3 + the engineer.
+
 **Goal:** Numbers, not just rules: simplified gravity load path ("load takedown") and lintel checks.
 
 Scope:

@@ -1,0 +1,10 @@
+{
+  "format": "prumo-pack",
+  "formatVersion": 1,
+  "id": "br",
+  "parent": null,
+  "module": "org.prumo.structural",
+  "version": "2026.11.0",
+  "name": { "en": "Brazil", "pt-BR": "Brasil" },
+  "values": {}
+}

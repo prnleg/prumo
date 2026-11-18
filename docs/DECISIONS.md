@@ -538,3 +538,11 @@ Status: **ACCEPTED (2026-11-18)** — owner: floors list in the layers panel (Q-
 - **Delete floor** (asks; one undo step; the last floor can't be deleted) removes everything on it. **Rename** inline (pencil).
 - **Structure:** each floor is checked on its own; "Floors on top of each other" added to *what wasn't checked* (STRUCTURAL_ANALYSIS §7). Vertical-continuity and load-accumulation rules (R-WALL-005, Phase 5) wait on the engineer (owner deferred engineering 2026-11-18).
 - **Not yet:** floors below ground, stairs, voids in a slab, seeing the floor above, copying a selection to another floor.
+
+## ADR-049 — Data pack file format (ADR-030)
+Status: **ACCEPTED (2026-11-18)** — owner: "Yes, JSON like this".
+- **One JSON file per pack** (no new dependency; YAML would need a parser): `format: "prumo-pack"`, `formatVersion: 1`, `id`, `parent`, `module`, `version`, `name` (per locale), `values`.
+- **Ids nest by region:** `br` → `br/sp` → `br/sp/sao-paulo` (lower case, `/`-separated); `parent` = the id without its last part (null for a country). Lookups walk from the most local pack up; a child overrides its parent; missing levels are skipped.
+- **Values** are keyed by dotted names inside the pack's module (`material.ceramic-block.unitWeight`) and each carries `value`, optional `unit`, **`source`** (clause reference or book + page — never the standard's text, ADR-014; or `UNSOURCED – placeholder`), **`confidence`** (low / medium / high), **`review`** (ADR-041: UNVERIFIED / VERIFIED-UNSIGNED / VERIFIED; an unsourced value can only be UNVERIFIED), optional `note`. Every value shown in the app says which pack it came from.
+- **Code:** core `packs.ts` — `parsePack` (lists every problem, for pack authors), `PackSet` (`chain`, `get`, `all`, `name`); no data in core. The Structural module bundles `packs/br.json` (`BUNDLED_PACKS`, `structuralPacks()`); a broken bundled pack fails at start-up (a build error, not the user's). Project region = the country of its profile (`br-nbr/…` → `br`) until a project can say its state / city.
+- **Not yet:** importing a pack from a file and a curated packs repo (Q-101), choosing a state/city per project, the Architect module's lists (room types, finishes) as packs.
