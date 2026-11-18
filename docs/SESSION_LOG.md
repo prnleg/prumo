@@ -927,3 +927,17 @@ Branch `phase3/lintel` (from main). Owner: "if the questions only verify, contin
 **Doubt**: the "everything above" load overstates for typical lintels (arching) — E-44 (a).
 
 **Tests**: structural +4 (hand-calculated). Screenshot checked (pt-BR: 10 cm 2 Ø8 under the house's joist slab → "above").
+
+### Session #12, part 6 — 3D view (Phase 4 step 1, ADR-053), 2026-11-18
+
+Branch `phase4/3d-view`, stacked on `phase3/lintel`. Owner: library that allows prettier renders later; asked about Rust (answered: stay TS, Rust later for heavy calcs / offline render); "switch by default, split by dragging to the side".
+
+**Done**: core `geometry/solids.ts` (`buildingSolids`, `wallSolids`, `clipAlong`): walls split along their length around openings (no CSG), window panes, slabs on the walls, room floors, every level. New package `renderer-3d` (three 0.186.1): `mesh.ts` (prisms in metres, Y up, `userData.id`, accent for selection, edges), `View3D.vue` (orbit controls, on-demand render, soft shadows with bias, ground + grid, fit that respects narrow panes, keeps framing until the user moves the camera, click-to-pick). App: view mode + split + divider/grip drag, View menu items, 3D pick → plan selection (switches floor), drawing tools return to the plan, plan fit measures its own pane. 20 strings. Dev `?demo=3d`, `?demo=split`.
+
+**Decided alone (reversible):** slabs semi-transparent (you can see the rooms through them); slab thickness 100 mm when unknown (drawing value); split always plan-left / 3D-right; wall pieces show a seam line where they meet (edges per piece) — can be cleaned later.
+
+**Tests**: core +6, renderer-3d +2. Screenshots checked (dark 3D, split, light 3D; WebGL via SwiftShader).
+
+**Findings in 3D** (same branch): each finding colours its element like the plan's "!" (first element; red critical, orange warning, blue advice); wall pieces under/over an opening follow the opening (`Solid.of`); chases / protections colour their wall. Dev `?demo=3d-problems`. renderer-3d +1, core test extended.
+
+**Next**: "hide slabs" toggle; seams between wall pieces; then Phase 5 rules (engineer) or polish.

@@ -138,8 +138,8 @@ What could go wrong:
 
 ## Phase 4 — 3D view
 
-- Read-only 3D extrusion of the 2D model (walls with openings cut, slabs).
-- Findings highlight in 3D.
+- Read-only 3D extrusion of the 2D model (walls with openings cut, slabs). ✅ 2026-11-18 (ADR-053: Three.js, Plan | 3D switch + side by side).
+- Findings highlight in 3D. ✅ 2026-11-18
 - Maybe later: editing in 3D.
 
 What could go wrong: boolean cuts for openings (CSG) are fiddly; performance with many openings.

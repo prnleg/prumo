@@ -8,3 +8,4 @@ export * from "./pick";
 export * from "./rooms";
 export * from "./compare";
 export * from "./slabs";
+export * from "./solids";

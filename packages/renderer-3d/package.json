@@ -1,0 +1,26 @@
+{
+  "name": "@prumo/renderer-3d",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "vue-tsc -p ."
+  },
+  "dependencies": {
+    "@prumo/core": "workspace:*",
+    "three": "0.186.1"
+  },
+  "peerDependencies": {
+    "vue": "3.5.45"
+  },
+  "devDependencies": {
+    "@types/three": "0.186.0",
+    "vue": "3.5.45",
+    "vue-tsc": "3.3.14"
+  }
+}
