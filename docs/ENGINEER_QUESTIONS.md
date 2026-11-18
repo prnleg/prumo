@@ -31,6 +31,8 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 
 ## Batch 2b — follow-ups from batch 1 (clause numbers for what was recalled from memory)
 
+> Brief written 2026-11-17 as a shared Claude doc in Portuguese ("Prumo — perguntas para o engenheiro (lote 2b)"): E-30, E-31, E-33…E-38 as a fill-in table, VC-005 hand calc (E-32), E-39 implementation check. Waiting for the owner to forward it.
+
 | # | Question | Status | Answer |
 |---|---|---|---|
 | E-30 | Clause in NBR 16868-1 for "every opening in a structural wall needs a lintel" (and for arching over openings); NBR 6118 item for slab support reactions (45° split, VC-002b). | ☐ | |
@@ -42,6 +44,7 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 | E-36 | Minimum thickness of a structural wall (14 cm?) and the low-building exception — item number. | ☐ | |
 | E-37 | Masonry modulus E (≈ 800·f_pk / 600·f_pk) — item number; needed before any deflection is shown. | ☐ | |
 | E-38 | Small-opening exception for R-OPEN-001: is there a sourced size below which it's only advisory? | ☐ | |
+| E-39 | Confirm implementation details of the 4 rules built since batch 1: R-WALL-004 (horizontal warning / vertical advisory; half walls flagged), R-OPEN-006 (windows only), R-RING-001 (full walls only), R-JOINT-001 (one finding per junction; at a T the stem's mark decides). | ☐ | |
 
 ## Batch 3 — materials & calculations (before Phase 3)
 

@@ -727,3 +727,15 @@ Owner: "let's start it and go with the Horizontal" (horizontal = warning, vertic
 **Tests**: 394 in all (core +7, structural +10): core hosted items (ride / slide clamp / stretch / delete / duplicate + mirror copy / item-outside-wall / plan + pick); chase data; R-WALL-004 (horizontal warning, vertical advice, partition → none, half wall flagged, RC → not run, A-ROLE-2); chase tool (vertical click, horizontal backwards, clamp + zero length, Esc). Example "house with problems" now 5 findings. Screenshot checked (en).
 
 **Next**: owner merges more-rules → chases; Q-139 (element types) design when Phase 2 closes; batch 2b to the engineer (thresholds); G-1 usability test.
+
+### Session #11, part 42 — Phase 2 exit criteria, 2026-11-17
+
+Owner merged more-rules + chases. Branch `phase2/exit-criteria`.
+
+**Done**: test that the findings diff follows undo / redo (History commit events drive re-check + diff — the same path App.vue uses): add door → +R-OPEN-001, undo → −, redo → + (same fingerprint), lintel → −, undo → +, delete → −. G-8: banned-words test already covered every UI string in both languages; added the missing "passes code" from SAFETY's list. ROADMAP Phase 2: all three exit criteria ticked; GOALS G-8 ✅.
+
+**Not done / still open in Phase 2 scope** (not exit criteria, listed in CURRENT_STATE): engineer review of the rule list (batch 2b), slabs ("what's above"), notes + protection markers + handoff banner, data pack, EU profile.
+
+**Batch 2b brief**: shared Claude doc in Portuguese (same format as batch 1): how to answer (item numbers only, "conferir" ok, anonymous), fill-in table E-30/31/33–38 with what was said in batch 1, VC-005 hand calc (E-32), new **E-39** (confirm the detail choices of R-WALL-004, R-OPEN-006, R-RING-001, R-JOINT-001). Recorded in ENGINEER_QUESTIONS.
+
+**Next**: owner forwards batch 2b; then threshold rules (R-OPEN-002/003/004, R-WALL-001/006). Meanwhile Phase 2 scope still open: slabs / "what's above", notes + protection markers + handoff banner (ADR-029), data pack (ADR-030), Q-139 element types.
