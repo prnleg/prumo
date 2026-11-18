@@ -7,6 +7,7 @@ import {
   type Host,
   type Id,
   type ModuleElement,
+  type Note,
   type Opening,
   type Project,
   type Wall,
@@ -26,6 +27,8 @@ export interface PlanGeometry extends JoinResult {
    * (a == b for a point item). `polygon` spans the wall body, for picking. Sorted by id.
    */
   items: HostedItemPlan[];
+  /** Notes on this level (ADR-044): drawn as pins; picked by distance to `at`. Sorted by id. */
+  notes: { id: Id; at: V; resolved: boolean }[];
 }
 
 export interface HostedItemPlan {
@@ -93,5 +96,9 @@ export function planGeometry(p: Project, levelId: Id, opts: JoinOptions = DEFAUL
         },
       ];
     });
-  return { ...joins, outline: visibleOutline(joins.walls), openings, dividers, items };
+  const notes = Object.values(p.elements)
+    .filter((e): e is Note => e.type === "note" && e.levelId === levelId)
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .map((n) => ({ id: n.id, at: n.at, resolved: !!n.resolved }));
+  return { ...joins, outline: visibleOutline(joins.walls), openings, dividers, items, notes };
 }

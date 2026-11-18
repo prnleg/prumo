@@ -6,6 +6,7 @@ import { SYSTEMS, type ConstructionSystem } from "@prumo/module-structural";
 import { computed } from "vue";
 import { formatSmall, translate, type Locale, type Params } from "./i18n";
 import { ANGLE_CHOICES, GRID_CHOICES } from "./settings";
+import { NAME_MAX, cleanName } from "./prefs";
 
 const props = defineProps<{
   locale: Locale;
@@ -14,6 +15,8 @@ const props = defineProps<{
   outsideFaces: boolean;
   system: ConstructionSystem;
   structural: boolean;
+  /** Your name on notes (ADR-044), or null when not set yet. */
+  name: string | null;
 }>();
 const emit = defineEmits<{
   grid: [mm: number];
@@ -21,6 +24,7 @@ const emit = defineEmits<{
   outsideFaces: [on: boolean];
   system: [s: ConstructionSystem];
   structural: [on: boolean];
+  name: [name: string];
   locale: [l: Locale];
   tour: [];
   close: [];
@@ -28,6 +32,10 @@ const emit = defineEmits<{
 const t = (key: string, params?: Params) => translate(props.locale, key, params);
 /** Keep an odd grid from an opened file selectable. */
 const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a, b) => a - b));
+function onName(ev: Event) {
+  const n = cleanName((ev.target as HTMLInputElement).value);
+  if (n) emit("name", n);
+}
 </script>
 
 <template>
@@ -83,6 +91,16 @@ const grids = computed(() => [...new Set([...GRID_CHOICES, props.grid])].sort((a
         <span>{{ t("module.structural.name") }}</span>
       </label>
       <p class="tip">{{ t("settings.modules.tip") }}</p>
+      <h3>{{ t("settings.you") }}</h3>
+      <label :title="t('note.yourName.tip')">
+        {{ t("note.yourName") }}
+        <input
+          :value="name ?? ''"
+          :maxlength="NAME_MAX"
+          :placeholder="t('note.yourName.placeholder')"
+          @change="onName"
+        />
+      </label>
       <h3>{{ t("settings.language") }}</h3>
       <label>
         <span>{{ t("settings.language") }}</span>

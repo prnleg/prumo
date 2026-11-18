@@ -24,6 +24,8 @@ import {
   duplicateCommand,
   copyToClipboard,
   hitTest,
+  putCommand,
+  type Note,
   offsetAlong,
   pasteCommand,
   pasteOpeningsCommand,
@@ -78,9 +80,10 @@ import {
   type WallEnd,
   type WallRole,
 } from "@prumo/module-structural";
-import { PlanView, fit, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
+import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import FindingsPanel from "./FindingsPanel.vue";
+import NotePopover from "./NotePopover.vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
 import RecoveryPanel from "./RecoveryPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
@@ -89,6 +92,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
+import { paramText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -331,12 +335,13 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   if (prefs.prefs.locale) locale.value = prefs.prefs.locale;
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
   if (prefs.prefs.structuralOff) structuralOn.value = false;
+  if (prefs.prefs.name) myName.value = prefs.prefs.name;
   watch(structuralOn, (on) => savePrefs({ structuralOff: !on }));
   watch(locale, (l) => savePrefs({ locale: l }));
   watch(angleStep, (a) => savePrefs({ angleStepDeg: a }));
 });
 
-type ToolName = "select" | "room" | "wall" | "door" | "window" | "chase";
+type ToolName = "select" | "room" | "wall" | "door" | "window" | "chase" | "note";
 const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
 const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
@@ -595,6 +600,7 @@ function endTools() {
   roomTool.finish();
   openingTool.finish();
   chaseTool.finish();
+  noteDraft.value = null;
   selectTool.cancel();
 }
 
@@ -608,6 +614,59 @@ function run(cmd: Command): boolean {
   selection.value = [...selectTool.selection];
   return r.ok;
 }
+// --- Notes (ADR-044) -------------------------------------------------------------------------------
+// The Note tool: click a spot (or a wall / door / window) → write the note. First time: asks your name.
+const noteDraft = ref<{ at: V; targets: string[]; about: string | null } | null>(null);
+const myName = ref<string | null>(null);
+const noteSpot = computed(() => {
+  const d = noteDraft.value;
+  if (!d) return null;
+  const q = toScreen(view.value, d.at);
+  return { left: Math.max(8, q.x + 14), top: Math.max(8, q.y - 20) };
+});
+function startNote(at: V, scale: number) {
+  const g = geometry.value;
+  const hit = hitTest(g, at, 6 / scale);
+  const e = hit ? history.current.elements[hit] : undefined;
+  if (e?.type === "note") {
+    setTool("select");
+    selectTool.selection = [e.id];
+    sync();
+    return;
+  }
+  const about = e && e.type !== "room" ? paramText({ kind: "element", id: e.id }, history.current, locale.value) : null;
+  noteDraft.value = { at, targets: e && about ? [e.id] : [], about };
+}
+function addNote(text: string, name: string) {
+  const d = noteDraft.value;
+  if (!d) return;
+  if (name !== myName.value) {
+    myName.value = name;
+    savePrefs({ name });
+  }
+  const note: Note = {
+    id: randomIds(),
+    type: "note",
+    levelId: level.value,
+    text,
+    author: name,
+    createdAt: new Date().toISOString(),
+    at: d.at,
+    targets: d.targets,
+    components: {},
+  };
+  noteDraft.value = null;
+  if (run(putCommand({ key: "cmd.addNote" }, [note]))) {
+    setTool("select");
+    selectTool.selection = [note.id];
+    sync();
+  }
+}
+function setMyName(name: string) {
+  myName.value = name;
+  savePrefs({ name });
+}
+
 function deleteSelection() {
   if (!selectTool.realIds().length) return;
   run(deleteCommand(history.current, selectTool.realIds()));
@@ -744,6 +803,10 @@ function onPointer(e: PlanPointer) {
     sync();
     return;
   }
+  if (tool.value === "note") {
+    if (e.type === "down" && e.button === 0 && !noteDraft.value) startNote(e.at, e.scale);
+    return;
+  }
   if (tool.value === "chase") {
     if (e.type === "move") chaseTool.move(info);
     else if (e.type === "down" && e.button === 0) chaseTool.click(info);
@@ -861,6 +924,7 @@ const hint = computed(() => {
     return roomTool.active ? t("hint.roomShape.active") : t("hint.roomShape.idle");
   }
   if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
+  if (tool.value === "note") return t("hint.note");
   if (tool.value === "chase")
     return chaseDirection.value === "vertical"
       ? t("hint.chase.vertical")
@@ -1017,6 +1081,40 @@ if (demo === "structure-panel") {
       if (w) selectTool.selection = [w.id];
       sync();
       setTimeout(fitAll, 0);
+    });
+}
+if (demo === "note" || demo === "note-new") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      const w = Object.values(history.current.elements).find((e) => e.type === "wall" && e.start.x === 5000);
+      if (w?.type === "wall") {
+        const at = { x: 5000, y: 5500 };
+        run(
+          putCommand({ key: "cmd.addNote" }, [
+            {
+              id: "demo-note",
+              type: "note",
+              levelId: level.value,
+              text: "Can we open this wall into the kitchen? Ask the engineer first.",
+              author: "Ana",
+              createdAt: "2026-11-17T15:00:00.000Z",
+              at,
+              targets: [w.id],
+              components: {},
+            },
+          ]),
+        );
+        setTool("select");
+        selectTool.selection = ["demo-note"];
+      }
+      sync();
+      setTimeout(fitAll, 0);
+      if (demo === "note-new")
+        setTimeout(() => {
+          setTool("note");
+          noteDraft.value = { at: { x: 2500, y: 2000 }, targets: [], about: null };
+        }, 300);
     });
 }
 if (demo === "chase") {
@@ -1204,6 +1302,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button :class="{ on: tool === 'window' }" :title="t('tool.window.tip')" @click="setTool('window')">
           {{ t("tool.window") }}
         </button>
+        <button :class="{ on: tool === 'note' }" :title="t('tool.note.tip')" @click="setTool('note')">
+          {{ t("tool.note") }}
+        </button>
         <button
           v-if="structuralOn"
           :class="{ on: tool === 'chase' }"
@@ -1256,6 +1357,16 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @pointer="onPointer"
         @resize="onResize"
         @leave="onLeave"
+      />
+      <NotePopover
+        v-if="noteDraft && noteSpot"
+        :locale="locale"
+        :left="noteSpot.left"
+        :top="noteSpot.top"
+        :name="myName"
+        :about="noteDraft.about"
+        @add="addNote"
+        @cancel="noteDraft = null"
       />
       <PropertiesPanel
         v-if="tool === 'select'"
@@ -1327,6 +1438,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :outside-faces="project.settings.outsideFaces === true"
         :system="constructionSystem(project)"
         :structural="structuralOn"
+        :name="myName"
+        @name="setMyName"
         @system="(s) => run(setSystemCommand(s))"
         @structural="(on) => (structuralOn = on)"
         @grid="setGrid"

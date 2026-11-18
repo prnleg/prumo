@@ -7,6 +7,7 @@ import {
   wallLength,
   type Command,
   type Element,
+  type Note,
   type Opening,
   type Project,
   type Wall,
@@ -26,6 +27,7 @@ import {
 } from "@prumo/module-structural";
 import { computed, ref } from "vue";
 import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
+import { paramText } from "./structural-ui";
 
 const props = defineProps<{
   project: Project;
@@ -76,6 +78,25 @@ const chase = computed(() => {
   const e = one.value ?? undefined;
   return isChase(e) ? e : null;
 });
+const note = computed(() => (one.value?.type === "note" ? (one.value as Note) : null));
+/** What the note is about, in words; a deleted target reads "something that was removed". */
+const noteAbout = computed(() =>
+  (note.value?.targets ?? []).map((id) =>
+    props.project.elements[id]
+      ? paramText({ kind: "element", id }, props.project, props.locale)
+      : t("note.removedTarget"),
+  ),
+);
+const noteDate = (iso: string) =>
+  new Date(iso).toLocaleString(props.locale, { dateStyle: "medium", timeStyle: "short" });
+function commitNoteText(n: Note, ev: Event) {
+  const v = (ev.target as HTMLTextAreaElement).value.trim();
+  if (!v || v === n.text) {
+    rev.value++;
+    return;
+  }
+  edit(n, (e) => ({ ...e, text: v }));
+}
 const chaseWall = computed(() => {
   const h = chase.value ? props.project.elements[chase.value.host.elementId] : undefined;
   return h?.type === "wall" ? h : undefined;
@@ -342,6 +363,42 @@ function commitLength(w: Wall, ev: Event) {
       </template>
     </template>
 
+    <template v-else-if="note">
+      <h3>{{ note.resolved ? t("note.titleResolved") : t("note.title") }}</h3>
+      <p class="ro">{{ t("note.by", { name: note.author, date: noteDate(note.createdAt) }) }}</p>
+      <p class="ro">
+        {{ noteAbout.length ? t("note.about", { what: noteAbout.join(", ") }) : t("note.aboutSpot") }}
+      </p>
+      <textarea
+        :key="note.id + note.text + '/' + rev"
+        class="note-text"
+        rows="4"
+        :value="note.text"
+        :aria-label="t('note.text')"
+        @change="commitNoteText(note, $event)"
+      />
+      <div class="row">
+        <button
+          v-if="!note.resolved"
+          :title="t('note.resolve.tip')"
+          @click="edit(note, (e) => ({ ...e, resolved: true }))"
+        >
+          ✓ {{ t("note.resolve") }}
+        </button>
+        <button
+          v-else
+          @click="
+            edit(note, (e) => {
+              const { resolved: _r, ...rest } = e;
+              return rest;
+            })
+          "
+        >
+          {{ t("note.reopen") }}
+        </button>
+      </div>
+    </template>
+
     <template v-else-if="chase">
       <h3>{{ t(`chase.${chaseDir(chase)}`) }}</h3>
       <p class="ro">{{ t("chase.on", { wall: wallLabel(chaseWall) }) }}</p>
@@ -371,13 +428,24 @@ function commitLength(w: Wall, ev: Event) {
     </div>
     <p v-if="bad" class="warn">{{ t("props.badNumber", { example: formatCm(145, locale) }) }}</p>
     <div class="row">
-      <button @click="emit('duplicate')">{{ t("action.duplicate") }}</button>
+      <button v-if="!note" @click="emit('duplicate')">{{ t("action.duplicate") }}</button>
       <button class="danger" @click="emit('delete')">{{ t("action.delete") }}</button>
     </div>
   </aside>
 </template>
 
 <style scoped>
+.note-text {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
 .panel {
   position: absolute;
   top: 10px;

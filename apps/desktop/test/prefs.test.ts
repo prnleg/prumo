@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PREFS_VERSION, parsePrefs, serializePrefs } from "../src/prefs";
+import { NAME_MAX, PREFS_VERSION, cleanName, parsePrefs, serializePrefs } from "../src/prefs";
 
 describe("remembered preferences (ADR-037)", () => {
   it("first launch / damaged file → no preferences, never throws", () => {
@@ -38,5 +38,19 @@ describe("tour flag (Q-080)", () => {
     expect(parsePrefs('{"tourDone":"yes"}').prefs).toEqual({});
     const r = parsePrefs('{"tourDone":true,"locale":"en"}');
     expect(parsePrefs(serializePrefs(r))).toEqual(r);
+  });
+});
+
+describe("your name (ADR-044, Q-092)", () => {
+  it("is trimmed, inner spaces collapsed; empty or too long is refused", () => {
+    expect(cleanName("  Ana   Paula ")).toBe("Ana Paula");
+    expect(cleanName("   ")).toBeNull();
+    expect(cleanName(42)).toBeNull();
+    expect(cleanName("x".repeat(NAME_MAX))).toHaveLength(NAME_MAX);
+    expect(cleanName("x".repeat(NAME_MAX + 1))).toBeNull();
+  });
+  it("is remembered; a bad stored value is ignored", () => {
+    expect(parsePrefs('{"name":" Ana "}').prefs).toEqual({ name: "Ana" });
+    expect(parsePrefs('{"name":""}').prefs).toEqual({});
   });
 });

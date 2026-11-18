@@ -10,6 +10,7 @@ import {
   type Element,
   type Hosted,
   type Id,
+  type Note,
   type Project,
   type RoomTag,
   type Wall,
@@ -62,6 +63,7 @@ export function translate(p: Project, ids: readonly Id[], delta: V, opts: Partia
     out.push(...stretchNeighbours(p, sel, moved, after, (q) => add(q, delta), o.joinTol));
   }
   if (moved.length) out.push(...tagsTravelling(p, movedIds, (q) => add(q, delta)));
+  out.push(...notesTravelling(p, sel, (q) => add(q, delta)));
   return putElements(p, out);
 }
 
@@ -262,6 +264,7 @@ export function rotateCommand(ids: readonly Id[], pivot: V, deg: number, opts: P
       const out: Element[] = [...after.values()];
       if (o.stretch) out.push(...stretchNeighbours(p, sel, moved, after, f, o.joinTol));
       out.push(...tagsTravelling(p, new Set(moved.map((w) => w.id)), f));
+      out.push(...notesTravelling(p, sel, f));
       return putElements(p, out);
     },
   };
@@ -332,6 +335,7 @@ export function mirrorCommand(
           if (mode.stretch ?? true)
             out.push(...stretchNeighbours(q, sel, walls, after, f, mode.joinTol ?? DEFAULTS.joinTol));
           out.push(...tagsTravelling(q, sel, f));
+          out.push(...notesTravelling(q, sel, f));
           return putElements(q, out);
         },
       },
@@ -418,4 +422,22 @@ function tagsTravelling(p: Project, sel: ReadonlySet<Id>, f: (q: V) => V): Eleme
     for (const [, tag] of matchRoomTags(rooms, roomTags(p, level))) out.push({ ...tag, seed: f(tag.seed) });
   }
   return out;
+}
+
+/**
+ * Notes that follow a move / rotate / mirror (ADR-044): selected notes, and notes whose every target
+ * moves too (a selected element, or a door/window on a selected wall). A note about nothing that
+ * moved stays put. Sorted by id.
+ */
+function notesTravelling(p: Project, sel: ReadonlySet<Id>, f: (q: V) => V): Element[] {
+  const moves = (id: Id) => {
+    if (sel.has(id)) return true;
+    const e = p.elements[id];
+    return isHosted(e) && sel.has(e.host.elementId);
+  };
+  return Object.values(p.elements)
+    .filter((e): e is Note => e.type === "note")
+    .filter((n) => sel.has(n.id) || (n.targets.length > 0 && n.targets.every(moves)))
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .map((n) => ({ ...n, at: f(n.at) }));
 }

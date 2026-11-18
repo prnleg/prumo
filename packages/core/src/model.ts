@@ -89,7 +89,24 @@ export interface RoomTag extends ElementBase {
   name: string;
 }
 
-export type Element = Wall | Opening | RoomTag | ModuleElement;
+/**
+ * A note someone left on the plan (ADR-029/044): pinned at a point, optionally about elements.
+ * Not hosted: it survives deleting what it was about.
+ */
+export interface Note extends ElementBase {
+  type: "note";
+  text: string;
+  /** Local display name (Q-092), not an account. */
+  author: string;
+  /** ISO 8601, UTC (supplied by the caller). */
+  createdAt: string;
+  at: Vec2;
+  /** What the note is about (may point at elements that were deleted since). Sorted. */
+  targets: Id[];
+  resolved?: true;
+}
+
+export type Element = Wall | Opening | RoomTag | Note | ModuleElement;
 
 export interface Level {
   id: Id;
@@ -101,7 +118,8 @@ export interface Level {
 }
 
 export const PROJECT_FORMAT = "prumo-project";
-export const SCHEMA_VERSION = 1;
+/** 2 = notes (ADR-044). */
+export const SCHEMA_VERSION = 2;
 
 export interface Project {
   format: typeof PROJECT_FORMAT;
@@ -126,7 +144,7 @@ export interface Project {
   };
 }
 
-const CORE_TYPES = new Set(["wall", "opening", "room"]);
+const CORE_TYPES = new Set(["wall", "opening", "room", "note"]);
 export const isModuleElement = (e: Element): e is ModuleElement => !CORE_TYPES.has(e.type);
 
 /** An element sitting on a host (ADR-024): a door/window, or a module item such as a chase. */

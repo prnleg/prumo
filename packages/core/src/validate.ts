@@ -49,6 +49,11 @@ export function validateProject(p: Project): string[] {
     } else if (e.type === "opening") {
       for (const k of ["width", "height", "sillHeight"] as const)
         if (!isNum(e[k])) errs.push(`${at}: opening.${k} must be a number`);
+    } else if (e.type === "note") {
+      if (!isVec(e.at) || typeof e.text !== "string" || typeof e.author !== "string" || typeof e.createdAt !== "string")
+        errs.push(`${at}: note needs at, text, author and createdAt`);
+      else if (!Array.isArray(e.targets) || !e.targets.every((t) => typeof t === "string"))
+        errs.push(`${at}: note.targets must be a list of ids`);
     } else if (e.type === "room") {
       if (!isVec(e.seed) || typeof e.name !== "string") errs.push(`${at}: room needs a seed point and a name`);
     } else if (

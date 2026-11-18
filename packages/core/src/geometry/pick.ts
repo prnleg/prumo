@@ -28,7 +28,9 @@ export function hitTest(g: PlanGeometry, p: V, tol: number): Id | null {
     const d = distToPoly(p, poly);
     if (d <= tol && (!best || d < best.d || (d === best.d && id < best.id))) best = { id, d };
   };
-  for (const it of g.items) consider(it.id, it.polygon); // hosted items sit on top of everything
+  for (const n of g.notes) consider(n.id, [n.at]); // note pins are drawn on top of everything
+  if (best) return (best as { id: Id }).id;
+  for (const it of g.items) consider(it.id, it.polygon); // hosted items sit on top of the walls
   if (best) return (best as { id: Id }).id;
   for (const o of g.openings) consider(o.id, o.cover);
   if (best) return (best as { id: Id }).id;
@@ -71,6 +73,7 @@ export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching"
     ...g.openings.filter((o) => test(o.cover)).map((o) => o.id),
     ...g.dividers.filter((d) => test(d.polygon)).map((d) => d.id),
     ...g.items.filter((it) => test(it.polygon)).map((it) => it.id),
+    ...g.notes.filter((n) => inBox(n.at)).map((n) => n.id),
   ];
   return ids.sort();
 }
