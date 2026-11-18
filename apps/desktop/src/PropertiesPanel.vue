@@ -15,6 +15,8 @@ import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@
 import {
   ROLE_ORIGINS,
   canCarry,
+  chaseDir,
+  isChase,
   junctionsOf,
   structuralData,
   type WallEnd,
@@ -70,6 +72,14 @@ const one = computed<Element | null>(() =>
 );
 const wall = computed(() => (one.value?.type === "wall" ? (one.value as Wall) : null));
 const opening = computed(() => (one.value?.type === "opening" ? (one.value as Opening) : null));
+const chase = computed(() => {
+  const e = one.value ?? undefined;
+  return isChase(e) ? e : null;
+});
+const chaseWall = computed(() => {
+  const h = chase.value ? props.project.elements[chase.value.host.elementId] : undefined;
+  return h?.type === "wall" ? h : undefined;
+});
 const bad = ref<string | null>(null);
 const rev = ref(0); // bump to re-render fields (reverts refused text)
 
@@ -330,6 +340,22 @@ function commitLength(w: Wall, ev: Event) {
           {{ t("props.contraverga") }}
         </label>
       </template>
+    </template>
+
+    <template v-else-if="chase">
+      <h3>{{ t(`chase.${chaseDir(chase)}`) }}</h3>
+      <p class="ro">{{ t("chase.on", { wall: wallLabel(chaseWall) }) }}</p>
+      <label v-if="chaseDir(chase) === 'horizontal'" :class="{ bad: bad === 'clength' }">
+        {{ t("props.length") }}
+        <span class="field">
+          <input
+            :key="chase.id + (chase.host.length ?? 0) + '/' + rev"
+            :value="formatCm(chase.host.length ?? 0, locale)"
+            @change="commitCm(chase, 'clength', $event, (e, mm) => ({ ...e, host: { ...e.host, length: mm } }))"
+          />cm
+        </span>
+      </label>
+      <p class="ro">{{ t("chase.note") }}</p>
     </template>
 
     <template v-else>

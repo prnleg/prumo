@@ -262,6 +262,20 @@ function wheel(e: WheelEvent) {
         </template>
       </g>
     </g>
+    <!-- hosted module items (chases…): a run along the wall, or a ring for a point item -->
+    <g class="items">
+      <g v-for="it in geometry.items" :key="it.id" :class="{ selected: selected.has(it.id) }">
+        <polygon v-if="selected.has(it.id)" class="hl" :points="pts(it.polygon)" />
+        <line
+          v-if="it.a.x !== it.b.x || it.a.y !== it.b.y"
+          :x1="S(it.a).x"
+          :y1="S(it.a).y"
+          :x2="S(it.b).x"
+          :y2="S(it.b).y"
+        />
+        <circle v-else :cx="S(it.a).x" :cy="S(it.a).y" r="4" />
+      </g>
+    </g>
     <rect
       v-if="box"
       class="box"
@@ -385,6 +399,25 @@ function wheel(e: WheelEvent) {
 .openings .arc {
   stroke-width: 1;
   stroke-dasharray: 4 3;
+}
+.items line,
+.items circle {
+  stroke: var(--item, #b8642a);
+  stroke-width: 3;
+  fill: var(--plan-bg);
+  stroke-dasharray: 2 3;
+}
+.items circle {
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.items .hl {
+  fill: var(--accent-soft);
+  stroke: none;
+}
+.items .selected line,
+.items .selected circle {
+  stroke: var(--accent);
 }
 .divider {
   stroke: var(--muted);

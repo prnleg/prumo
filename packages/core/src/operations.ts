@@ -4,7 +4,16 @@ import { DEFAULTS } from "./geometry/joins";
 import { add, dist, dot, lineLine, mul, norm, sub, type V } from "./geometry/vec";
 import type { Command } from "./history";
 import type { IdSource } from "./ids";
-import type { Element, Id, Opening, Project, RoomTag, Wall } from "./model";
+import {
+  hostedExtent,
+  isHosted,
+  type Element,
+  type Hosted,
+  type Id,
+  type Project,
+  type RoomTag,
+  type Wall,
+} from "./model";
 import { detectRooms, matchRoomTags, roomTags } from "./geometry/rooms";
 import { copyToClipboard, pasteCommand } from "./clipboard";
 
@@ -18,7 +27,6 @@ export interface MoveOptions {
 const DEFAULT_MOVE: MoveOptions = { stretch: true, joinTol: DEFAULTS.joinTol };
 
 const isWall = (e: Element | undefined): e is Wall => e?.type === "wall";
-const isOpening = (e: Element | undefined): e is Opening => e?.type === "opening";
 const unit = (w: Wall) => norm(sub(w.end, w.start));
 
 /**
@@ -41,10 +49,10 @@ export function translate(p: Project, ids: readonly Id[], delta: V, opts: Partia
 
   for (const id of sel) {
     const op = p.elements[id];
-    if (!isOpening(op) || movedIds.has(op.host.elementId)) continue;
+    if (!isHosted(op) || movedIds.has(op.host.elementId)) continue;
     const host = p.elements[op.host.elementId];
     if (!isWall(host)) continue;
-    const max = wallLength(host) - op.width;
+    const max = wallLength(host) - hostedExtent(op);
     const offset = Math.min(max, Math.max(0, op.host.offset + dot(delta, unit(host))));
     out.push({ ...op, host: { ...op.host, offset } });
   }
@@ -88,7 +96,7 @@ function stretchNeighbours(
     if (start !== w.start && end === w.end) {
       const grow = wallLength(nw) - wallLength(w);
       for (const e of Object.values(p.elements))
-        if (isOpening(e) && e.host.elementId === w.id && !sel.has(e.id))
+        if (isHosted(e) && e.host.elementId === w.id && !sel.has(e.id))
           out.push({ ...e, host: { ...e.host, offset: e.host.offset + grow } });
     }
   }
@@ -141,7 +149,7 @@ export function setWallLengthCommand(wallId: Id, length: number, opts: Partial<M
           if (s && !e) {
             const grow = wallLength(nw) - wallLength(n);
             for (const op of Object.values(p.elements))
-              if (isOpening(op) && op.host.elementId === n.id)
+              if (isHosted(op) && op.host.elementId === n.id)
                 out.push({ ...op, host: { ...op.host, offset: op.host.offset + grow } });
           }
         }
@@ -175,8 +183,8 @@ export function duplicateCommand(p: Project, ids: readonly Id[], delta: V, newId
 export function rehostCommand(p: Project, openingId: Id, wallId: Id, offset: number): Command {
   const o = p.elements[openingId];
   const w = p.elements[wallId];
-  const label: Label = { key: "cmd.rehost", params: { kind: isOpening(o) ? o.kind : "door" } };
-  if (!isOpening(o) || !isWall(w)) return { label, apply: (q) => q };
+  const label: Label = { key: "cmd.rehost", params: { kind: o?.type === "opening" ? o.kind : "door" } };
+  if (o?.type !== "opening" || !isWall(w)) return { label, apply: (q) => q };
   return {
     label,
     apply: (q) => putElements(q, [{ ...o, levelId: w.levelId, host: { elementId: wallId, offset } }]),
@@ -275,8 +283,8 @@ function mirrorWall(w: Wall, f: (q: V) => V, mc?: MirrorComponent): Wall {
     : w.components;
   return { ...w, start: f(w.start), end: f(w.end), alignment: flip[w.alignment], components };
 }
-function mirrorOpening(o: Opening): Opening {
-  return o.kind === "door" ? { ...o, swing: (o.swing ?? "in") === "in" ? "out" : "in" } : o;
+function mirrorOpening<T extends Hosted>(o: T): T {
+  return o.type === "opening" && o.kind === "door" ? { ...o, swing: (o.swing ?? "in") === "in" ? "out" : "in" } : o;
 }
 
 export interface MirrorResult {
@@ -308,7 +316,7 @@ export function mirrorCommand(
   };
   const hostedOn = (wid: Id) =>
     Object.values(p.elements)
-      .filter((e): e is Opening => isOpening(e) && e.host.elementId === wid)
+      .filter((e): e is Hosted => isHosted(e) && e.host.elementId === wid)
       .sort((a, b) => (a.id < b.id ? -1 : 1));
 
   if (!mode.copy) {

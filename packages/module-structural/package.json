@@ -12,9 +12,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@prumo/core": "workspace:*"
-  },
-  "devDependencies": {
+    "@prumo/core": "workspace:*",
     "@prumo/module-architect": "workspace:*"
   }
 }

@@ -18,7 +18,8 @@ function distToPoly(p: V, poly: readonly V[]): number {
 }
 
 /**
- * The element under `p` (within `tol` mm). Openings win over their walls (they sit on top);
+ * The element under `p` (within `tol` mm). Hosted items (chases…) win over openings, openings over
+ * their walls (they sit on top);
  * otherwise the closest shape; ties by id (deterministic).
  */
 export function hitTest(g: PlanGeometry, p: V, tol: number): Id | null {
@@ -27,6 +28,8 @@ export function hitTest(g: PlanGeometry, p: V, tol: number): Id | null {
     const d = distToPoly(p, poly);
     if (d <= tol && (!best || d < best.d || (d === best.d && id < best.id))) best = { id, d };
   };
+  for (const it of g.items) consider(it.id, it.polygon); // hosted items sit on top of everything
+  if (best) return (best as { id: Id }).id;
   for (const o of g.openings) consider(o.id, o.cover);
   if (best) return (best as { id: Id }).id;
   for (const w of g.walls) consider(w.id, w.polygon);
@@ -67,6 +70,7 @@ export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching"
     ...g.walls.filter((w) => test(w.polygon)).map((w) => w.id),
     ...g.openings.filter((o) => test(o.cover)).map((o) => o.id),
     ...g.dividers.filter((d) => test(d.polygon)).map((d) => d.id),
+    ...g.items.filter((it) => test(it.polygon)).map((it) => it.id),
   ];
   return ids.sort();
 }

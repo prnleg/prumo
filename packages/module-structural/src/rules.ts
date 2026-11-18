@@ -1,7 +1,7 @@
 // Tier 0 rules (STRUCTURAL_ANALYSIS §3). No numeric thresholds here: both rules are presence checks,
 // so nothing is invented (ADR-018).
 import { wallsOnLevel, type Opening, type Project, type Wall } from "@prumo/core";
-import { structuralData, type WallEnd } from "./data";
+import { chaseDir, isChase, structuralData, type WallEnd } from "./data";
 import { ENGINEER_UNSIGNED, UNSOURCED, type Finding, type RuleDef } from "./finding";
 import { bearing, canCarry } from "./roles";
 
@@ -330,6 +330,51 @@ export const R_JOINT_001: RuleDef = {
   },
 };
 
+/**
+ * R-WALL-004 — a chase (rasgo) cut into a load-bearing wall for pipes or wiring. It removes part of the
+ * wall's section. Horizontal ones are the bigger worry (E-02: "esp. horizontal") → warning; vertical
+ * ones → advice. Presence only: no depth or length limit until the clause is known (E-33).
+ */
+export const R_WALL_004: RuleDef = {
+  id: "R-WALL-004",
+  nameKey: "rule.R-WALL-004.name",
+  severity: "warning",
+  confidence: "rule-of-thumb",
+  source: UNSOURCED,
+  review: { level: "verified-unsigned", by: ENGINEER_UNSIGNED, date: "2026-11-17", ref: "E-02" },
+  notConsidered: ["nc.chaseDepth", "nc.chaseHeight", "nc.realBuilding"],
+  appliesTo: [...MASONRY],
+  run({ project, levelId, system }) {
+    const walls = new Map(wallsOnLevel(project, levelId).map((w) => [w.id, w]));
+    const out: Finding[] = [];
+    const chases = Object.values(project.elements)
+      .filter(isChase)
+      .filter((c) => c.levelId === levelId)
+      .sort((a, b) => (a.id < b.id ? -1 : 1));
+    for (const c of chases) {
+      const w = walls.get(c.host.elementId);
+      if (!w) continue;
+      const b = bearing(w, system);
+      if (!b.bearing) continue;
+      const dir = chaseDir(c);
+      out.push({
+        ruleId: this.id,
+        severity: dir === "horizontal" ? "warning" : "advisory",
+        confidence: this.confidence,
+        elementIds: [c.id, w.id],
+        messageKey: `rule.R-WALL-004.${dir}`,
+        params: {
+          wall: { kind: "element", id: w.id },
+          ...(dir === "horizontal" ? { length: { kind: "length", mm: c.host.length ?? 0 } as const } : {}),
+        },
+        assumptions: b.why,
+        fingerprint: `${this.id}|${c.id}|${w.id}`,
+      });
+    }
+    return out;
+  },
+};
+
 export const RULES: readonly RuleDef[] = [
   R_OPEN_001,
   R_ROLE_001,
@@ -338,4 +383,5 @@ export const RULES: readonly RuleDef[] = [
   R_OPEN_006,
   R_RING_001,
   R_JOINT_001,
+  R_WALL_004,
 ];

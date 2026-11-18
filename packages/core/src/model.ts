@@ -24,6 +24,9 @@ export interface Host {
   elementId: Id;
   /** Distance along the host from its start (for a wall: from `start` to the hosted item's near edge), mm. */
   offset: number;
+  /** Extent along the host, mm, for module items that have one (a horizontal chase). Missing = a point.
+   *  Openings use their own `width` instead. */
+  length?: number;
 }
 
 interface ElementBase {
@@ -125,6 +128,12 @@ export interface Project {
 
 const CORE_TYPES = new Set(["wall", "opening", "room"]);
 export const isModuleElement = (e: Element): e is ModuleElement => !CORE_TYPES.has(e.type);
+
+/** An element sitting on a host (ADR-024): a door/window, or a module item such as a chase. */
+export type Hosted = Opening | (ModuleElement & { host: Host });
+export const isHosted = (e: Element | undefined): e is Hosted => !!e && "host" in e && !!e.host;
+/** How far a hosted item reaches along its host from `host.offset`, mm. */
+export const hostedExtent = (e: Hosted): number => (e.type === "opening" ? e.width : (e.host.length ?? 0));
 
 export interface NewProjectArgs {
   id: Id;
