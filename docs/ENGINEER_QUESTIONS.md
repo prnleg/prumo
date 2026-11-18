@@ -68,3 +68,9 @@ Status legend: ☐ not asked · ⏳ asked · ✅ answered
 | E-30 | Are you OK being credited publicly as a reviewer (name/handle/none)? We'll always say "reviewed", never "certified". (Q-069/086) | ☐ | |
 | E-31 | Would you use the Structural Vision yourself? What would make it useful for a professional at an early design stage? | ☐ | |
 | E-32 | For the handoff workflow (architect → engineer → architect), what would you want to mark or annotate on an architect's model? (Q-076, ADR-029) | ☐ | |
+
+## Electrical questions (for an electrician or electrical engineer — not the structural contact)
+
+| # | Question | Status | Answer |
+|---|---|---|---|
+| EL-01 | NBR 5410:2004 minimums for homes as the app uses them (ADR-058; values from memory): (a) at least one fixed ceiling light point per room, worked by a switch (9.5.2.1.1)? (b) general outlets: living rooms / bedrooms one per 5 m of perimeter or part; kitchens, laundry areas one per 3.5 m; bathrooms one near the washbasin; balconies one; other rooms one up to 6 m², else one per 5 m (9.5.2.2.1) — right clause and numbers? (c) is the perimeter measured on the inner wall faces? (d) does a one-appliance outlet (TUE) never count toward the general minimum? (e) any other minimum a beginner should see first (e.g. bathroom outlet distance from the shower, circuit separation)? | ☐ | |

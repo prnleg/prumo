@@ -1005,3 +1005,15 @@ Branch `phase4/3d-polish`, stacked on `phase5c/export-extras`.
 **Decided alone (reversible):** sizes are drawing values (5 cm frame, 7 cm deep, 4 cm leaf); leaves shown open like the plan; sun is approximate (no north arrow / date yet) and not saved.
 
 **Tests**: core +1 (frames + leaf).
+
+### Session #13, part 3 — Electrical module, slice 1 (Phase 5b, ADR-058), 2026-11-18
+
+Branch `phase5b/electrical`, stacked on `phase4/3d-polish`.
+
+**Done**: core `ModuleElement.at` (point items: move / rotate / mirror / mirror-copy, validation, plan geometry; rotate no longer needs a wall in the selection). `packages/module-electrical`: manifest (3 element types, face-flipping mirror), data (`newWallItem`, `newLight`, `setSwitchLight`, `switchLights`), Brazil pack (NBR 5410 minimums, from memory, UNVERIFIED), `roomElectrical` (perimeter / area of the inner floor, counts by face), `ElectricalTool`, `sideOf`, `facePoint`. Renderer `itemMarks` + `links`. App: Outlet / Switch / Light tools (when on), symbols, links, item panel (height, purpose, "Turns on"), room minimums, Settings toggle, prefs `electricalOn`. 38 strings. Dev `?demo=electrical`, `?demo=electrical-room`. EL-01 (new electrical section).
+
+**Decided alone (reversible):** off by default; lights are point items (not hosted on rooms, which are derived); outlets count for the room their face looks into (100 mm past the face); one-appliance outlets don't count; minimums shown in the room panel only (no findings yet).
+
+**Tests**: core +1 (point items transform), electrical +8 (hand-calculated minimums, face counting, links, mirror, missing-module round trip).
+
+**Next**: circuits (graph of items → circuit → panel, VA loads), items in 3D / export.

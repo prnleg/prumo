@@ -163,7 +163,7 @@ What could go wrong: data model rework if ADR-015 chose "single storey only" in 
 
 - **Stage 2 of optional modules (ADR-020 revision):** real download-on-demand of official modules, with integrity checks and install-from-file.
 
-- Build a deliberately *different* module (Electrical: hosted outlets/switches + circuits as a graph) to stress-test the API.
+- Build a deliberately *different* module (Electrical: hosted outlets/switches + circuits as a graph) to stress-test the API. **Slice 1 ✅ 2026-11-18 (ADR-058):** outlets, switches, ceiling lights, switch → light links, NBR 5410 minimums per room (UNVERIFIED); API finding: module items placed at a point (`ModuleElement.at`). Missing-module flow tested. Next: circuits.
 - Only after this: consider making the module API public (ADR-020), plus the trust model (ADR-023).
 - The missing-module flow (ADR-032) gets its first real test here: a file with Electrical items opened by someone without Electrical.
 

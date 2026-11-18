@@ -103,6 +103,11 @@ export interface ModuleElement extends ElementBase {
   type: `${ModuleId}:${string}`;
   ownerModule: ModuleId;
   host?: Host;
+  /**
+   * A module item placed at a point on its level, not on a host (ADR-058: a ceiling light). Moves,
+   * rotates and mirrors like a note when selected. Ignored when `host` is set.
+   */
+  at?: Vec2;
 }
 
 /**

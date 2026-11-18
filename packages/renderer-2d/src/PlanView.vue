@@ -46,6 +46,13 @@ const props = defineProps<{
   ghost?: readonly (readonly V[])[];
   /** Dimmed (hidden room's own walls and what's on them, Q-141): drawn faded; picking is the tools' job. */
   dimmed?: readonly string[];
+  /**
+   * Module items drawn as symbols instead of the generic marker (ADR-058, Electrical): outlet = triangle,
+   * dedicated outlet = filled triangle, switch = "S" in a circle, ceiling light = circle with a cross.
+   */
+  itemMarks?: readonly { id: string; at: V; shape: "outlet" | "outlet-dedicated" | "switch" | "light" }[];
+  /** Dashed links between items (a switch and the lights it turns on). */
+  links?: readonly { key: string; a: V; b: V }[];
   /** Double-headed arrows inside rooms (joist direction, structure on). */
   arrows?: readonly { key: string; a: V; b: V }[];
   /** Painted wall faces: a strip along `line`, clipped to the wall's drawn shape (clean corners). */
@@ -116,6 +123,7 @@ const roomLabels = computed(() =>
   }),
 );
 const selected = computed(() => new Set(props.selectedIds ?? []));
+const marked = computed(() => new Set((props.itemMarks ?? []).map((m) => m.id)));
 const dim = computed(() => new Set(props.dimmed ?? []));
 /** Badge width from the character count (deterministic, like the room labels). */
 const badgeW = (label: string) => Math.ceil(label.length * 11 * 0.6) + 12;
@@ -349,14 +357,36 @@ function wheel(e: WheelEvent) {
     <g class="items">
       <g v-for="it in geometry.items" :key="it.id" :class="{ selected: selected.has(it.id) }">
         <polygon v-if="selected.has(it.id)" class="hl" :points="pts(it.polygon)" />
+        <template v-if="marked.has(it.id)" />
         <line
-          v-if="it.a.x !== it.b.x || it.a.y !== it.b.y"
+          v-else-if="it.a.x !== it.b.x || it.a.y !== it.b.y"
           :x1="S(it.a).x"
           :y1="S(it.a).y"
           :x2="S(it.b).x"
           :y2="S(it.b).y"
         />
         <circle v-else :cx="S(it.a).x" :cy="S(it.a).y" r="4" />
+      </g>
+    </g>
+    <g class="links">
+      <line v-for="l in links ?? []" :key="l.key" :x1="S(l.a).x" :y1="S(l.a).y" :x2="S(l.b).x" :y2="S(l.b).y" />
+    </g>
+    <g class="marks">
+      <g
+        v-for="m in itemMarks ?? []"
+        :key="m.id"
+        :class="[m.shape, { selected: selected.has(m.id) }]"
+        :transform="`translate(${S(m.at).x},${S(m.at).y})`"
+      >
+        <polygon v-if="m.shape === 'outlet' || m.shape === 'outlet-dedicated'" points="0,-6 6,5 -6,5" />
+        <template v-else-if="m.shape === 'switch'">
+          <circle r="6.5" />
+          <text text-anchor="middle" dominant-baseline="central">S</text>
+        </template>
+        <template v-else>
+          <circle r="7" />
+          <path d="M-5,-5 L5,5 M5,-5 L-5,5" />
+        </template>
       </g>
     </g>
     <rect
@@ -586,6 +616,38 @@ function wheel(e: WheelEvent) {
 .items circle {
   stroke-width: 2;
   stroke-dasharray: none;
+}
+.links line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+.marks g {
+  pointer-events: none;
+}
+.marks polygon,
+.marks circle,
+.marks path {
+  stroke: var(--elec, #8a5cc2);
+  stroke-width: 1.6;
+  fill: var(--plan-bg);
+}
+.marks .outlet-dedicated polygon {
+  fill: var(--elec, #8a5cc2);
+}
+.marks text {
+  font-size: 9px;
+  font-weight: 700;
+  fill: var(--elec, #8a5cc2);
+}
+.marks .selected polygon,
+.marks .selected circle,
+.marks .selected path {
+  stroke: var(--accent);
+}
+.marks .selected text {
+  fill: var(--accent);
 }
 .items .hl {
   fill: var(--accent-soft);

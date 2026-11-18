@@ -44,6 +44,9 @@ importers:
       '@prumo/module-architect':
         specifier: workspace:*
         version: link:../../packages/module-architect
+      '@prumo/module-electrical':
+        specifier: workspace:*
+        version: link:../../packages/module-electrical
       '@prumo/module-export':
         specifier: workspace:*
         version: link:../../packages/module-export
@@ -102,6 +105,15 @@ importers:
       '@prumo/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/module-electrical:
+    dependencies:
+      '@prumo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@prumo/module-architect':
+        specifier: workspace:*
+        version: link:../module-architect
 
   packages/module-export:
     dependencies:
