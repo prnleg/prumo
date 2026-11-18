@@ -14,7 +14,11 @@ import {
   type Wall,
 } from "@prumo/core";
 import { describe, it } from "vitest";
-import { runChecks } from "../src";
+import { architectManifest } from "@prumo/module-architect";
+import { ModuleHost } from "@prumo/core";
+import { runChecks, structuralManifest } from "../src";
+
+const HOST = new ModuleHost([architectManifest, structuralManifest]);
 
 const W = 4000;
 const D = 3000;
@@ -79,7 +83,7 @@ describe.skipIf(!process.env.PRUMO_PERF)("Q-140 scale probe", () => {
       const walls = Object.values(p.elements).filter((e) => e.type === "wall").length;
       planGeometry(p, "l"); // warm-up
       rows.push(
-        `| ${nx * ny} | ${walls} | ${time(() => planGeometry(p, "l"))} | ${time(() => detectRooms(p, "l"))} | ${time(() => runChecks(p, "l"))} | ${time(() => checkInvariants(p))} | ${time(() => saveProjectFile({ project: p, snapshots: [], extra: {} }))} |`,
+        `| ${nx * ny} | ${walls} | ${time(() => planGeometry(p, "l"))} | ${time(() => detectRooms(p, "l"))} | ${time(() => runChecks(p, "l"))} | ${time(() => checkInvariants(p))} | ${time(() => saveProjectFile({ project: p, snapshots: [], extra: {} }, HOST))} |`,
       );
     }
     console.log(rows.join("\n"));
