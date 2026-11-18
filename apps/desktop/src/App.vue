@@ -94,6 +94,9 @@ import {
   aboveOf,
   joistDirection,
   setAbove,
+  STRUCTURAL,
+  materialTable,
+  structuralPacks,
   setWallMaterial,
   type WallMaterial,
   type Above,
@@ -145,7 +148,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { paramText } from "./structural-ui";
+import { paramText, unitWeightText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -619,6 +622,17 @@ const panelRooms = computed(() =>
     joists: r.joists,
   })),
 );
+// --- data packs (ADR-049): bundled with the Structural module; values shown with their source ---------
+const packs = structuralPacks();
+const packValues = computed(() =>
+  materialTable(packs, project.value).map((r) => {
+    const label = t(`material.${r.material}`);
+    if (!r.unitWeight) return { key: r.material, label, text: null, review: "", from: "" };
+    const w = unitWeightText(r.unitWeight, locale.value, packs.name(STRUCTURAL, r.unitWeight.pack, locale.value));
+    return { key: r.material, label, ...w };
+  }),
+);
+
 // --- floors (ADR-048) ------------------------------------------------------------------------------
 /** Generated names follow the floor's place from the bottom: Ground floor, Floor 1, Floor 2… */
 function floorName(p: Project, id: string): string {
@@ -1716,6 +1730,21 @@ if (demo === "floors" || demo === "add-floor") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "materials" || demo === "values") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      if (demo === "values") showSettings.value = true;
+      const w = Object.values(history.current.elements).find((e): e is Wall => e.type === "wall");
+      if (w) {
+        setMaterial(w.id, "ceramic-block");
+        setTool("select");
+        selectTool.selection = [w.id];
+      }
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "above") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -2112,6 +2141,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <PropertiesPanel
           v-if="tool === 'select'"
           v-model:keep-original="keepOriginal"
+          :packs="structuralOn ? packs : null"
           :project="project"
           :selection="selection"
           :locale="locale"
@@ -2210,6 +2240,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :outside-faces="project.settings.outsideFaces === true"
           :system="constructionSystem(project)"
           :structural="structuralOn"
+          :values="packValues"
           :name="myName"
           :versions="snapshots.map((v) => ({ ...v, inUse: v.id === project.settings.baseline }))"
           :versions-size="(void tick, void fileTick, session.snapshotsSize())"

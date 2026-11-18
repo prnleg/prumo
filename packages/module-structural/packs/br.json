@@ -4,7 +4,32 @@
   "id": "br",
   "parent": null,
   "module": "org.prumo.structural",
-  "version": "2026.11.0",
+  "version": "2026.11.1",
   "name": { "en": "Brazil", "pt-BR": "Brasil" },
-  "values": {}
+  "values": {
+    "material.ceramic-block.unitWeight": {
+      "value": 13,
+      "unit": "kN/m3",
+      "source": "NBR 6120:1980, Tabela 1 (tijolos furados)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Apparent unit weight of hollow ceramic masonry. The 2019 edition of NBR 6120 lists walls by weight per m² instead; which to use goes to the engineer (E-42)."
+    },
+    "material.solid-brick.unitWeight": {
+      "value": 18,
+      "unit": "kN/m3",
+      "source": "NBR 6120:1980, Tabela 1 (tijolos maciços)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "1980 edition value; to confirm against NBR 6120:2019 (E-42)."
+    },
+    "material.concrete.unitWeight": {
+      "value": 25,
+      "unit": "kN/m3",
+      "source": "NBR 6118:2014, 8.2.2 (concreto armado)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Reinforced concrete (walls, slabs). Plain concrete is lighter."
+    }
+  }
 }

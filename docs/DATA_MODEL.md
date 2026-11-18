@@ -57,6 +57,9 @@ Slab {
 Column { id, type: "column", levelId, position: Vec2, section: {w,d} | {diameter}, height, materialId, rotation }
 Beam   { id, type: "beam", levelId, start, end, section: {w,h}, materialId, topOffset }
 
+// Phase 3 step 2 (implemented): material values live in data packs (ADR-049), keyed material.<wall material>.<property>;
+// today only unitWeight (kN/m³). Not copied into the project yet (the draft below says "project-local copy" — revisit when
+// projects must keep the values they were checked with).
 Material {
   id, name, system: "masonry" | "concrete" | "timber" | "steel" | "other"
   unitWeight   { value, unit:"kN/m3", source, confidence }
