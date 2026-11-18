@@ -72,6 +72,9 @@ Material {
 ```ts
 // Wall kinds (ADR-031, UX_PRINCIPLES §3)
 Wall.kind: "full" | "half" | "fence" | "railing"
+// Types (ADR-046, implemented): Opening.style?: string — door hinged|double|sliding|sliding-double|pocket|folding|garage;
+//   window sliding|casement|top-hung|tilting|fixed (missing = default symbol). Wall "built with": structural data material?:
+//   ceramic-block|concrete-block|solid-brick|drywall|concrete (missing = don't know).
 // Room divider: implemented as Wall.kind = "separator" (ADR-040), not a separate element.
 // Structural (ADR-042): project.profileId "br-nbr/<structural-masonry|rc-frame|unknown>";
 // components["org.prumo.structural"] v1 — wall { role?, origin? }, opening { lintel?: true }.

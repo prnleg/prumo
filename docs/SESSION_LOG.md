@@ -819,3 +819,13 @@ Branch `phase2/versions`, stacked on `phase2/compare`. Q-124 (accepted 2026-11-1
 **Decided alone (reversible):** joist direction stored **relative** ("long" / "short" side, long = longest polygon edge) instead of an angle, so rotate/mirror never touch the tag; "don't know" = no value (one state, not two).
 
 **Tests**: structural +4. Screenshot checked.
+
+### Session #11, part 52 — door / window / wall types (ADR-046), 2026-11-18
+
+Branch `types/openings`, stacked on `phase2/what-above`. Q-139 resolved (owner approved the list).
+
+**Done**: core `Opening.style` + `DOOR_STYLES` / `WINDOW_STYLES` / `openingStyle()` (unknown → null, kept); `openingPlan` draws every type (new `leaves` / `arcs` / `dashed` / `folds`; `leaf` / `arc` kept for the hinged door); mirror flips `swing` for sliding / casement / top-hung windows too; validation: `style` must be text. Renderer draws the new parts. Panel: "Type" select (doors, windows), the flip buttons now say "Flip left–right" / "Flip to the other face" and show for side-dependent windows. Structural `material` on walls (`setWallMaterial`, `wallMaterial`) + "Built with" select in the wall's Structure section; drywall shows a plain note. 32 strings. Dev `?demo=types`. E-41 added (parked).
+
+**Decided alone (reversible):** no schema bump (optional field, older versions keep it); missing window style = the old plain symbol, not "sliding"; the opening tool still places hinged doors / plain windows (type picked in the panel afterwards until the options bar lands).
+
+**Tests**: core +5 (4 hand-checked symbols, 1 mirror property over every type × side), structural +1. Screenshots checked (all 12 types on the house example).

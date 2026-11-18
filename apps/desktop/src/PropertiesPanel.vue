@@ -2,6 +2,9 @@
 // Properties of the selection (ROADMAP Phase 1 "Properties panel"). Every change is ONE command
 // (one undo step), applied when the field is committed (Enter / leaving it), never per keystroke.
 import {
+  DOOR_STYLES,
+  WINDOW_STYLES,
+  openingStyle,
   setWallLengthCommand,
   updateCommand,
   wallLength,
@@ -15,6 +18,9 @@ import {
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import {
   ABOVE,
+  WALL_MATERIALS,
+  wallMaterial,
+  type WallMaterial,
   ROLE_ORIGINS,
   canCarry,
   chaseDir,
@@ -71,6 +77,7 @@ const emit = defineEmits<{
   protect: [wallId: string];
   unprotect: [protectionId: string];
   bonded: [wallId: string, end: WallEnd, bonded: boolean];
+  material: [wallId: string, material: WallMaterial | undefined];
 }>();
 const wallFinishes = FINISHES.filter((f) => f.use === "wall");
 const floorFinishes = FINISHES.filter((f) => f.use === "floor");
@@ -90,6 +97,9 @@ const one = computed<Element | null>(() =>
 );
 const wall = computed(() => (one.value?.type === "wall" ? (one.value as Wall) : null));
 const opening = computed(() => (one.value?.type === "opening" ? (one.value as Opening) : null));
+/** Has a side to flip (hinge / slide direction, which face): doors and side-dependent windows (ADR-046). */
+const sided = (o: Opening) =>
+  o.kind === "door" || (o.kind === "window" && ["sliding", "casement", "top-hung"].includes(openingStyle(o) ?? ""));
 const chase = computed(() => {
   const e = one.value ?? undefined;
   return isChase(e) ? e : null;
@@ -315,6 +325,23 @@ function commitLength(w: Wall, ev: Event) {
       <!-- Structure (Phase 2, ADR-017/042): role + where the mark came from -->
       <template v-if="structural && canCarry(wall)">
         <h4>{{ t("props.structure") }}</h4>
+        <label class="stack">
+          {{ t("props.material") }}
+          <select
+            :value="wallMaterial(wall) ?? ''"
+            @change="
+              emit(
+                'material',
+                wall.id,
+                (($event.target as HTMLSelectElement).value || undefined) as WallMaterial | undefined,
+              )
+            "
+          >
+            <option value="">{{ t("material.unknown") }}</option>
+            <option v-for="m in WALL_MATERIALS" :key="m" :value="m">{{ t(`material.${m}`) }}</option>
+          </select>
+        </label>
+        <p v-if="wallMaterial(wall) === 'drywall'" class="ro">{{ t("material.drywall.note") }}</p>
         <label class="stack" :title="t('role.tip')">
           {{ t("props.role") }}
           <select
@@ -410,7 +437,25 @@ function commitLength(w: Wall, ev: Event) {
           />cm
         </span>
       </label>
-      <div v-if="opening.kind === 'door'" class="row">
+      <label v-if="opening.kind !== 'void'">
+        {{ t("props.openingStyle") }}
+        <select
+          :value="openingStyle(opening) ?? ''"
+          @change="
+            edit(opening, (e) => {
+              const v = ($event.target as HTMLSelectElement).value;
+              const { style: _old, ...rest } = e as Opening;
+              return v ? { ...rest, style: v } : rest;
+            })
+          "
+        >
+          <option v-if="opening.kind === 'window'" value="">{{ t("windowStyle.plain") }}</option>
+          <option v-for="st in opening.kind === 'door' ? DOOR_STYLES : WINDOW_STYLES" :key="st" :value="st">
+            {{ t(`${opening.kind}Style.${st}`) }}
+          </option>
+        </select>
+      </label>
+      <div v-if="sided(opening)" class="row">
         <button @click="edit(opening, (e) => ({ ...e, handing: e.handing === 'right' ? 'left' : 'right' }))">
           ⇋ {{ t("props.flipHanding") }}
         </button>

@@ -31,6 +31,7 @@ import {
   pasteOpeningsCommand,
   type Clipboard,
   type V,
+  type Opening,
   mirrorCommand,
   rotateCommand,
   selectionBounds,
@@ -83,6 +84,8 @@ import {
   aboveOf,
   joistDirection,
   setAbove,
+  setWallMaterial,
+  type WallMaterial,
   type Above,
   type JoistDir,
   type ChaseDir,
@@ -490,6 +493,9 @@ const protectionMarks = computed(() => {
   }
   return { locks, ghosts };
 });
+function setMaterial(id: string, m: WallMaterial | undefined) {
+  run(updateCommand({ key: "cmd.material" }, [id], (e) => (e.type === "wall" ? setWallMaterial(e, m) : e)));
+}
 function setOpeningLintel(id: string, has: boolean) {
   run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
 }
@@ -1261,6 +1267,32 @@ if (demo === "handoff" || demo === "handoff-dialog") {
       setTimeout(fitAll, 0);
     });
 }
+if (demo === "types") {
+  const ex = EXAMPLES.find((e) => e.id === "house");
+  if (ex)
+    void startExample(ex).then(() => {
+      const ops = Object.values(history.current.elements)
+        .filter((e): e is Opening => e.type === "opening")
+        .sort((a, b) => (a.id < b.id ? -1 : 1));
+      const doors = ["sliding", "double", "pocket", "folding", "garage", "sliding-double"];
+      const wins = ["sliding", "casement", "top-hung", "tilting", "fixed"];
+      let d = 0;
+      let w = 0;
+      const pick = (o: Opening) => (o.kind === "door" ? doors[d++ % doors.length] : wins[w++ % wins.length]) ?? "";
+      run(
+        updateCommand(
+          { key: "cmd.edit" },
+          ops.map((o) => o.id),
+          (e) => (e.type === "opening" ? { ...e, style: pick(e) } : e),
+        ),
+      );
+      const firstWin = ops.find((o) => o.kind === "window");
+      setTool("select");
+      if (firstWin) selectTool.selection = [firstWin.id];
+      sync();
+      setTimeout(fitAll, 0);
+    });
+}
 if (demo === "above") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -1646,6 +1678,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @paint-floor="paintFloor"
         @room-type="typeRoom"
         @above="setRoomAbove"
+        @material="setMaterial"
         @delete="deleteSelection"
         @duplicate="duplicateSelection"
         @rotate="rotateSelection"

@@ -59,6 +59,28 @@ export interface Wall extends ElementBase {
 
 export type OpeningKind = "door" | "window" | "void";
 
+/** Door types (ADR-046). Missing = "hinged". */
+export type DoorStyle = "hinged" | "double" | "sliding" | "sliding-double" | "pocket" | "folding" | "garage";
+export const DOOR_STYLES: readonly DoorStyle[] = [
+  "hinged",
+  "double",
+  "sliding",
+  "sliding-double",
+  "pocket",
+  "folding",
+  "garage",
+];
+/** Window types (ADR-046). Missing = not specified (the plain window symbol). */
+export type WindowStyle = "sliding" | "casement" | "top-hung" | "tilting" | "fixed";
+export const WINDOW_STYLES: readonly WindowStyle[] = ["sliding", "casement", "top-hung", "tilting", "fixed"];
+export type OpeningStyle = DoorStyle | WindowStyle;
+
+/** The opening's style if it's one this version knows for its kind; otherwise null (default symbol). */
+export function openingStyle(o: { kind: OpeningKind; style?: string }): OpeningStyle | null {
+  const list: readonly string[] = o.kind === "door" ? DOOR_STYLES : o.kind === "window" ? WINDOW_STYLES : [];
+  return o.style !== undefined && list.includes(o.style) ? (o.style as OpeningStyle) : null;
+}
+
 export interface Opening extends ElementBase {
   type: "opening";
   host: Host;
@@ -66,7 +88,12 @@ export interface Opening extends ElementBase {
   height: number;
   sillHeight: number;
   kind: OpeningKind;
-  /** Doors only. */
+  /**
+   * Door / window type (ADR-046): a DoorStyle or WindowStyle. A string so newer types from a newer
+   * version survive untouched (rule 13); unknown ones draw as the default symbol.
+   */
+  style?: string;
+  /** Doors (and side-dependent windows). For sliding / pocket / folding: the side the leaf goes to. */
   handing?: "left" | "right";
   swing?: "in" | "out";
 }
