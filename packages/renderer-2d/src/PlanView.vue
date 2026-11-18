@@ -20,6 +20,12 @@ const props = defineProps<{
   locks?: readonly { id: string; at: V; broken: boolean }[];
   /** Where a protected wall used to be (dashed outline). */
   ghosts?: readonly { id: string; a: V; b: V }[];
+  /** Compare view (ADR-029 b): new / changed walls and doors highlighted, removed ones dashed. */
+  compare?: {
+    added: readonly string[];
+    changed: readonly string[];
+    gone: readonly { id: string; kind: "wall" | "opening"; a: V; b: V }[];
+  } | null;
   /** Grid step, mm. */
   grid?: number;
   /** Detected rooms: floor polygon + a localized label (e.g. area). Drawn under the walls. */
@@ -100,6 +106,8 @@ const roomLabels = computed(() =>
   }),
 );
 const selected = computed(() => new Set(props.selectedIds ?? []));
+const cmpAdded = computed(() => new Set(props.compare?.added ?? []));
+const cmpChanged = computed(() => new Set(props.compare?.changed ?? []));
 
 // --- input -----------------------------------------------------------------------------------
 let pan: { x: number; y: number } | null = null;
@@ -206,7 +214,11 @@ function wheel(e: WheelEvent) {
         v-for="g in geometry.walls"
         :key="g.id"
         :points="pts(g.polygon)"
-        :class="['wall', kindOf.get(g.id), { selected: selected.has(g.id) }]"
+        :class="[
+          'wall',
+          kindOf.get(g.id),
+          { selected: selected.has(g.id), 'cmp-added': cmpAdded.has(g.id), 'cmp-changed': cmpChanged.has(g.id) },
+        ]"
       />
     </g>
     <g class="dividers">
@@ -242,7 +254,15 @@ function wheel(e: WheelEvent) {
     </g>
     <g class="openings">
       <g v-for="o in geometry.openings" :key="o.id">
-        <polygon class="cover" :class="{ selected: selected.has(o.id) }" :points="pts(o.cover)" />
+        <polygon
+          class="cover"
+          :class="{
+            selected: selected.has(o.id),
+            'cmp-added': cmpAdded.has(o.id),
+            'cmp-changed': cmpChanged.has(o.id),
+          }"
+          :points="pts(o.cover)"
+        />
         <line
           v-for="(j, k) in o.jambs"
           :key="'j' + k"
@@ -300,6 +320,17 @@ function wheel(e: WheelEvent) {
         :d="`M${S(hover.point).x - 6},${S(hover.point).y - 6} V${S(hover.point).y + 6} H${S(hover.point).x + 6} M${S(hover.point).x - 6},${S(hover.point).y} H${S(hover.point).x} V${S(hover.point).y + 6}`"
       />
       <circle v-else :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
+    </g>
+    <g v-if="compare" class="cmp-gone">
+      <line
+        v-for="gn in compare.gone"
+        :key="gn.id"
+        :class="gn.kind"
+        :x1="S(gn.a).x"
+        :y1="S(gn.a).y"
+        :x2="S(gn.b).x"
+        :y2="S(gn.b).y"
+      />
     </g>
     <g class="ghosts">
       <line v-for="gh in ghosts ?? []" :key="gh.id" :x1="S(gh.a).x" :y1="S(gh.a).y" :x2="S(gh.b).x" :y2="S(gh.b).y" />
@@ -440,6 +471,24 @@ function wheel(e: WheelEvent) {
 .items .selected line,
 .items .selected circle {
   stroke: var(--accent);
+}
+.wall.cmp-added,
+.openings .cover.cmp-added {
+  fill: var(--cmp-added, #4f8fe8);
+  stroke: var(--cmp-added, #4f8fe8);
+}
+.wall.cmp-changed,
+.openings .cover.cmp-changed {
+  fill: var(--cmp-changed, #e8a33d);
+  stroke: var(--cmp-changed, #e8a33d);
+}
+.cmp-gone line {
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+}
+.cmp-gone line.opening {
+  stroke-width: 4;
 }
 .ghosts line {
   stroke: #d64545;

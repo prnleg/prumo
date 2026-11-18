@@ -39,6 +39,7 @@ import {
   setOutsideFacesCommand,
   handoffGuard,
   isHolder,
+  compareLevel,
   type MirrorAxis,
   type Command,
   type Wall,
@@ -749,6 +750,18 @@ function selectNote(id: string) {
   selectTool.selection = [id];
   sync();
 }
+// --- Compare view (ADR-029 b): this plan vs a saved version in the file -------------------------------
+const compareWith = ref<string | null>(null);
+const snapshots = computed(() => (void tick.value, void fileTick.value, session.snapshotList()));
+watch(fileTick, () => (compareWith.value = null)); // New / Open: the old file's versions are gone
+const comparison = computed(() => {
+  const before = compareWith.value ? session.snapshotProject(compareWith.value) : null;
+  return before ? compareLevel(before, project.value, level.value) : null;
+});
+const compareName = computed(() => snapshots.value.find((x) => x.id === compareWith.value)?.name ?? "");
+const whenShort = (iso: string) =>
+  new Date(iso).toLocaleString(locale.value, { dateStyle: "short", timeStyle: "short" });
+
 function setMyName(name: string) {
   myName.value = name;
   savePrefs({ name });
@@ -1248,7 +1261,7 @@ if (demo === "chase") {
       setTimeout(fitAll, 0);
     });
 }
-if (demo === "renovation") {
+if (demo === "renovation" || demo === "compare") {
   const house = EXAMPLES.find((e) => e.id === "house");
   if (house)
     void startExample(house).then(() => {
@@ -1259,6 +1272,7 @@ if (demo === "renovation") {
       if (bath) run(deleteCommand(history.current, [bath.id]));
       if (win)
         run(updateCommand({ key: "cmd.edit" }, [win.id], (e) => (e.type === "opening" ? { ...e, width: 2000 } : e)));
+      if (demo === "compare") compareWith.value = history.current.settings.baseline ?? null;
       recheck(true);
       setTimeout(fitAll, 0);
     });
@@ -1370,6 +1384,16 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <button data-tour="save" :title="t('action.save.tip')" :disabled="!!readOnly" @click="doSave(false)">
           {{ t("action.save") }}
         </button>
+        <select
+          v-if="snapshots.length"
+          class="compare"
+          :title="t('compare.tip')"
+          :value="compareWith ?? ''"
+          @change="compareWith = ($event.target as HTMLSelectElement).value || null"
+        >
+          <option value="">{{ t("compare.off") }}</option>
+          <option v-for="v in snapshots" :key="v.id" :value="v.id">{{ v.name }} · {{ whenShort(v.createdAt) }}</option>
+        </select>
         <button :title="t('handoff.tip')" :disabled="!!readOnly || notMyTurn" @click="showHandoff = true">
           {{ t("handoff.button") }}
         </button>
@@ -1497,6 +1521,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         :badges="badges"
         :locks="protectionMarks.locks"
         :ghosts="protectionMarks.ghosts"
+        :compare="comparison"
         :grid="gridSize"
         @pointer="onPointer"
         @resize="onResize"
@@ -1542,6 +1567,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <span>{{ t("crash.message") }}</span>
         <button @click="reportCrash">{{ t("crash.report") }}</button>
         <button @click="crash = null">{{ t("crash.dismiss") }}</button>
+      </div>
+      <div v-if="comparison" class="cmp-bar" role="status">
+        <span>{{ t("compare.bar", { name: compareName }) }}</span>
+        <span class="key added">{{ t("compare.added", { count: comparison.added.length }) }}</span>
+        <span class="key changed">{{ t("compare.changed", { count: comparison.changed.length }) }}</span>
+        <span class="key gone">{{ t("compare.gone", { count: comparison.gone.length }) }}</span>
+        <button @click="compareWith = null">{{ t("compare.stop") }}</button>
       </div>
       <div v-if="notMyTurn" class="turn" role="status">
         <span>{{ t("handoff.banner", { name: holder }) }}</span>
@@ -1720,6 +1752,57 @@ button:disabled {
 .canvas {
   position: relative;
   min-height: 0;
+}
+.cmp-bar {
+  position: absolute;
+  top: 48px;
+  left: 12px;
+  right: 12px;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  z-index: 6;
+  font-size: 13px;
+}
+.cmp-bar .key::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+.cmp-bar .added::before {
+  background: #4f8fe8;
+}
+.cmp-bar .changed::before {
+  background: #e8a33d;
+}
+.cmp-bar .gone::before {
+  border: 2px dashed var(--muted);
+  width: 6px;
+  height: 6px;
+}
+.cmp-bar button {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+select.compare {
+  max-width: 150px;
 }
 .turn {
   position: absolute;

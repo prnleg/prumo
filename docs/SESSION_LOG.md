@@ -789,3 +789,13 @@ Branch `phase2/scale-bench`, stacked on `phase2/notes-list`. `module-structural/
 ### Session #11, part 48 — ADR-045 drafted (what's above), 2026-11-17
 
 Branch `phase2/slabs-design`, stacked on `phase2/scale-bench`. Docs only: **ADR-045 PROPOSED** (A per-room "what's above" choice / B drawn slabs / C = A now, B in Phase 3; lean C, medium) + **E-40** added to engineer batch 3 (slab types for self-built houses). Blocked on the owner's choice → not implemented.
+
+### Session #11, part 49 — compare view, 2026-11-17
+
+Branch `phase2/compare`, stacked on `phase2/slabs-design`. ADR-029 (b) "compare view" (accepted in principle; ADR-043 said it would start from the same snapshots). No saved data changes.
+
+**Done**: core `compareLevel(before, now, levelId)` → `added` / `changed` (moved, resized, other kind; doors: other wall, offset, size) / `gone` (removed walls and doors, and where changed ones used to be, as lines). Session `snapshotList` / `snapshotProject`. App: toolbar "Compare with…" picker (only when the file has saved versions: existing building, "Sent to …"), bar "Comparing with "Existing building": ■ N new ■ N changed ▢ N removed or moved from here · Stop comparing"; plan: new = blue, changed = orange, gone = grey dashed (blue/orange, not green: no "OK" colour, SAFETY). Resets on New/Open. Dev `?demo=compare`.
+
+**Tests**: core +3. Screenshot checked.
+
+**Noticed**: with the room-shape options open plus the version picker, the toolbar wraps to two lines at 1400 px → more weight for the menu bar (Q-138).
