@@ -138,7 +138,7 @@ What could go wrong:
 
 ## Phase 4 — 3D view
 
-- Read-only 3D extrusion of the 2D model (walls with openings cut, slabs).
+- Read-only 3D extrusion of the 2D model (walls with openings cut, slabs). ✅ 2026-11-18 (ADR-053: Three.js, Plan | 3D switch + side by side).
 - Findings highlight in 3D.
 - Maybe later: editing in 3D.
 

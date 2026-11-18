@@ -56,6 +56,7 @@ import {
   type Wall,
   type Label,
   type Project,
+  buildingSolids,
 } from "@prumo/core";
 import {
   DEFAULT_OPENING_SIZES,
@@ -120,9 +121,13 @@ import {
   type WallRole,
 } from "@prumo/module-structural";
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
+import { View3D } from "@prumo/renderer-3d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import {
+  Box,
   BrickWall,
+  Columns2,
+  Map as MapIcon,
   Cable,
   DoorOpen,
   GitCompare,
@@ -740,6 +745,88 @@ const floorList = computed(() =>
 const currentFloorName = computed(() => floorName(project.value, level.value));
 const showAddFloor = ref(false);
 const showBelow = ref(true);
+// --- 3D view (ADR-053): "Plan | 3D" switch, plus side by side (drag the grip / divider) ---------------
+type ViewMode = "plan" | "3d";
+const viewMode = ref<ViewMode>("plan");
+const split = ref(false);
+/** Where the divider sits, as a fraction of the canvas width (plan on the left). */
+const splitAt = ref(0.5);
+const show3d = computed(() => split.value || viewMode.value === "3d");
+const showPlan = computed(() => split.value || viewMode.value === "plan");
+const fit3d = ref(0);
+const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+const prefersDark = ref(darkQuery?.matches ?? false);
+darkQuery?.addEventListener?.("change", (e) => (prefersDark.value = e.matches));
+const solids3d = computed(() =>
+  show3d.value ? buildingSolids(project.value, { slabThickness: (s) => slabInfo(s).thickness }) : [],
+);
+const selection3d = computed(() =>
+  selection.value.map((id) =>
+    id.startsWith(ROOM_PREFIX) ? `room:${level.value}:${id.slice(ROOM_PREFIX.length)}` : id,
+  ),
+);
+/** A click in 3D selects in the plan too (switching floor if needed). */
+function pick3d(id: string | null) {
+  if (tool.value !== "select") setTool("select");
+  let target = id;
+  let lv: string | undefined;
+  if (id?.startsWith("room:")) {
+    const [, l = "", ...key] = id.split(":");
+    lv = l;
+    target = ROOM_PREFIX + key.join(":");
+  } else if (id) lv = project.value.elements[id]?.levelId;
+  if (lv && lv !== level.value) setLevel(lv);
+  selectTool.selection = target ? [target] : [];
+  sync();
+}
+function setViewMode(m: ViewMode) {
+  viewMode.value = m;
+  split.value = false;
+  if (m === "3d") fit3d.value++;
+}
+// the plan pane changes width: frame the plan again, and the 3D view
+watch(split, () =>
+  setTimeout(() => {
+    fitAll();
+    fit3d.value++;
+  }, 60),
+);
+function toggleSplit() {
+  split.value = !split.value;
+  splitAt.value = 0.5;
+}
+const canvasEl = ref<HTMLElement>();
+/** Drag the grip (or the divider) sideways; a plain click on the grip opens side by side at half. */
+function startSplitDrag(e: PointerEvent) {
+  const el = canvasEl.value;
+  if (!el || e.button !== 0) return;
+  e.preventDefault();
+  const r = el.getBoundingClientRect();
+  const x0 = e.clientX;
+  let f = splitAt.value;
+  let moved = false;
+  const move = (ev: PointerEvent) => {
+    if (!moved && Math.abs(ev.clientX - x0) < 4) return;
+    moved = true;
+    f = (ev.clientX - r.left) / r.width;
+    split.value = true;
+    splitAt.value = Math.min(0.85, Math.max(0.15, f));
+  };
+  const up = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    if (!moved) {
+      if (!split.value) toggleSplit();
+      return;
+    }
+    // dragged to an edge: that side's view takes the whole canvas
+    if (f < 0.1) setViewMode("3d");
+    else if (f > 0.9) setViewMode("plan");
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+}
+
 function setLevel(id: string) {
   const l = project.value.levels.find((x) => x.id === id);
   if (!l || id === level.value) return;
@@ -951,8 +1038,8 @@ function onResize(w: number, h: number) {
 function fitAll() {
   const pts = walls.value.flatMap((w) => [w.start, w.end]);
   if (!pts.length) return;
-  const el = document.querySelector(".canvas")?.getBoundingClientRect();
-  if (!el) return;
+  const el = document.querySelector(".canvas .plan-pane")?.getBoundingClientRect();
+  if (!el || !el.width) return;
   view.value = fit(
     {
       minX: Math.min(...pts.map((p) => p.x)),
@@ -1365,6 +1452,7 @@ const dividerMode = ref(false);
 function setTool(n: ToolName, divider = false) {
   if (notMyTurn.value && EDIT_TOOLS.includes(n)) return; // keyboard shortcuts too (ADR-044)
   endTools();
+  if (n !== "select" && viewMode.value === "3d" && !split.value) viewMode.value = "plan"; // drawing needs the plan
   tool.value = n;
   dividerMode.value = n === "wall" && divider;
   wallTool.options = { ...wallTool.options, kind: dividerMode.value ? "separator" : "full" };
@@ -1592,6 +1680,10 @@ const menus = computed<Menu[]>(() => {
       items: [
         { id: "fit", label: t("action.fit") },
         "sep",
+        { id: "viewPlan", label: t("view3d.plan"), checked: !split.value && viewMode.value === "plan" },
+        { id: "view3d", label: t("view3d.3d"), checked: !split.value && viewMode.value === "3d" },
+        { id: "viewSplit", label: t("view3d.split"), checked: split.value },
+        "sep",
         { id: "layers", label: t("layers.title"), checked: showLayers.value },
         {
           id: "showBelow",
@@ -1630,6 +1722,9 @@ function onMenu(id: string) {
     saveAs: () => void doSave(true),
     exportClean: () => void file(() => session.exportClean()),
     handoff: () => (showHandoff.value = true),
+    viewPlan: () => setViewMode("plan"),
+    view3d: () => setViewMode("3d"),
+    viewSplit: toggleSplit,
     settings: () => (showSettings.value = true),
     undo,
     redo,
@@ -1644,7 +1739,10 @@ function onMenu(id: string) {
       selectTool.selectAll();
       sync();
     },
-    fit: fitAll,
+    fit: () => {
+      fitAll();
+      fit3d.value++;
+    },
     structure: () => (structuralOn.value = !structuralOn.value),
     layers: () => (showLayers.value = !showLayers.value),
     showBelow: () => (showBelow.value = !showBelow.value),
@@ -1886,7 +1984,7 @@ if (demo === "materials" || demo === "values") {
       setTimeout(fitAll, 0);
     });
 }
-if (demo === "loads" || demo === "lintel") {
+if (demo === "loads" || demo === "lintel" || demo === "3d" || demo === "split") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
@@ -1914,6 +2012,8 @@ if (demo === "loads" || demo === "lintel") {
         setOpeningLintelSize(o.id, { height: 100, bars: { count: 2, diameter: 8 } });
         selectTool.selection = [o.id];
       }
+      if (demo === "3d") setViewMode("3d");
+      if (demo === "split") split.value = true;
       sync();
       setTimeout(() => {
         fitAll();
@@ -2278,6 +2378,26 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </button>
       </template>
       <span class="spacer" />
+      <span class="seg" role="group" :aria-label="t('view3d.label')">
+        <button
+          :class="{ on: !split && viewMode === 'plan' }"
+          :title="t('view3d.plan.tip')"
+          @click="setViewMode('plan')"
+        >
+          <MapIcon :size="14" /> {{ t("view3d.plan") }}
+        </button>
+        <button :class="{ on: !split && viewMode === '3d' }" :title="t('view3d.3d.tip')" @click="setViewMode('3d')">
+          <Box :size="14" /> {{ t("view3d.3d") }}
+        </button>
+        <button
+          :class="{ on: split }"
+          :title="t('view3d.split.tip')"
+          :aria-label="t('view3d.split')"
+          @click="toggleSplit"
+        >
+          <Columns2 :size="14" />
+        </button>
+      </span>
       <button v-if="project.levels.length > 1" class="floor-chip" :title="t('layers.tip')" @click="showLayers = true">
         <LayersIcon :size="14" /> {{ t("floor.on", { name: currentFloorName }) }}
       </button>
@@ -2318,31 +2438,48 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         </button>
       </nav>
 
-      <main class="canvas">
-        <PlanView
-          v-model:view="view"
-          :geometry="geometry"
-          :walls="walls"
-          :hover="tool === 'wall' || tool === 'room' ? hover : null"
-          :rooms="rooms"
-          :slabs="slabMarks"
-          :slab-preview="slabPreview"
-          :faces="faces"
-          :selected-ids="selection"
-          :box="box"
-          :labels="labels"
-          :badges="badges"
-          :arrows="[...joistArrows, ...slabArrows]"
-          :dimmed="[...hiddenIds]"
-          :ghost="ghostBelow"
-          :locks="protectionMarks.locks"
-          :ghosts="protectionMarks.ghosts"
-          :compare="comparison"
-          :grid="gridSize"
-          @pointer="onPointer"
-          @resize="onResize"
-          @leave="onLeave"
+      <main ref="canvasEl" class="canvas">
+        <div v-show="showPlan" class="pane plan-pane" :style="split ? { right: `${100 - splitAt * 100}%` } : undefined">
+          <PlanView
+            v-model:view="view"
+            :geometry="geometry"
+            :walls="walls"
+            :hover="tool === 'wall' || tool === 'room' ? hover : null"
+            :rooms="rooms"
+            :slabs="slabMarks"
+            :slab-preview="slabPreview"
+            :faces="faces"
+            :selected-ids="selection"
+            :box="box"
+            :labels="labels"
+            :badges="badges"
+            :arrows="[...joistArrows, ...slabArrows]"
+            :dimmed="[...hiddenIds]"
+            :ghost="ghostBelow"
+            :locks="protectionMarks.locks"
+            :ghosts="protectionMarks.ghosts"
+            :compare="comparison"
+            :grid="gridSize"
+            @pointer="onPointer"
+            @resize="onResize"
+            @leave="onLeave"
+          />
+        </div>
+        <div v-if="show3d" class="pane" :style="split ? { left: `${splitAt * 100}%` } : undefined">
+          <View3D :solids="solids3d" :selection="selection3d" :dark="prefersDark" :fit-key="fit3d" @pick="pick3d">
+            <template #failed>{{ t("view3d.noWebgl") }}</template>
+          </View3D>
+        </div>
+        <div
+          v-if="split"
+          class="divider"
+          :style="{ left: `${splitAt * 100}%` }"
+          :title="t('view3d.divider.tip')"
+          @pointerdown="startSplitDrag"
         />
+        <button v-else class="split-grip" :title="t('view3d.grip.tip')" @pointerdown="startSplitDrag">
+          <Columns2 :size="12" />
+        </button>
         <NotePopover
           v-if="noteDraft && noteSpot"
           :locale="locale"
@@ -2671,6 +2808,44 @@ button:disabled {
 .canvas {
   position: relative;
   min-height: 0;
+}
+.pane {
+  position: absolute;
+  inset: 0;
+}
+.divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  margin-left: -5px;
+  cursor: col-resize;
+  z-index: 6;
+  background: linear-gradient(to right, transparent 4px, var(--line) 4px, var(--line) 6px, transparent 6px);
+}
+.divider:hover {
+  background: linear-gradient(to right, transparent 4px, var(--accent) 4px, var(--accent) 6px, transparent 6px);
+}
+.split-grip {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  width: 10px;
+  height: 56px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: col-resize;
+}
+.split-grip:hover {
+  color: var(--accent);
 }
 .cmp-bar {
   position: absolute;
