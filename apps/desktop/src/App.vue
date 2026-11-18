@@ -2035,6 +2035,7 @@ if (demo === "materials" || demo === "values") {
 if (
   demo === "loads" ||
   demo === "upper" ||
+  demo === "upper-problem" ||
   demo === "lintel" ||
   demo === "3d" ||
   demo === "3d-low" ||
@@ -2067,6 +2068,22 @@ if (
         setOpeningLintel(o.id, true);
         setOpeningLintelSize(o.id, { height: 100, bars: { count: 2, diameter: 8 } });
         selectTool.selection = [o.id];
+      }
+      if (demo === "upper-problem" && w) {
+        // upstairs: a copy of the ground floor + one load-bearing wall across the living room
+        addFloor("", 2800, "all");
+        const up = wallsOnLevel(history.current, level.value)[0];
+        if (up) {
+          const mid = { x: (w.start.x + w.end.x) / 2, y: (w.start.y + w.end.y) / 2 };
+          const extra = {
+            ...up,
+            id: "demo-upper-wall",
+            start: { x: mid.x - 1500, y: mid.y },
+            end: { x: mid.x - 1500, y: mid.y + 4000 },
+          };
+          run(putCommand({ key: "cmd.addWall" }, [extra]));
+          selectTool.selection = [];
+        }
       }
       if (demo === "upper" && w) {
         // a full copy of the ground floor on top (slab included), then back to the ground floor's wall

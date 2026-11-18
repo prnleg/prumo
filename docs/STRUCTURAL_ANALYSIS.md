@@ -97,8 +97,8 @@ Order = engineer contact's ranking (E-02, 2026-11-17: "most common real-world mi
 | — | R-JOINT-001 | Wall junction without bonding (no interlocking, no ties or grout) | structural masonry | warning | rule: VERIFIED-UNSIGNED (E-02) | **New. Implemented**: one finding per junction of load-bearing walls with no wall end marked `bonded` there. Was hidden behind "connections assumed adequate" (removed, §7). |
 | — | R-RING-001 | No top tie beam (cinta de respaldo) under the slab/roof | structural masonry | warning | rule: VERIFIED-UNSIGNED (E-02) | **New. Implemented**: full load-bearing walls without `tieBeam` (half walls carry no slab). |
 | — | R-OPEN-007 | Opening overlaps another / passes the wall end / above the wall height | all | — | — | Was R-OPEN-006 (renumbered: 006 is now the contraverga rule). Not a finding: the editor already refuses these edits (invariants I-1…I-3). |
-| — | R-LOAD-001 | Upper-storey bearing wall not supported below | multi-storey | critical | UNVERIFIED | Phase 5 (overlaps R-WALL-005). |
-| — | R-LOAD-002 | Upper opening not aligned with the one below | multi-storey masonry | advisory | UNVERIFIED | Phase 5. |
+| — | R-LOAD-001 | Upper-storey bearing wall not supported below | multi-storey masonry | critical | UNVERIFIED (E-45) | **Implemented 2026-11-18** (ADR-055). Geometry only: "under" = parallel, centre lines within half the thicker wall; unsupported stretch > 10 mm (drawing precision). Wording: "…has to go to a beam or slab made for it, which isn't drawn". |
+| — | R-LOAD-002 | Upper opening not aligned with the one below | multi-storey masonry | advisory | UNVERIFIED (E-45 d) | **Implemented 2026-11-18** (ADR-055). Trigger: spans overlap but neither contains the other (10 mm drawing tolerance). No numeric threshold. |
 | — | R-COL-001 | Column removed → beam/slab loses support | RC frame | critical | UNVERIFIED | RC pack (later). |
 | — | R-SLAB-001 | Slab span > ⟨placeholder⟩ for its thickness | all | advisory | UNVERIFIED | |
 | — | R-MAT-001 | Material incompatible with the selected system | all | critical | UNVERIFIED | Ties to R-20. |

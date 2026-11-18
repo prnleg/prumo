@@ -1,9 +1,10 @@
 // Tier 0 rules (STRUCTURAL_ANALYSIS §3). No numeric thresholds here: both rules are presence checks,
 // so nothing is invented (ADR-018).
-import { wallsOnLevel, type Opening, type Project, type Wall } from "@prumo/core";
+import { dot, levelBelow, sub, wallsOnLevel, type Opening, type Project, type Wall } from "@prumo/core";
 import { chaseDir, isChase, protectionData, protectionsOn, structuralData, type WallEnd } from "./data";
 import { ENGINEER_UNSIGNED, UNSOURCED, type Finding, type RuleDef } from "./finding";
 import { bearing, canCarry } from "./roles";
+import { GAP_TOL, support } from "./stack";
 
 const MASONRY = ["structural-masonry"] as const;
 const EPS = 1; // mm: "reaches the top of the wall" tolerance (drawing precision, not a structural value)
@@ -418,6 +419,114 @@ export const R_PROT_001: RuleDef = {
   },
 };
 
+/**
+ * R-LOAD-001 — a load-bearing wall upstairs with stretches that have no load-bearing wall under them
+ * (ADR-055). Its weight then needs a beam or slab made for it, which isn't drawn. Geometry only: "under"
+ * = parallel, centre lines within half the thicker wall (E-45 a); stretches > 10 mm (drawing precision).
+ */
+export const R_LOAD_001: RuleDef = {
+  id: "R-LOAD-001",
+  nameKey: "rule.R-LOAD-001.name",
+  severity: "critical",
+  confidence: "rule-of-thumb",
+  source: UNSOURCED,
+  review: { level: "unverified" },
+  notConsidered: ["nc.beams", "nc.offset", "nc.realBuilding"],
+  appliesTo: [...MASONRY],
+  run({ project, levelId, system }) {
+    const below = levelBelow(project, levelId);
+    if (!below) return [];
+    const lowers = wallsOnLevel(project, below.id).filter(canCarry);
+    const out: Finding[] = [];
+    for (const w of wallsOnLevel(project, levelId).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+      const b = bearing(w, system);
+      if (!b.bearing) continue;
+      const s = support(w, lowers);
+      if (!s.unsupported.length) continue;
+      const len = s.unsupported.reduce((t, [a, c]) => t + c - a, 0);
+      out.push({
+        ruleId: this.id,
+        severity: this.severity,
+        confidence: this.confidence,
+        elementIds: [w.id],
+        messageKey: s.by.length ? "rule.R-LOAD-001.part" : "rule.R-LOAD-001.none",
+        params: { wall: { kind: "element", id: w.id }, length: { kind: "length", mm: len } },
+        assumptions: b.why,
+        fingerprint: `${this.id}|${w.id}`,
+      });
+    }
+    return out;
+  },
+};
+
+/**
+ * R-LOAD-002 — a door/window upstairs only partly over an opening below (ADR-055): the weight around it
+ * can't go straight down. Advice. Trigger: the spans overlap, but neither contains the other (E-45 d).
+ */
+export const R_LOAD_002: RuleDef = {
+  id: "R-LOAD-002",
+  nameKey: "rule.R-LOAD-002.name",
+  severity: "advisory",
+  confidence: "rule-of-thumb",
+  source: UNSOURCED,
+  review: { level: "unverified" },
+  notConsidered: ["nc.lintelSize", "nc.loads", "nc.realBuilding"],
+  appliesTo: [...MASONRY],
+  run({ project, levelId, system }) {
+    const below = levelBelow(project, levelId);
+    if (!below) return [];
+    const lowerWalls = wallsOnLevel(project, below.id).filter(canCarry);
+    const lowerOpenings = Object.values(project.elements).filter(
+      (e): e is Opening => e.type === "opening" && e.levelId === below.id,
+    );
+    const walls = new Map(wallsOnLevel(project, levelId).map((w) => [w.id, w]));
+    const out: Finding[] = [];
+    const ups = Object.values(project.elements)
+      .filter((e): e is Opening => e.type === "opening" && e.levelId === levelId)
+      .sort((a, b) => (a.id < b.id ? -1 : 1));
+    for (const o of ups) {
+      const w = walls.get(o.host.elementId);
+      if (!w || !bearing(w, system).bearing) continue;
+      const L = Math.hypot(w.end.x - w.start.x, w.end.y - w.start.y) || 1;
+      const u = { x: (w.end.x - w.start.x) / L, y: (w.end.y - w.start.y) / L };
+      const a = o.host.offset;
+      const b = a + o.width;
+      for (const lw of lowerWalls) {
+        if (!support(w, [lw]).by.length) continue;
+        const lL = Math.hypot(lw.end.x - lw.start.x, lw.end.y - lw.start.y) || 1;
+        const lu = { x: (lw.end.x - lw.start.x) / lL, y: (lw.end.y - lw.start.y) / lL };
+        const at = (t: number) => dot(sub({ x: lw.start.x + lu.x * t, y: lw.start.y + lu.y * t }, w.start), u);
+        const hit = lowerOpenings
+          .filter((x) => x.host.elementId === lw.id)
+          .sort((x, y) => (x.id < y.id ? -1 : 1))
+          .find((x) => {
+            const p = at(x.host.offset);
+            const q = at(x.host.offset + x.width);
+            const c = Math.min(p, q);
+            const d = Math.max(p, q);
+            const overlap = Math.min(b, d) - Math.max(a, c);
+            const upperInside = a >= c - GAP_TOL && b <= d + GAP_TOL;
+            const lowerInside = c >= a - GAP_TOL && d <= b + GAP_TOL;
+            return overlap > GAP_TOL && !upperInside && !lowerInside;
+          });
+        if (!hit) continue;
+        out.push({
+          ruleId: this.id,
+          severity: this.severity,
+          confidence: this.confidence,
+          elementIds: [o.id, hit.id],
+          messageKey: "rule.R-LOAD-002.message",
+          params: { opening: { kind: "element", id: o.id }, below: { kind: "element", id: hit.id } },
+          assumptions: bearing(w, system).why,
+          fingerprint: `${this.id}|${o.id}|${hit.id}`,
+        });
+        break;
+      }
+    }
+    return out;
+  },
+};
+
 export const RULES: readonly RuleDef[] = [
   R_OPEN_001,
   R_ROLE_001,
@@ -428,4 +537,6 @@ export const RULES: readonly RuleDef[] = [
   R_JOINT_001,
   R_WALL_004,
   R_PROT_001,
+  R_LOAD_001,
+  R_LOAD_002,
 ];
