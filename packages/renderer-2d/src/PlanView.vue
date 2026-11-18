@@ -297,6 +297,15 @@ function wheel(e: WheelEvent) {
       />
       <circle v-else :cx="S(hover.point).x" :cy="S(hover.point).y" r="5" />
     </g>
+    <!-- notes (ADR-044): a speech-bubble pin centred on the noted spot (so a click on it picks it) -->
+    <g class="notes">
+      <path
+        v-for="n in geometry.notes"
+        :key="n.id"
+        :class="{ resolved: n.resolved, selected: selected.has(n.id) }"
+        :d="`M${S(n.at).x},${S(n.at).y + 11} l-4,-6 h-6 a3,3 0 0 1 -3,-3 v-10 a3,3 0 0 1 3,-3 h20 a3,3 0 0 1 3,3 v10 a3,3 0 0 1 -3,3 h-6 z`"
+      />
+    </g>
     <g class="badges">
       <g v-for="b in badges ?? []" :key="b.id" :class="['badge', b.severity]">
         <circle :cx="S(b.at).x" :cy="S(b.at).y - 14" r="7" />
@@ -418,6 +427,19 @@ function wheel(e: WheelEvent) {
 .items .selected line,
 .items .selected circle {
   stroke: var(--accent);
+}
+.notes path {
+  fill: var(--note, #f2c94c);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+.notes path.resolved {
+  fill: var(--plan-bg);
+  stroke: var(--muted);
+}
+.notes path.selected {
+  stroke: var(--accent);
+  stroke-width: 2.5;
 }
 .divider {
   stroke: var(--muted);

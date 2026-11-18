@@ -30,7 +30,7 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 ### Defaults on record (from earlier rounds)
 
 - **Q-089 🟡** 3D walls up/cutaway/down toggle? Default: yes, Phase 4.
-- **Q-092 🟠** Identity = a local display name, no accounts? Default: yes.
+- **Q-092 ✅** Identity = a local display name, no accounts — yes (ADR-044, 2026-11-17): `settings.json` → `name`, asked at the first note.
 - **Q-093 🟠** Notes on elements in Phase 2? Default: yes.
 - **Q-097 🟡** Stairs/multi-floor: Phase 5.
 - **Q-098 🟡** Roofs: flat roof = slab until later.

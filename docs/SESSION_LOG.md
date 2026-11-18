@@ -739,3 +739,15 @@ Owner merged more-rules + chases. Branch `phase2/exit-criteria`.
 **Batch 2b brief**: shared Claude doc in Portuguese (same format as batch 1): how to answer (item numbers only, "conferir" ok, anonymous), fill-in table E-30/31/33–38 with what was said in batch 1, VC-005 hand calc (E-32), new **E-39** (confirm the detail choices of R-WALL-004, R-OPEN-006, R-RING-001, R-JOINT-001). Recorded in ENGINEER_QUESTIONS.
 
 **Next**: owner forwards batch 2b; then threshold rules (R-OPEN-002/003/004, R-WALL-001/006). Meanwhile Phase 2 scope still open: slabs / "what's above", notes + protection markers + handoff banner (ADR-029), data pack (ADR-030), Q-139 element types.
+
+### Session #11, part 43 — ADR-044 accepted; slice 1: your name + notes, 2026-11-17
+
+Owner merged exit-criteria + batch 2b, chose option 1 (notes / protection / hand-off) and approved **ADR-044** ("Yes, build it"; protected wall moved by the holder → the warning stays until the protection is removed or renewed). Owner also raised storeys ("1, 2, 3… a whole hotel or a 2-floor house") → **Q-140** (Phase 5 already planned; doubts logged: scale/performance, and tall buildings are usually concrete frames, outside the masonry pack). Branches: `phase2/handoff-design` (ADR + Q-140), `phase2/notes` stacked on it.
+
+**Done**: core `Note` element (`text, author, createdAt, at, targets, resolved?`), **SCHEMA_VERSION 2** + migration 1→2 (no-op) + golden save hash updated on purpose; validation; notes travel when selected or when every target moves (incl. doors on a moved wall) on move / rotate / mirror; `PlanGeometry.notes`, picked first, box-selected by point. App: prefs `name` (`cleanName`: trimmed, ≤ 60), Note tool + `NotePopover.vue` (name asked once), pins in PlanView, properties panel note section, Settings → You, 23 strings pt-BR/en, dev `?demo=note` / `?demo=note-new`.
+
+**Decided alone (reversible)**: notes aren't copied by copy/duplicate/mirror-copy; clicking an existing pin with the Note tool selects it; after adding, the tool switches to Select with the note selected (so the panel shows it); a note about a room = about the spot (rooms aren't elements).
+
+**Tests**: 403 (core +6 notes incl. v1→v2 open; desktop +2 name). Screenshots checked (en).
+
+**Next**: slice 2 — protection markers + R-PROT-001.

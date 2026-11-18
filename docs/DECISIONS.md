@@ -483,7 +483,7 @@ Decision:
 - Later: the compare view (Q-104) starts from the same snapshot.
 
 ## ADR-044 — Notes, protection markers and the handoff "baton" (ADR-029 mechanics)
-Status: **PROPOSED (2026-11-17)**. Owner asked for this next ("go with option 1").
+Status: **ACCEPTED (2026-11-17, owner: "Yes, build it")**; protected wall moved by the holder → the critical warning stays until the protection is removed or renewed (owner: "Yes, stays").
 Three slices, each its own branch, in this order:
 1. **Who you are + notes.**
    - Identity (Q-092 default): a local display name in the app's prefs (`settings.json` → `name`). Asked the first time it's needed (first note / first hand-off), changeable in Settings. Not verified, no accounts.

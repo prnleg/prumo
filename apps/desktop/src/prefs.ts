@@ -17,6 +17,16 @@ export interface Prefs {
   tourDone?: boolean;
   /** Module manager stage 1 (ADR-020): the Structural module switched off (no UI, no checks; data kept). */
   structuralOff?: boolean;
+  /** Your name on notes and hand-offs (Q-092: a local display name, no accounts; ADR-044). */
+  name?: string;
+}
+
+export const NAME_MAX = 60;
+/** A usable display name: trimmed, inner spaces collapsed, 1…NAME_MAX characters; otherwise null. */
+export function cleanName(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().replace(/\s+/g, " ");
+  return s.length > 0 && s.length <= NAME_MAX ? s : null;
 }
 
 export interface LoadedPrefs {
@@ -37,13 +47,15 @@ export function parsePrefs(text: string | null): LoadedPrefs {
     raw = {};
   }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) raw = {};
-  const { v, locale, angleStepDeg, gridSize, tourDone, structuralOff, ...rest } = raw as Record<string, unknown>;
+  const { v, locale, angleStepDeg, gridSize, tourDone, structuralOff, name, ...rest } = raw as Record<string, unknown>;
   const prefs: Prefs = {};
   if (typeof locale === "string" && (LOCALES as string[]).includes(locale)) prefs.locale = locale as Locale;
   if (isPositive(angleStepDeg) && angleStepDeg <= 90) prefs.angleStepDeg = angleStepDeg;
   if (isPositive(gridSize)) prefs.gridSize = gridSize;
   if (tourDone === true) prefs.tourDone = true;
   if (structuralOff === true) prefs.structuralOff = true;
+  const n = cleanName(name);
+  if (n) prefs.name = n;
   return { prefs, rest, v: isPositive(v) && v > PREFS_VERSION ? v : PREFS_VERSION };
 }
 

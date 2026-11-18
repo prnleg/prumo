@@ -91,7 +91,7 @@ FinishLayer     { finishId, thickness }        // paint ≈ 0 mm, plaster 20 mm,
 
 // Handoff (ADR-029)
 Element.meta: { createdBy, modifiedBy, modifiedAt }        // display names, no accounts
-Note { id, elementIds[], author, text, createdAt, resolved: boolean, visionId }
+Note { id, type: "note", levelId, text, author, createdAt, at: Vec2, targets: Id[], resolved?: true, components }   // core element, schema 2 (ADR-044); not hosted → survives deleting its targets
 Protection { elementId, byVision, reason, author, createdAt }   // informs; never blocks (ADR-026)
 Project.handoff: { holder: string, since, message, history: HandoffEvent[] }  // "baton" model (ADR-029, accepted)
 HandoffEvent { from, to, at, message, snapshotId }

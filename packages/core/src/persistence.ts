@@ -155,8 +155,11 @@ export function openProjectFile(bytes: Uint8Array, opts: OpenOptions): OpenResul
   return { status: "ok", file };
 }
 
-/** schemaVersion n → n+1. Empty while we're at version 1; every bump adds one with a fixture test. */
-const MIGRATIONS: Record<number, (p: Project) => Project> = {};
+/** schemaVersion n → n+1. Every bump adds one with a fixture test. */
+const MIGRATIONS: Record<number, (p: Project) => Project> = {
+  // 1 → 2: notes (ADR-044) are a new element type; v1 files have none, nothing to change.
+  1: (p) => ({ ...p, schemaVersion: 2 }),
+};
 
 function migrate(p: Project): Project {
   let cur = p;

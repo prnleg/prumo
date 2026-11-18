@@ -34,6 +34,7 @@ describe("UI i18n (ADR-021/034)", () => {
             before: "0,80 m",
             other: "parede de 3,00 m",
             date: "17 nov 2026 13:40",
+            what: "parede de 4,00 m",
           }),
         ).not.toThrow();
     }

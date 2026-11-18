@@ -1,7 +1,7 @@
 // Turn structural findings into words (ADR-021: params are typed and formatted at display time) and
 // group them one card per rule (Q-135). Framework-free, unit-tested.
 import { wallLength, type Project } from "@prumo/core";
-import type { AssumptionUse, Finding, Param, RuleDef } from "@prumo/module-structural";
+import { isChase, type AssumptionUse, type Finding, type Param, type RuleDef } from "@prumo/module-structural";
 import { formatLength, translate, type Locale } from "./i18n";
 
 export function paramText(p: Param, project: Project, locale: Locale): string {
@@ -15,6 +15,7 @@ export function paramText(p: Param, project: Project, locale: Locale): string {
       const e = project.elements[p.id];
       if (e?.type === "wall") return t("el.wall", { length: formatLength(wallLength(e), locale) });
       if (e?.type === "opening") return t("el.opening", { kind: e.kind, width: formatLength(e.width, locale) });
+      if (isChase(e)) return t("el.chase");
       return t("el.unknown");
     }
   }
