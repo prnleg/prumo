@@ -157,7 +157,7 @@ What could go wrong: data model rework if ADR-015 chose "single storey only" in 
 
 ## Phase 5c — Rendering/export module (candidate)
 
-- PNG/PDF export of plans (with the disclaimer line), maybe printable sheets later. Needs its own ADR and scoping (Q-118).
+- PNG/PDF export of plans (with the disclaimer line), maybe printable sheets later. Needs its own ADR and scoping (Q-118). ✅ 2026-11-18 (ADR-056: current floor, A4/A3, scale, title block).
 
 ## Phase 5b — Third Vision (probably Electrical) → validate the module API
 

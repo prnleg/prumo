@@ -975,3 +975,13 @@ Branch `phase5/stack-rules`, stacked on `phase5/upper-loads`.
 **Tests**: structural +9. Screenshot: free-standing upstairs wall → red "!" + critical card.
 
 **Phase 5 status**: the three planned items are done. Left: engineer review (E-45), nothing else unblocked in Phase 5.
+
+### Session #12, part 10 — export picture / PDF (Phase 5c, ADR-056), 2026-11-18
+
+Branch `phase5c/export`, stacked on `phase5/stack-rules`. Owner: "Yes".
+
+**Done**: `packages/module-export`: manifest (no data), `sheet.ts` (paper sizes, scales, `layoutSheet` with "fit", `scaleBar`), `draw.ts` (`drawSheet` on a canvas: walls filled + clean outline, opening symbols, room labels, overall dimensions, frame, title block, disclaimer, scale bar), `pdf.ts` (`pdfWithImage`, `pdfString`). App: `ExportDialog.vue` (preview, format, paper, scale, fit warning), File menu item, 200 dpi export, PNG / PDF save. Platform: `pickSavePath(name, type)`, media type by extension. 19 strings. Dev `?demo=export`, `?demo=export-full` (the real 200 dpi sheet over the app).
+
+**Decided alone (reversible):** landscape only; 200 dpi; PDF holds a JPEG (quality 0.92) — text not selectable; current floor only; the date is the export day (UI clock, not core).
+
+**Tests**: export +8 (layout scales, page mapping, scale bar, PDF structure: xref offsets, MediaBox, string escaping). Screenshots: dialog preview + full sheet (pt-BR).

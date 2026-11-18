@@ -8,8 +8,11 @@ export interface OpenedFile {
 
 export interface Platform {
   readonly kind: "desktop" | "web";
-  /** Ask where to save. Desktop: native dialog, returns a path or null (cancelled). */
-  pickSavePath(suggestedName: string): Promise<string | null>;
+  /**
+   * Ask where to save. Desktop: native dialog, returns a path or null (cancelled). `type` = the file
+   * kind (default: a Prumo project); the extension is added if missing.
+   */
+  pickSavePath(suggestedName: string, type?: FileType): Promise<string | null>;
   pickOpenFile(): Promise<OpenedFile | null>;
   writeFile(path: string, bytes: Uint8Array): Promise<void>;
   /** Yes/No question; resolves true for the affirmative button. */
@@ -37,4 +40,15 @@ export interface Platform {
 }
 
 export const PRUMO_EXT = "prumo";
+/** A kind of file to save: dialog filter label + extension (no dot). */
+export interface FileType {
+  label: string;
+  ext: string;
+}
+export const PRUMO_FILE: FileType = { label: "Prumo", ext: PRUMO_EXT };
+const MIME: Record<string, string> = { png: "image/png", pdf: "application/pdf" };
+/** Media type for a file name (downloads in the browser build); projects are zip files. */
+export const mimeOf = (name: string) => MIME[name.split(".").pop()?.toLowerCase() ?? ""] ?? "application/zip";
+export const withExt = (name: string, ext: string) =>
+  name.toLowerCase().endsWith(`.${ext}`) ? name : `${name}.${ext}`;
 export const baseName = (p: string) => p.split(/[\\/]/).pop() ?? p;

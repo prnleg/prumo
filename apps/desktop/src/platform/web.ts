@@ -1,10 +1,10 @@
 // Browser build (`pnpm dev` without Tauri): download to save, file picker to open. No paths.
-import { PRUMO_EXT, type OpenedFile, type Platform } from "./types";
+import { PRUMO_EXT, PRUMO_FILE, mimeOf, withExt, type OpenedFile, type Platform } from "./types";
 
 export const webPlatform: Platform = {
   kind: "web",
-  async pickSavePath(suggestedName) {
-    return suggestedName.endsWith(`.${PRUMO_EXT}`) ? suggestedName : `${suggestedName}.${PRUMO_EXT}`;
+  async pickSavePath(suggestedName, type = PRUMO_FILE) {
+    return withExt(suggestedName, type.ext);
   },
   pickOpenFile() {
     return new Promise<OpenedFile | null>((resolve) => {
@@ -20,7 +20,7 @@ export const webPlatform: Platform = {
     });
   },
   async writeFile(path, bytes) {
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/zip" }));
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mimeOf(path) }));
     const a = document.createElement("a");
     a.href = url;
     a.download = path;
