@@ -963,3 +963,15 @@ Branch `phase5/upper-loads`, stacked on `phase4/wall-modes`. Owner: "Yes" (Phase
 **Decided alone (reversible):** "on" = parallel + centre lines within half the thicker wall; per-metre = the most loaded upper wall (no 45° spreading); a floor's slab stays with the floor whose ceiling it is (no double count).
 
 **Tests**: structural +9 (hand calc 20.328 … 27.828 kN/m on a 2-storey wall; support geometry).
+
+### Session #12, part 9 — R-LOAD-001 / R-LOAD-002 (Phase 5, ADR-055), 2026-11-18
+
+Branch `phase5/stack-rules`, stacked on `phase5/upper-loads`.
+
+**Done**: R-LOAD-001 (critical, masonry; "none" / "part" wording with the unsupported length), R-LOAD-002 (advice, masonry; partly-over trigger, reversed lower walls mapped). New nc keys (beams, offset); "not checked: floors" reworded (loads add up, not compared). 9 strings. Dev `?demo=upper-problem`. STRUCTURAL_ANALYSIS §3 rows updated.
+
+**Decided alone (reversible):** both masonry only (in an RC frame upper walls sit on beams that aren't drawn → would always fire); a non-bearing-marked wall below doesn't count as support; one R-LOAD-002 finding per upper opening (first lower opening by id).
+
+**Tests**: structural +9. Screenshot: free-standing upstairs wall → red "!" + critical card.
+
+**Phase 5 status**: the three planned items are done. Left: engineer review (E-45), nothing else unblocked in Phase 5.

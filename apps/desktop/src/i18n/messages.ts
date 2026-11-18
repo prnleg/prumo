@@ -239,6 +239,16 @@ export const en = {
     "Possible issue: a {length} horizontal chase is cut into {wall}. Horizontal cuts weaken a load-bearing wall the most.",
   "rule.R-WALL-004.vertical": "Advice: a vertical chase is cut into {wall}, which is load-bearing.",
   "nc.chaseDepth": "how deep the cut is",
+  "rule.R-LOAD-001.name": "Upstairs wall with nothing under it",
+  "rule.R-LOAD-001.none":
+    "Possible issue: {wall} is load-bearing but has no load-bearing wall under it on the floor below. Its weight has to go to a beam or slab made for it, which isn't drawn.",
+  "rule.R-LOAD-001.part":
+    "Possible issue: {length} of {wall} has no load-bearing wall under it on the floor below. That part's weight has to go to a beam or slab made for it, which isn't drawn.",
+  "rule.R-LOAD-002.name": "Openings not lined up between floors",
+  "rule.R-LOAD-002.message":
+    "Advice: {opening} is only partly over {below} on the floor below. Openings stacked in line let the weight go straight down.",
+  "nc.beams": "beams or slabs that may have been made to carry the wall (they aren't drawn)",
+  "nc.offset": "how far off-line the walls can be and still carry each other",
   "nc.chaseHeight": "at what height the cut runs",
   "problem.item-outside-wall": "Something marked on this wall (such as a chase) would end up past its end.",
   "baseline.snapshotName": "Existing building",
@@ -381,7 +391,7 @@ export const en = {
   "notChecked.pointLoads": "Concentrated loads and load sharing between walls",
   "notChecked.shoring": "Propping and the order of the work while it's being done",
   "notChecked.floors":
-    "Floors on top of each other: walls upstairs that don't stand on a wall below, and weight adding up floor by floor (each floor is checked on its own)",
+    "Whether the walls below can carry the floors above (the weight is added up and shown on each wall, not compared with a limit)",
   "checks.title": "Structure checks",
   "checks.count": "{count, plural, =0 {no possible issues} one {# possible issue} other {# possible issues}}",
   "checks.diff.added": "+{count} new",
@@ -976,6 +986,16 @@ export const ptBR: Record<MessageKey, string> = {
     "Possível problema: há um rasgo horizontal de {length} na {wall}. Cortes horizontais são os que mais enfraquecem uma parede estrutural.",
   "rule.R-WALL-004.vertical": "Orientação: há um rasgo vertical na {wall}, que é estrutural.",
   "nc.chaseDepth": "a profundidade do corte",
+  "rule.R-LOAD-001.name": "Parede de cima sem nada embaixo",
+  "rule.R-LOAD-001.none":
+    "Possível problema: a {wall} é estrutural mas não tem parede estrutural embaixo no andar de baixo. O peso dela precisa ir para uma viga ou laje feita para isso, que não está desenhada.",
+  "rule.R-LOAD-001.part":
+    "Possível problema: {length} da {wall} não tem parede estrutural embaixo no andar de baixo. O peso dessa parte precisa ir para uma viga ou laje feita para isso, que não está desenhada.",
+  "rule.R-LOAD-002.name": "Aberturas desalinhadas entre andares",
+  "rule.R-LOAD-002.message":
+    "Orientação: {opening} fica só em parte sobre {below} no andar de baixo. Aberturas alinhadas uma sobre a outra deixam o peso descer direto.",
+  "nc.beams": "vigas ou lajes que podem ter sido feitas para carregar a parede (não estão desenhadas)",
+  "nc.offset": "quanto as paredes podem estar fora de linha e ainda apoiar uma na outra",
   "nc.chaseHeight": "a altura em que o corte passa",
   "problem.item-outside-wall": "Algo marcado nesta parede (como um rasgo) ficaria além da ponta dela.",
   "baseline.snapshotName": "Construção existente",
@@ -1120,7 +1140,7 @@ export const ptBR: Record<MessageKey, string> = {
   "notChecked.pointLoads": "Cargas concentradas e a divisão de carga entre paredes",
   "notChecked.shoring": "Escoramento e a ordem dos serviços durante a obra",
   "notChecked.floors":
-    "Andares um sobre o outro: paredes de cima que não estão sobre uma parede de baixo, e o peso somando andar por andar (cada andar é verificado sozinho)",
+    "Se as paredes de baixo aguentam os andares de cima (o peso é somado e mostrado em cada parede, não comparado com um limite)",
   "checks.title": "Verificações da estrutura",
   "checks.count":
     "{count, plural, =0 {nenhum possível problema} one {# possível problema} other {# possíveis problemas}}",
