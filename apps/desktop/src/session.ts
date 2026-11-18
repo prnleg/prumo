@@ -86,6 +86,14 @@ export class Session {
 
   // --- "the existing building" (ADR-043) --------------------------------------------------------
 
+  /** Saved versions in this file (compare view), oldest first. */
+  snapshotList(): { id: string; name: string; createdAt: string }[] {
+    return this.snapshots.map((s) => ({ id: s.id, name: s.name, createdAt: s.createdAt }));
+  }
+  snapshotProject(id: string): Project | null {
+    return this.snapshots.find((s) => s.id === id)?.project ?? null;
+  }
+
   /** The marked existing building, or null. */
   baselineProject(): Project | null {
     const id = this.history.current.settings.baseline;
