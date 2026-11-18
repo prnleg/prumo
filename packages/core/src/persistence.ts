@@ -159,6 +159,8 @@ export function openProjectFile(bytes: Uint8Array, opts: OpenOptions): OpenResul
 const MIGRATIONS: Record<number, (p: Project) => Project> = {
   // 1 → 2: notes (ADR-044) are a new element type; v1 files have none, nothing to change.
   1: (p) => ({ ...p, schemaVersion: 2 }),
+  // 2 → 3: drawn slabs (ADR-050) are a new element type; v2 files have none, nothing to change.
+  2: (p) => ({ ...p, schemaVersion: 3 }),
 };
 
 function migrate(p: Project): Project {

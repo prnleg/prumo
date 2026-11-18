@@ -95,6 +95,6 @@ describe("notes", () => {
     const v1 = { ...blank(), schemaVersion: 1 };
     const r = openProjectFile(zipSync({ "project.json": strToU8(JSON.stringify(v1)) }), { installedModules: [ARCH] });
     expect(r.status).toBe("ok");
-    if (r.status === "ok") expect(r.file.project.schemaVersion).toBe(2);
+    if (r.status === "ok") expect(r.file.project.schemaVersion).toBe(3); // 1 → 2 → 3, both no-ops
   });
 });

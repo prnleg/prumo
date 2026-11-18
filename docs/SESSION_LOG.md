@@ -895,3 +895,13 @@ Branch `phase3/materials`, stacked on `phase3/data-packs`. Only the property ste
 **Doubt**: the 1980 values are a superseded edition — honest source, but the engineer should say which table to use (E-42).
 
 **Tests**: structural +3. Screenshots checked (pt-BR).
+
+### Session #12, part 3 — drawn slabs (Phase 3 step 3, ADR-050), 2026-11-18
+
+Branch `phase3/slabs`, stacked on `phase3/materials`. Owner: "click rooms + draw".
+
+**Done**: core `Slab` element + schema 3 (no-op migration; golden hash updated), validation, invariant `slab-invalid`, `geometry/slabs.ts` (`roomsOutline` by edge cancellation, `isSimplePolygon`, `ccw`, `simplify`, `slabLabelPoint`, `slabsOn`), plan geometry `slabs`, picking by badge (before walls), box select, slabs travel on move / rotate / mirror. Structural `slabKind` / `thickness` data + `slabInfo` / `setSlabInfo` / `newSlab`; `SlabTool` (rooms / outline). App: strip "Slab", options bar (mode, type, "Create the slab (N rooms)"), Enter / Esc / right-click / double-click, hints, slab panel (type, joists, thickness cm, area to the wall middles), covered-room note; renderer slabs layer + badges + preview; arrows moved to their own layer above the walls (a centroid on a wall hid the arrow). 28 strings. Dev `?demo=slabs`, `?demo=slab-pick`.
+
+**Decided alone (reversible):** Slab as a **core** element (shape only) so transforms need no module hooks; slab belongs to the level whose ceiling it is; picked by its badge; holes not supported (logged); duplicate/paste skip slabs for now; Portuguese hint avoids "segure" (the banned-words test catches "segur").
+
+**Tests**: core +6, structural +5. Screenshots checked.

@@ -55,7 +55,7 @@ describe("empty project", () => {
     const p = blank();
     expect(p.levels).toHaveLength(1);
     expect(p.format).toBe("prumo-project");
-    expect(p.schemaVersion).toBe(2);
+    expect(p.schemaVersion).toBe(3);
     expect(modulesReferenced(p)).toEqual([]);
   });
 
@@ -157,11 +157,11 @@ describe("opening files (ADR-032, read-only, invalid)", () => {
   });
 
   it("a newer schema opens read-only, without validating against today's schema", () => {
-    const future = { ...blank(), schemaVersion: 3, newThing: { a: 1 }, levels: "changed shape" };
+    const future = { ...blank(), schemaVersion: 4, newThing: { a: 1 }, levels: "changed shape" };
     const bytes = zipSync({ "project.json": strToU8(JSON.stringify(future)) });
     const r = open(bytes);
     expect(r.status).toBe("read-only");
-    if (r.status === "read-only" && r.reason === "newer-schema") expect(r.schemaVersion).toBe(3);
+    if (r.status === "read-only" && r.reason === "newer-schema") expect(r.schemaVersion).toBe(4);
     else throw new Error("wrong reason");
   });
 
@@ -205,6 +205,6 @@ describe("cross-machine determinism", () => {
     const hash = createHash("sha256")
       .update(save(file(withWall())))
       .digest("hex");
-    expect(hash).toMatchInlineSnapshot(`"a3782cc5f65f0d94ea21ae51eff872001ee6e9e701354d138333c780cc44326f"`);
+    expect(hash).toMatchInlineSnapshot(`"7da5386bfa7d7866beeb80efbe2669e62acb25fa12b61a50202a36974e8d8f60"`);
   });
 });
