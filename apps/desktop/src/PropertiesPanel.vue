@@ -14,6 +14,7 @@ import {
 } from "@prumo/core";
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import {
+  ABOVE,
   ROLE_ORIGINS,
   canCarry,
   chaseDir,
@@ -22,6 +23,8 @@ import {
   protectionData,
   protectionOf,
   structuralData,
+  type Above,
+  type JoistDir,
   type WallEnd,
   type ConstructionSystem,
   type RoleOrigin,
@@ -36,7 +39,15 @@ const props = defineProps<{
   selection: readonly string[];
   locale: Locale;
   /** Detected rooms with their current name (for a selected room). */
-  rooms: readonly { key: string; name: string; area: number; floor: string; roomType: string }[];
+  rooms: readonly {
+    key: string;
+    name: string;
+    area: number;
+    floor: string;
+    roomType: string;
+    above: Above | null;
+    joists: JoistDir | null;
+  }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
   /** The project's construction system when the Structural module is on; null = module off. */
@@ -52,6 +63,7 @@ const emit = defineEmits<{
   paintSide: [wallId: string, side: "left" | "right", finishId: string];
   paintFloor: [roomKey: string, finishId: string];
   roomType: [roomKey: string, typeId: string];
+  above: [roomKey: string, above: Above | undefined, joists: JoistDir | undefined];
   role: [wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined];
   lintel: [openingId: string, has: boolean];
   contraverga: [openingId: string, has: boolean];
@@ -189,6 +201,45 @@ function commitLength(w: Wall, ev: Event) {
           <option v-for="f in floorFinishes" :key="f.id" :value="f.id">{{ t(`finish.${f.id}`) }}</option>
         </select>
       </label>
+      <!-- What's above (ADR-045 A): one answer per room; "don't know" is a real answer -->
+      <template v-if="structural">
+        <h4>{{ t("props.structure") }}</h4>
+        <label class="stack" :title="t('above.tip')">
+          {{ t("props.above") }}
+          <select
+            :value="room.above ?? ''"
+            @change="
+              emit(
+                'above',
+                room.key,
+                (($event.target as HTMLSelectElement).value || undefined) as Above | undefined,
+                room.joists ?? undefined,
+              )
+            "
+          >
+            <option value="">{{ t("above.unknown") }}</option>
+            <option v-for="a in ABOVE" :key="a" :value="a">{{ t(`above.${a}`) }}</option>
+          </select>
+        </label>
+        <label v-if="room.above === 'joist-slab'" class="stack" :title="t('joists.tip')">
+          {{ t("props.joists") }}
+          <select
+            :value="room.joists ?? ''"
+            @change="
+              emit(
+                'above',
+                room.key,
+                'joist-slab',
+                (($event.target as HTMLSelectElement).value || undefined) as JoistDir | undefined,
+              )
+            "
+          >
+            <option value="">{{ t("joists.unknown") }}</option>
+            <option value="long">{{ t("joists.long") }}</option>
+            <option value="short">{{ t("joists.short") }}</option>
+          </select>
+        </label>
+      </template>
     </template>
 
     <template v-else-if="wall">

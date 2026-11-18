@@ -16,6 +16,7 @@
   --wall-light: #d4e1cc;
   --warn: #9a5b00;
   --room: #efe9dc;
+  --plan-arrow: #8a6d3b;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -34,6 +35,7 @@
     --wall-light: #4c5a46;
     --warn: #f0b45a;
     --room: #2a2926;
+    --plan-arrow: #d8b47a;
   }
 }
 html,

@@ -809,3 +809,13 @@ Branch `phase2/versions`, stacked on `phase2/compare`. Q-124 (accepted 2026-11-1
 **Not done**: "keep only the last N" (optional in Q-124) — waits until someone needs it.
 
 **Tests**: desktop +1 (session). Screenshot checked.
+
+### Session #11, part 51 — owner answers + what's above (ADR-045 A), 2026-11-18
+
+**Owner answers (2026-11-18):** ADR-045 → **C** (A now, B later). Q-139 → "all usual types" for doors, windows, walls; the proposed list approved (→ ADR-046). Engineer → later ("focus on the app, the engineering part we handle later"): batch 2b and E-40 stay parked, no more engineer routing for now. G-1 → tried, "ok", but too little to do yet. Q-138 → **no native OS menus** (Windows menus look dated); in-app menu bar + left tool strip + options bar (Premiere/Photoshop pattern) chosen; icons from **Lucide** (→ ADR-047). New: **layers panel** (floor picker + rooms on/off/remove) → Q-141.
+
+**Done** (branch `phase2/what-above`, from main): structural `above` / `joists` on the room tag (`setAbove`, `aboveOf`, `longSide`, `joistDirection`); room panel "Structure" section; renderer `arrows` prop (dashed double arrow 18 px below the label point); theme token `--plan-arrow`; 13 strings; dev `?demo=above`.
+
+**Decided alone (reversible):** joist direction stored **relative** ("long" / "short" side, long = longest polygon edge) instead of an angle, so rotate/mirror never touch the tag; "don't know" = no value (one state, not two).
+
+**Tests**: structural +4. Screenshot checked.

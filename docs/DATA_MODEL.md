@@ -97,6 +97,8 @@ Protection { elementId, byVision, reason, author, createdAt }   // informs; neve
 Project.handoff: { holder: string, since, message, history: HandoffEvent[] }  // "baton" model (ADR-029, accepted)
 HandoffEvent { from, to, at, message, snapshotId }
 Snapshot { id, name, createdAt, author, model /* full or delta ❓ */ }        // for the compare view (Q-104)
+// What's above (ADR-045 A, implemented): RoomTag.components["org.prumo.structural"].data = { above?: "solid-slab"|"joist-slab"|"roof"|"open", joists?: "long"|"short" }
+//   missing above = "don't know"; joists relative to the room's longest edge (rotation-proof).
 Room { id, seedPoint, name, roomType? /* Q-107 ✅; list owner → Q-114 */, floorFinishId? }
 // Implemented: core RoomTag { seed, name }; roomType + floor finish live in the Architect component
 // (org.prumo.architect v2: { sides?, floor?, roomType? }); type ids in module-architect/src/room-types.ts.
