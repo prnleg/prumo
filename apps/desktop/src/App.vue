@@ -92,6 +92,7 @@ import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowR
 import FindingsPanel from "./FindingsPanel.vue";
 import HandoffDialog from "./HandoffDialog.vue";
 import NotePopover from "./NotePopover.vue";
+import NotesPanel from "./NotesPanel.vue";
 import PropertiesPanel from "./PropertiesPanel.vue";
 import RecoveryPanel from "./RecoveryPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
@@ -740,6 +741,14 @@ watch(notMyTurn, (locked) => {
   if (locked && EDIT_TOOLS.includes(tool.value)) setTool("select");
 });
 
+const levelNotes = computed(() =>
+  Object.values(project.value.elements).filter((e): e is Note => e.type === "note" && e.levelId === level.value),
+);
+function selectNote(id: string) {
+  setTool("select");
+  selectTool.selection = [id];
+  sync();
+}
 function setMyName(name: string) {
   myName.value = name;
   savePrefs({ name });
@@ -1189,7 +1198,7 @@ if (demo === "protect") {
       setTimeout(fitAll, 0);
     });
 }
-if (demo === "note" || demo === "note-new") {
+if (demo === "note" || demo === "note-new" || demo === "notes-list") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
@@ -1216,6 +1225,10 @@ if (demo === "note" || demo === "note-new") {
       }
       sync();
       setTimeout(fitAll, 0);
+      if (demo === "notes-list") {
+        selectTool.selection = [];
+        sync();
+      }
       if (demo === "note-new")
         setTimeout(() => {
           setTool("note");
@@ -1561,6 +1574,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         @recover="recoverEntry"
         @discard="discardEntry"
         @later="recoveries = []"
+      />
+      <NotesPanel
+        v-if="!(tool === 'select' && selection.length)"
+        :locale="locale"
+        :notes="levelNotes"
+        :selected="selection"
+        @select="selectNote"
       />
       <FindingsPanel
         v-if="structuralOn && checks"

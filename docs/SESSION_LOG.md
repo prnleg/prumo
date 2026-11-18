@@ -777,3 +777,7 @@ Branch `phase2/handoff`, stacked on `phase2/protection`.
 **Tests**: core +5 (hand-off), desktop +1 (session: snapshot + log + save → open + take-over with a "no" then "yes"). Screenshots checked.
 
 **Next**: ADR-044 done. Other unblocked items (owner away).
+
+### Session #11, part 46 — notes list, 2026-11-17
+
+Branch `phase2/notes-list`, stacked on `phase2/handoff`. `NotesPanel.vue` (bottom-right, collapsible): open notes newest first ("Ana — Can we open…"), resolved behind "▸ N resolved"; click = select the note. Hidden while something is selected (the properties panel uses that corner's column) and when the level has no notes. 3 strings (ICU plurals). Dev `?demo=notes-list`. Screenshot checked. No new tests (pure view; sorting is a one-liner).
