@@ -34,7 +34,6 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
     | 1000 | 2065 | 441 | 1022 | 926 | 158 | 24 |
 
     Growth is roughly quadratic (all-pairs loops in joins, room detection and R-JOINT-001). A hotel **floor** (~20–80 rooms) is instant; the app shows one level at a time, so a 10-floor hotel costs one floor at a time. Above ~200 rooms on **one** level, dragging gets visibly slower (room detection runs on every preview). Fix when needed: a spatial index (grid buckets) for the pair loops — no new dependency. Not needed for Phase 5's first cut.
-- **Q-141 🟡** **Layers panel** (owner 2026-11-18, with the menu-bar answer): a panel to pick the **floor** you're on (Ground floor, 1st floor…) and turn **rooms** (and later other groups) **on / off**, with the option to remove them. Floors are Phase 5 (ADR-015 already has `levels[]`); hiding rooms is view state (not saved data?) → needs a small design: what "off" means (hidden + not pickable? still checked by the structure rules — yes, hiding must never hide a finding's cause), whether visibility is saved in the file. Default: build the panel shell with the floor list (one floor today) + per-room eye toggle as **view-only, not saved**, after the menu bar. Reversible.
 - **Q-137 🟡** Language vs country (ADR-034): construction words are local (*verga*, *cinta*), so should a project's country profile drive the language? Default: **UI language = user's choice** (any shipped language works with any profile); the profile **suggests** the default language for new projects; when UI language ≠ profile language, local terms appear in brackets ("lintel (verga)"). Nothing is excluded. Reversible.
 
 ### Defaults on record (from earlier rounds)
@@ -94,6 +93,7 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 
 ## Resolved
 
+- **Q-141** — Layers panel (owner 2026-11-18): hiding a room hides its floor + name and **dims its own walls** (walls no other room uses) and what's on them, which can't be picked; shared walls stay; checks still run on everything; view only, not saved. **Remove** deletes the room's own walls (+ their doors/windows and the room's tag), asks first, one undo step. Floors: list now (one floor), adding floors later (Phase 5, own ADR). Implemented on `ui/layers`. — 2026-11-18
 - **Q-138** — App menu: **in-app menu bar + left tool strip + options bar, no native menus**, icons from Lucide (owner 2026-11-18) → **ADR-047**. Implemented on `ui/menu-bar`. — 2026-11-18
 - **Q-139** — Element types: "all usual types" (owner 2026-11-18); list approved → **ADR-046** (doors, windows, wall "built with"). Implemented on `types/openings`. — 2026-11-18
 - **Q-095** — v1 crash reporting = local log + "Report on GitHub" (owner: "easy and direct"). Implemented; browser opening waits for ADR-039. — 2026-11-17

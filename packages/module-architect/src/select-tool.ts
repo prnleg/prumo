@@ -45,6 +45,8 @@ export interface SelectToolOptions {
   dragPx: number;
   /** Pick tolerance, screen px. */
   pickPx: number;
+  /** Hidden by the layers panel (Q-141): element ids and `room:` ids that can't be picked. */
+  hidden?: ReadonlySet<Id>;
 }
 
 export class SelectTool {
@@ -69,10 +71,13 @@ export class SelectTool {
 
   down(p: SelectPointer): void {
     const g = planGeometry(this.h.current, this.options.levelId);
-    let hit = hitTest(g, p.at, this.options.pickPx / p.scale);
+    const hidden = this.options.hidden;
+    let hit = hitTest(g, p.at, this.options.pickPx / p.scale, hidden);
     if (!hit) {
       // nothing drawn under the cursor: maybe a room's floor (Sims-like: click the floor = the room)
-      const room = detectRooms(this.h.current, this.options.levelId).find((r) => inside(p.at, r.floor));
+      const room = detectRooms(this.h.current, this.options.levelId).find(
+        (r) => !hidden?.has(ROOM_PREFIX + r.key) && inside(p.at, r.floor),
+      );
       if (room) hit = ROOM_PREFIX + room.key;
     }
     if (hit && !p.additive && !this.selection.includes(hit)) this.selection = [hit];
@@ -118,7 +123,12 @@ export class SelectTool {
       return;
     }
     if (this.box) {
-      const ids = boxSelect(planGeometry(this.h.current, this.options.levelId), this.box, this.box.mode);
+      const ids = boxSelect(
+        planGeometry(this.h.current, this.options.levelId),
+        this.box,
+        this.box.mode,
+        this.options.hidden,
+      );
       this.selection = pr.additive ? sortUnique([...this.selection, ...ids]) : ids;
       this.box = null;
       return;
@@ -178,7 +188,10 @@ export class SelectTool {
 
   selectAll(): void {
     const g = planGeometry(this.h.current, this.options.levelId);
-    this.selection = sortUnique([...g.walls.map((w) => w.id), ...g.openings.map((o) => o.id)]);
+    const h = this.options.hidden;
+    this.selection = sortUnique(
+      [...g.walls.map((w) => w.id), ...g.openings.map((o) => o.id)].filter((id) => !h?.has(id)),
+    );
   }
 }
 

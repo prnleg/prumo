@@ -38,6 +38,8 @@ const props = defineProps<{
     selected?: boolean;
     fill?: string;
   }[];
+  /** Dimmed (hidden room's own walls and what's on them, Q-141): drawn faded; picking is the tools' job. */
+  dimmed?: readonly string[];
   /** Double-headed arrows inside rooms (joist direction, structure on). */
   arrows?: readonly { key: string; a: V; b: V }[];
   /** Painted wall faces: a strip along `line`, clipped to the wall's drawn shape (clean corners). */
@@ -108,6 +110,7 @@ const roomLabels = computed(() =>
   }),
 );
 const selected = computed(() => new Set(props.selectedIds ?? []));
+const dim = computed(() => new Set(props.dimmed ?? []));
 /** Screen-space arrow head at `to`, pointing away from `from` (8 px). */
 function arrowHead(from: V, to: V): string {
   const a = S(from);
@@ -235,7 +238,12 @@ function wheel(e: WheelEvent) {
         :class="[
           'wall',
           kindOf.get(g.id),
-          { selected: selected.has(g.id), 'cmp-added': cmpAdded.has(g.id), 'cmp-changed': cmpChanged.has(g.id) },
+          {
+            selected: selected.has(g.id),
+            dim: dim.has(g.id),
+            'cmp-added': cmpAdded.has(g.id),
+            'cmp-changed': cmpChanged.has(g.id),
+          },
         ]"
       />
     </g>
@@ -268,10 +276,18 @@ function wheel(e: WheelEvent) {
       />
     </g>
     <g class="outline">
-      <line v-for="(s, k) in geometry.outline" :key="k" :x1="S(s.a).x" :y1="S(s.a).y" :x2="S(s.b).x" :y2="S(s.b).y" />
+      <line
+        v-for="(s, k) in geometry.outline"
+        :key="k"
+        :class="{ dim: dim.has(s.wallId) }"
+        :x1="S(s.a).x"
+        :y1="S(s.a).y"
+        :x2="S(s.b).x"
+        :y2="S(s.b).y"
+      />
     </g>
     <g class="openings">
-      <g v-for="o in geometry.openings" :key="o.id">
+      <g v-for="o in geometry.openings" :key="o.id" :class="{ dim: dim.has(o.id) }">
         <polygon
           class="cover"
           :class="{
@@ -450,6 +466,11 @@ function wheel(e: WheelEvent) {
 .wall.fence,
 .wall.railing {
   fill: var(--wall-light);
+}
+.wall.dim,
+.outline line.dim,
+.openings g.dim {
+  opacity: 0.25;
 }
 .wall.selected {
   fill: var(--accent-soft);

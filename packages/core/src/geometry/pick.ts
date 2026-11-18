@@ -22,9 +22,11 @@ function distToPoly(p: V, poly: readonly V[]): number {
  * their walls (they sit on top);
  * otherwise the closest shape; ties by id (deterministic).
  */
-export function hitTest(g: PlanGeometry, p: V, tol: number): Id | null {
+/** `skip`: ids that can't be picked (hidden by the layers panel, Q-141). */
+export function hitTest(g: PlanGeometry, p: V, tol: number, skip?: ReadonlySet<Id>): Id | null {
   let best: { id: Id; d: number } | null = null;
   const consider = (id: Id, poly: readonly V[]) => {
+    if (skip?.has(id)) return;
     const d = distToPoly(p, poly);
     if (d <= tol && (!best || d < best.d || (d === best.d && id < best.id))) best = { id, d };
   };
@@ -50,7 +52,7 @@ export interface Box {
  * Box selection, CAD convention (EDITING_OPERATIONS "Select", default):
  * "inside" (dragged left → right) = shape fully inside; "touching" (right → left) = any overlap.
  */
-export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching"): Id[] {
+export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching", skip?: ReadonlySet<Id>): Id[] {
   const inBox = (q: V) => q.x >= box.minX && q.x <= box.maxX && q.y >= box.minY && q.y <= box.maxY;
   const corners: V[] = [
     { x: box.minX, y: box.minY },
@@ -75,5 +77,5 @@ export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching"
     ...g.items.filter((it) => test(it.polygon)).map((it) => it.id),
     ...g.notes.filter((n) => inBox(n.at)).map((n) => n.id),
   ];
-  return ids.sort();
+  return ids.filter((id) => !skip?.has(id)).sort();
 }
