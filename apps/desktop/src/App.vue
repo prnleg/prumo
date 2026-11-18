@@ -144,7 +144,9 @@ import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
 import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
 
-const locale = ref(detectLocale(navigator.languages));
+// dev screenshots: ?lang=pt-BR forces the language (ignored in builds)
+const devLang = import.meta.env.DEV ? new URLSearchParams(location.search).get("lang") : null;
+const locale = ref(detectLocale(devLang ? [devLang] : navigator.languages));
 const t = (key: string, params?: Params) => translate(locale.value, key, params);
 const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
@@ -379,7 +381,7 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   prefs = { ...loaded, prefs: { ...loaded.prefs, ...prefs.prefs } }; // changes made while loading win
   prefsLoaded = true;
   prefsReady.value = true;
-  if (prefs.prefs.locale) locale.value = prefs.prefs.locale;
+  if (prefs.prefs.locale && !devLang) locale.value = prefs.prefs.locale;
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
   if (prefs.prefs.structuralOff) structuralOn.value = false;
   if (prefs.prefs.name) myName.value = prefs.prefs.name;
@@ -626,12 +628,14 @@ watch(hiddenIds, (h) => {
   sync();
 });
 const layerRooms = computed(() =>
-  detected.value.map((r) => ({
-    key: r.key,
-    label: r.label || formatArea(r.floorArea, locale.value),
-    hidden: hiddenRooms.value.has(r.key),
-    canRemove: roomOwnWalls(roomList.value, r.key).length > 0,
-  })),
+  detected.value
+    .map((r) => ({
+      key: r.key,
+      label: r.label || formatArea(r.floorArea, locale.value),
+      hidden: hiddenRooms.value.has(r.key),
+      canRemove: roomOwnWalls(roomList.value, r.key).length > 0,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, locale.value) || (a.key < b.key ? -1 : 1)),
 );
 function toggleRoom(key: string) {
   const next = new Set(hiddenRooms.value);
