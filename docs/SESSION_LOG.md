@@ -857,3 +857,7 @@ Branch `ui/layers`, stacked on `ui/opening-type`. Owner answered the three desig
 **Decided alone (reversible):** hidden rooms reset when you open another file (view state); tag deleted with the room (else an orphan tag would wait forever); the room list follows detection order.
 
 **Tests**: core +2 (own walls; skip sets). Screenshot checked.
+
+### Session #11, part 56 — QA pass: pt-BR + light mode, 2026-11-18
+
+Branch `qa/pt-br`, stacked on `ui/layers`. Dev-only `?lang=pt-BR` (ignored in builds; overrides the remembered language) so screenshots can check Portuguese — the earlier `--lang` flag didn't work. Checked in pt-BR: menu (Editar open), door/window types panel, what's above, layers; light mode: layers. All text fits; nothing untranslated. Fix: the layers room list is now sorted by name (it followed detection order, which changes with random ids). Earlier "pt-BR not visually checked" gap closed.
