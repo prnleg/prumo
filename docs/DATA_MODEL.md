@@ -46,6 +46,8 @@ Opening {
   lintel?: { materialId, depth, bearingLeft, bearingRight } | "auto" | "none"
 }
 
+// Implemented (ADR-050): core Slab { id, type: "slab", levelId /* the level whose ceiling it is */, outline: Vec2[] /* CCW */, components };
+//   kind / joists / thickness in components["org.prumo.structural"] (slabKind, joists, thickness). Schema 3.
 Slab {
   id, type: "slab", levelId
   outline: Vec2[]                // closed polygon

@@ -16,6 +16,7 @@ import { add, mul, norm, perp, sub, type V } from "./vec";
 import { openingPlan, type OpeningPlan } from "./openings";
 import { computeJoins, DEFAULTS, faceOffsets, type JoinOptions, type JoinResult } from "./joins";
 import { visibleOutline, type Seg } from "./outline";
+import { slabLabelPoint, slabsOn } from "./slabs";
 
 export interface PlanGeometry extends JoinResult {
   outline: Seg[];
@@ -29,6 +30,8 @@ export interface PlanGeometry extends JoinResult {
   items: HostedItemPlan[];
   /** Notes on this level (ADR-044): drawn as pins; picked by distance to `at`. Sorted by id. */
   notes: { id: Id; at: V; resolved: boolean }[];
+  /** Drawn slabs (ADR-050): outline + a point inside for the badge (what you click to pick it). */
+  slabs: { id: Id; outline: V[]; at: V }[];
 }
 
 export interface HostedItemPlan {
@@ -100,5 +103,6 @@ export function planGeometry(p: Project, levelId: Id, opts: JoinOptions = DEFAUL
     .filter((e): e is Note => e.type === "note" && e.levelId === levelId)
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .map((n) => ({ id: n.id, at: n.at, resolved: !!n.resolved }));
-  return { ...joins, outline: visibleOutline(joins.walls), openings, dividers, items, notes };
+  const slabs = slabsOn(p, levelId).map((s) => ({ id: s.id, outline: s.outline, at: slabLabelPoint(s.outline) }));
+  return { ...joins, outline: visibleOutline(joins.walls), openings, dividers, items, notes, slabs };
 }

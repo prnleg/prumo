@@ -38,6 +38,10 @@ const props = defineProps<{
     selected?: boolean;
     fill?: string;
   }[];
+  /** Drawn slabs (ADR-050): dashed outline, light hatch, a badge at `at` (what you click). */
+  slabs?: readonly { id: string; outline: readonly V[]; at: V; label: string; selected?: boolean }[];
+  /** Slab tool preview: outline(s) being made (open polyline while drawing corners). */
+  slabPreview?: readonly (readonly V[])[];
   /** The floor below (ADR-048): wall shapes drawn faded under everything; never picked. */
   ghost?: readonly (readonly V[])[];
   /** Dimmed (hidden room's own walls and what's on them, Q-141): drawn faded; picking is the tools' job. */
@@ -113,6 +117,8 @@ const roomLabels = computed(() =>
 );
 const selected = computed(() => new Set(props.selectedIds ?? []));
 const dim = computed(() => new Set(props.dimmed ?? []));
+/** Badge width from the character count (deterministic, like the room labels). */
+const badgeW = (label: string) => Math.ceil(label.length * 11 * 0.6) + 12;
 /** Screen-space arrow head at `to`, pointing away from `from` (8 px). */
 function arrowHead(from: V, to: V): string {
   const a = S(from);
@@ -220,17 +226,15 @@ function wheel(e: WheelEvent) {
         :class="{ selected: r.selected }"
         :style="r.fill && !r.selected ? { fill: r.fill } : undefined"
       />
-      <!-- drawn 18 px below the room's label point so it never strikes through the label -->
-      <g v-for="ar in arrows ?? []" :key="'ar' + ar.key" class="arrow" transform="translate(0 18)">
-        <line :x1="S(ar.a).x" :y1="S(ar.a).y" :x2="S(ar.b).x" :y2="S(ar.b).y" />
-        <polygon :points="arrowHead(ar.a, ar.b)" />
-        <polygon :points="arrowHead(ar.b, ar.a)" />
-      </g>
       <template v-for="r in roomLabels" :key="r.key + 't'">
         <text :x="r.x" :y="r.y" :style="{ fontSize: `${r.size}px` }">
           <tspan v-for="(line, i) in r.lines" :key="i" :x="r.x" :dy="i === 0 ? r.dy0 : r.size * 1.25">{{ line }}</tspan>
         </text>
       </template>
+    </g>
+    <g class="slabs">
+      <polygon v-for="sl in slabs ?? []" :key="sl.id" :points="pts(sl.outline)" :class="{ selected: sl.selected }" />
+      <polyline v-for="(pv, k) in slabPreview ?? []" :key="'p' + k" class="preview" :points="pts(pv)" />
     </g>
     <g class="below">
       <polygon v-for="(g, k) in ghost ?? []" :key="k" :points="pts(g)" />
@@ -411,6 +415,20 @@ function wheel(e: WheelEvent) {
         <text :x="S(b.at).x" :y="S(b.at).y - 10.5" text-anchor="middle">!</text>
       </g>
     </g>
+    <g class="arrows">
+      <!-- drawn 18 px below the room's label point so it never strikes through the label -->
+      <g v-for="ar in arrows ?? []" :key="'ar' + ar.key" class="arrow" transform="translate(0 18)">
+        <line :x1="S(ar.a).x" :y1="S(ar.a).y" :x2="S(ar.b).x" :y2="S(ar.b).y" />
+        <polygon :points="arrowHead(ar.a, ar.b)" />
+        <polygon :points="arrowHead(ar.b, ar.a)" />
+      </g>
+    </g>
+    <g class="slab-badges">
+      <g v-for="sl in slabs ?? []" :key="sl.id" :class="{ selected: sl.selected }">
+        <rect :x="S(sl.at).x - badgeW(sl.label) / 2" :y="S(sl.at).y - 9" :width="badgeW(sl.label)" height="18" rx="4" />
+        <text :x="S(sl.at).x" :y="S(sl.at).y + 4">{{ sl.label }}</text>
+      </g>
+    </g>
     <g class="labels">
       <text v-for="(l, k) in labels ?? []" :key="k" :x="S(l.at).x + 12" :y="S(l.at).y - 12">{{ l.text }}</text>
     </g>
@@ -437,6 +455,36 @@ function wheel(e: WheelEvent) {
 .wall {
   fill: var(--wall-full);
 }
+.slabs polygon {
+  fill: var(--slab, rgb(138 109 59 / 0.08));
+  stroke: var(--plan-arrow, #8a6d3b);
+  stroke-width: 1.5;
+  stroke-dasharray: 8 4;
+}
+.slabs polygon.selected {
+  fill: var(--accent-soft);
+  fill-opacity: 0.35;
+  stroke: var(--accent);
+}
+.slabs .preview {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+}
+.slab-badges rect {
+  fill: var(--panel, #fff);
+  stroke: var(--plan-arrow, #8a6d3b);
+}
+.slab-badges .selected rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.slab-badges text {
+  font-size: 11px;
+  text-anchor: middle;
+  fill: var(--ink);
+}
 .below polygon {
   fill: none;
   stroke: var(--muted, #888);
@@ -451,12 +499,12 @@ function wheel(e: WheelEvent) {
   fill: var(--accent-soft);
   fill-opacity: 0.5;
 }
-.rooms .arrow line {
+.arrows .arrow line {
   stroke: var(--plan-arrow, #8a6d3b);
   stroke-width: 1.5;
   stroke-dasharray: 6 3;
 }
-.rooms .arrow polygon {
+.arrows .arrow polygon {
   fill: var(--plan-arrow, #8a6d3b);
 }
 .rooms text {

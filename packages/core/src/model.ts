@@ -133,7 +133,18 @@ export interface Note extends ElementBase {
   resolved?: true;
 }
 
-export type Element = Wall | Opening | RoomTag | Note | ModuleElement;
+/**
+ * A slab (laje) drawn on the plan (ADR-045 B / ADR-050): a closed outline on the level whose CEILING it is
+ * (it rests on that level's walls). Only the shape is core; what kind of slab, which way it spans and how
+ * thick it is are Structural data (components["org.prumo.structural"]).
+ */
+export interface Slab extends ElementBase {
+  type: "slab";
+  /** Closed, simple, counter-clockwise (normalized on every edit); mm. */
+  outline: Vec2[];
+}
+
+export type Element = Wall | Opening | RoomTag | Note | Slab | ModuleElement;
 
 export interface Level {
   id: Id;
@@ -164,7 +175,7 @@ export interface Handoff {
 
 export const PROJECT_FORMAT = "prumo-project";
 /** 2 = notes (ADR-044). */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export interface Project {
   format: typeof PROJECT_FORMAT;
@@ -191,7 +202,7 @@ export interface Project {
   };
 }
 
-const CORE_TYPES = new Set(["wall", "opening", "room", "note"]);
+const CORE_TYPES = new Set(["wall", "opening", "room", "note", "slab"]);
 export const isModuleElement = (e: Element): e is ModuleElement => !CORE_TYPES.has(e.type);
 
 /** An element sitting on a host (ADR-024): a door/window, or a module item such as a chase. */

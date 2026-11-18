@@ -14,11 +14,15 @@ import {
   type Opening,
   type Project,
   type PackSet,
+  type Slab,
   type Wall,
 } from "@prumo/core";
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import {
   ABOVE,
+  SLAB_KINDS,
+  slabInfo,
+  type SlabKind,
   STRUCTURAL,
   WALL_MATERIALS,
   unitWeight,
@@ -56,6 +60,8 @@ const props = defineProps<{
     roomType: string;
     above: Above | null;
     joists: JoistDir | null;
+    /** A drawn slab covers it (ADR-050): the slab's own answers count. */
+    coveredBySlab?: boolean;
   }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
@@ -83,6 +89,7 @@ const emit = defineEmits<{
   unprotect: [protectionId: string];
   bonded: [wallId: string, end: WallEnd, bonded: boolean];
   material: [wallId: string, material: WallMaterial | undefined];
+  slab: [slabId: string, info: { kind?: SlabKind; joists?: JoistDir; thickness?: number }];
 }>();
 const wallFinishes = FINISHES.filter((f) => f.use === "wall");
 const floorFinishes = FINISHES.filter((f) => f.use === "floor");
@@ -107,6 +114,46 @@ const one = computed<Element | null>(() =>
 );
 const wall = computed(() => (one.value?.type === "wall" ? (one.value as Wall) : null));
 const opening = computed(() => (one.value?.type === "opening" ? (one.value as Opening) : null));
+const slab = computed(() => (one.value?.type === "slab" ? (one.value as Slab) : null));
+const slabArea = computed(() => {
+  const o = slab.value?.outline ?? [];
+  return (
+    Math.abs(
+      o.reduce((a, p, i) => a + p.x * (o[(i + 1) % o.length]?.y ?? 0) - (o[(i + 1) % o.length]?.x ?? 0) * p.y, 0),
+    ) / 2
+  );
+});
+/** Change one field; the others keep their value (one undo step). */
+function emitSlab(change: {
+  kind?: SlabKind | undefined;
+  joists?: JoistDir | undefined;
+  thickness?: number | undefined;
+}) {
+  const s = slab.value;
+  if (!s) return;
+  const cur = slabInfo(s);
+  const merged = {
+    kind: cur.kind ?? undefined,
+    joists: cur.joists ?? undefined,
+    thickness: cur.thickness ?? undefined,
+    ...change,
+  };
+  const out: { kind?: SlabKind; joists?: JoistDir; thickness?: number } = {};
+  if (merged.kind) out.kind = merged.kind;
+  if (merged.joists) out.joists = merged.joists;
+  if (merged.thickness) out.thickness = merged.thickness;
+  emit("slab", s.id, out);
+}
+function slabThickness(e: Event) {
+  const text = (e.target as HTMLInputElement).value.trim();
+  if (!text) return emitSlab({ thickness: undefined });
+  const cm = parseNumber(text, props.locale);
+  if (cm === null || cm <= 0 || cm > 200) {
+    rev.value++;
+    return;
+  }
+  emitSlab({ thickness: Math.round(cm * 10) });
+}
 /** Has a side to flip (hinge / slide direction, which face): doors and side-dependent windows (ADR-046). */
 const sided = (o: Opening) =>
   o.kind === "door" || (o.kind === "window" && ["sliding", "casement", "top-hung"].includes(openingStyle(o) ?? ""));
@@ -224,7 +271,8 @@ function commitLength(w: Wall, ev: Event) {
       <!-- What's above (ADR-045 A): one answer per room; "don't know" is a real answer -->
       <template v-if="structural">
         <h4>{{ t("props.structure") }}</h4>
-        <label class="stack" :title="t('above.tip')">
+        <p v-if="room.coveredBySlab" class="ro">{{ t("above.coveredBySlab") }}</p>
+        <label v-else class="stack" :title="t('above.tip')">
           {{ t("props.above") }}
           <select
             :value="room.above ?? ''"
@@ -241,7 +289,7 @@ function commitLength(w: Wall, ev: Event) {
             <option v-for="a in ABOVE" :key="a" :value="a">{{ t(`above.${a}`) }}</option>
           </select>
         </label>
-        <label v-if="room.above === 'joist-slab'" class="stack" :title="t('joists.tip')">
+        <label v-if="!room.coveredBySlab && room.above === 'joist-slab'" class="stack" :title="t('joists.tip')">
           {{ t("props.joists") }}
           <select
             :value="room.joists ?? ''"
@@ -260,6 +308,48 @@ function commitLength(w: Wall, ev: Event) {
           </select>
         </label>
       </template>
+    </template>
+
+    <template v-else-if="slab">
+      <h3>{{ t("props.slab") }}</h3>
+      <p class="ro">{{ t("slab.area", { area: formatArea(slabArea, locale) }) }}</p>
+      <label class="stack">
+        {{ t("props.openingStyle") }}
+        <select
+          :value="slabInfo(slab).kind ?? ''"
+          @change="
+            emitSlab({ kind: (($event.target as HTMLSelectElement).value || undefined) as SlabKind | undefined })
+          "
+        >
+          <option value="">{{ t("above.unknown") }}</option>
+          <option v-for="k in SLAB_KINDS" :key="k" :value="k">{{ t(`slabKind.${k}`) }}</option>
+        </select>
+      </label>
+      <label v-if="slabInfo(slab).kind === 'joist'" class="stack" :title="t('joists.tip')">
+        {{ t("props.joists") }}
+        <select
+          :value="slabInfo(slab).joists ?? ''"
+          @change="
+            emitSlab({ joists: (($event.target as HTMLSelectElement).value || undefined) as JoistDir | undefined })
+          "
+        >
+          <option value="">{{ t("joists.unknown") }}</option>
+          <option value="long">{{ t("joists.long") }}</option>
+          <option value="short">{{ t("joists.short") }}</option>
+        </select>
+      </label>
+      <label :title="t('slab.thickness.tip')">
+        {{ t("props.thickness") }}
+        <span class="field">
+          <input
+            :key="slab.id + (slabInfo(slab).thickness ?? '') + '/' + rev"
+            :value="slabInfo(slab).thickness ? formatCm(slabInfo(slab).thickness!, locale) : ''"
+            :placeholder="t('above.unknown')"
+            @change="slabThickness($event)"
+          />cm
+        </span>
+      </label>
+      <p class="ro">{{ t("slab.note") }}</p>
     </template>
 
     <template v-else-if="wall">

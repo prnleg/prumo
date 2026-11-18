@@ -66,6 +66,9 @@ export function validateProject(p: Project): string[] {
         errs.push(`${at}: note needs at, text, author and createdAt`);
       else if (!Array.isArray(e.targets) || !e.targets.every((t) => typeof t === "string"))
         errs.push(`${at}: note.targets must be a list of ids`);
+    } else if (e.type === "slab") {
+      if (!Array.isArray(e.outline) || e.outline.length < 3 || !e.outline.every(isVec))
+        errs.push(`${at}: slab needs an outline of at least 3 points`);
     } else if (e.type === "room") {
       if (!isVec(e.seed) || typeof e.name !== "string") errs.push(`${at}: room needs a seed point and a name`);
     } else if (

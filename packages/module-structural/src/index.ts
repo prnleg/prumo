@@ -7,3 +7,4 @@ export * from "./engine";
 export * from "./chase-tool";
 export * from "./packs";
 export * from "./materials";
+export * from "./slab-tool";

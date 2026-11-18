@@ -32,6 +32,8 @@ export function hitTest(g: PlanGeometry, p: V, tol: number, skip?: ReadonlySet<I
   };
   for (const n of g.notes) consider(n.id, [n.at]); // note pins are drawn on top of everything
   if (best) return (best as { id: Id }).id;
+  for (const s of g.slabs) consider(s.id, [s.at]); // a slab is picked by its badge (its edges sit under walls)
+  if (best) return (best as { id: Id }).id;
   for (const it of g.items) consider(it.id, it.polygon); // hosted items sit on top of the walls
   if (best) return (best as { id: Id }).id;
   for (const o of g.openings) consider(o.id, o.cover);
@@ -76,6 +78,7 @@ export function boxSelect(g: PlanGeometry, box: Box, mode: "inside" | "touching"
     ...g.dividers.filter((d) => test(d.polygon)).map((d) => d.id),
     ...g.items.filter((it) => test(it.polygon)).map((it) => it.id),
     ...g.notes.filter((n) => inBox(n.at)).map((n) => n.id),
+    ...g.slabs.filter((s) => (mode === "inside" ? s.outline.every(inBox) : inBox(s.at))).map((s) => s.id),
   ];
   return ids.filter((id) => !skip?.has(id)).sort();
 }

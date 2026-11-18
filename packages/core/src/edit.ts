@@ -2,6 +2,7 @@
 // Q-072 default: geometric impossibilities are BLOCKED (the edit is refused, nothing changes);
 // tools may clamp before submitting. Structural rules never block (ADR-026) — they aren't here.
 import { EPS } from "./tolerance";
+import { isSimplePolygon } from "./geometry/slabs";
 import {
   hostedExtent,
   isHosted,
@@ -74,6 +75,8 @@ export type ProblemCode =
   | "openings-overlap"
   | "walls-overlap"
   | "level-missing"
+  /** A drawn slab's outline crosses itself or has no area (ADR-050). */
+  | "slab-invalid"
   /** The hand-off lock: someone else holds the project (ADR-044); only notes may change. */
   | "not-your-turn";
 
@@ -141,6 +144,7 @@ export function checkInvariants(p: Project, scope?: readonly Id[]): Problem[] {
   for (const id of scoped) {
     const e = p.elements[id];
     if (e && !levels.has(e.levelId)) out.push({ code: "level-missing", elementIds: [id] });
+    if (e?.type === "slab" && !isSimplePolygon(e.outline)) out.push({ code: "slab-invalid", elementIds: [id] });
   }
 
   for (const wid of [...walls].sort()) {

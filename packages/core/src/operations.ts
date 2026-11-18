@@ -13,8 +13,10 @@ import {
   type Note,
   type Project,
   type RoomTag,
+  type Slab,
   type Wall,
 } from "./model";
+import { ccw } from "./geometry/slabs";
 import { detectRooms, matchRoomTags, roomTags } from "./geometry/rooms";
 import { copyToClipboard, pasteCommand } from "./clipboard";
 
@@ -64,6 +66,7 @@ export function translate(p: Project, ids: readonly Id[], delta: V, opts: Partia
   }
   if (moved.length) out.push(...tagsTravelling(p, movedIds, (q) => add(q, delta)));
   out.push(...notesTravelling(p, sel, (q) => add(q, delta)));
+  out.push(...slabsTravelling(p, sel, moved, (q) => add(q, delta)));
   return putElements(p, out);
 }
 
@@ -265,6 +268,7 @@ export function rotateCommand(ids: readonly Id[], pivot: V, deg: number, opts: P
       if (o.stretch) out.push(...stretchNeighbours(p, sel, moved, after, f, o.joinTol));
       out.push(...tagsTravelling(p, new Set(moved.map((w) => w.id)), f));
       out.push(...notesTravelling(p, sel, f));
+      out.push(...slabsTravelling(p, sel, moved, f));
       return putElements(p, out);
     },
   };
@@ -341,6 +345,7 @@ export function mirrorCommand(
             out.push(...stretchNeighbours(q, sel, walls, after, f, mode.joinTol ?? DEFAULTS.joinTol));
           out.push(...tagsTravelling(q, sel, f));
           out.push(...notesTravelling(q, sel, f));
+          out.push(...slabsTravelling(q, sel, walls, f));
           return putElements(q, out);
         },
       },
@@ -427,6 +432,26 @@ function tagsTravelling(p: Project, sel: ReadonlySet<Id>, f: (q: V) => V): Eleme
     for (const [, tag] of matchRoomTags(rooms, roomTags(p, level))) out.push({ ...tag, seed: f(tag.seed) });
   }
   return out;
+}
+
+/**
+ * Slabs that follow a move / rotate / mirror (ADR-050): selected slabs, and slabs whose every corner sits
+ * on a moved wall's centre line (a slab over rooms moves with all their walls). Mirrored outlines are
+ * turned back to counter-clockwise. Sorted by id.
+ */
+function slabsTravelling(p: Project, sel: ReadonlySet<Id>, moved: readonly Wall[], f: (q: V) => V): Element[] {
+  const onMoved = (q: V) =>
+    moved.some((w) => {
+      const d = sub(w.end, w.start);
+      const L2 = dot(d, d);
+      const t = L2 ? Math.max(0, Math.min(1, dot(sub(q, w.start), d) / L2)) : 0;
+      return dist(q, add(w.start, mul(d, t))) <= 1; // drawing precision, not a structural value
+    });
+  return Object.values(p.elements)
+    .filter((e): e is Slab => e.type === "slab")
+    .filter((s) => sel.has(s.id) || (moved.length > 0 && s.outline.every(onMoved)))
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .map((s) => ({ ...s, outline: ccw(s.outline.map(f)) }));
 }
 
 /**

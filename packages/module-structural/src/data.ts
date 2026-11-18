@@ -1,6 +1,8 @@
 // Structural data on walls and openings (ADR-042) + the construction system (project.profileId).
 import {
+  ccw,
   isHosted,
+  type Slab,
   type RoomTag,
   type Vec2,
   type Command,
@@ -34,8 +36,12 @@ export interface StructuralData {
   material?: WallMaterial;
   /** Room (on its tag): what's above it (ADR-045 A). Missing = "don't know". */
   above?: Above;
-  /** Room with a joist slab: which way the joists run, relative to the room's long side. */
+  /** Room or drawn slab with a joist slab: which way the joists run, relative to its long side. */
   joists?: JoistDir;
+  /** Drawn slab (ADR-050): solid (maciça) or joist (vigota). Missing = don't know. */
+  slabKind?: SlabKind;
+  /** Drawn slab: total thickness, mm, as the user knows it. Missing = don't know (no default: ADR-018). */
+  thickness?: number;
   [more: string]: unknown;
 }
 export const STRUCTURAL_DATA_VERSION = 1;
@@ -279,4 +285,37 @@ export function joistDirection(poly: readonly Vec2[], dir: JoistDir | null): Vec
   const u = dir ? longSide(poly) : null;
   if (!u) return null;
   return dir === "long" ? u : { x: -u.y, y: u.x };
+}
+
+// --- drawn slabs (ADR-050): kind, joist direction, thickness on the core Slab element -------------------
+
+export type SlabKind = "solid" | "joist";
+export const SLAB_KINDS: readonly SlabKind[] = ["solid", "joist"];
+
+export function slabInfo(s: Slab): { kind: SlabKind | null; joists: JoistDir | null; thickness: number | null } {
+  const d = structuralData(s);
+  const kind = d.slabKind === "solid" || d.slabKind === "joist" ? d.slabKind : null;
+  const joists = kind === "joist" && (d.joists === "long" || d.joists === "short") ? d.joists : null;
+  const thickness = typeof d.thickness === "number" && d.thickness > 0 ? d.thickness : null;
+  return { kind, joists, thickness };
+}
+
+/** Replace a slab's structural info; undefined = don't know. Joists only for a joist slab. */
+export function setSlabInfo(
+  s: Slab,
+  info: { kind?: SlabKind | undefined; joists?: JoistDir | undefined; thickness?: number | undefined },
+): Slab {
+  const kind = info.kind;
+  return withStructuralData(s, {
+    ...structuralData(s),
+    slabKind: kind,
+    joists: kind === "joist" ? info.joists : undefined,
+    thickness: info.thickness !== undefined && info.thickness > 0 ? info.thickness : undefined,
+  });
+}
+
+/** A new drawn slab (outline made CCW). */
+export function newSlab(id: Id, levelId: Id, outline: readonly Vec2[], kind?: SlabKind): Slab {
+  const s: Slab = { id, type: "slab", levelId, outline: ccw(outline), components: {} };
+  return kind ? setSlabInfo(s, { kind }) : s;
 }

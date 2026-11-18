@@ -25,6 +25,7 @@ describe("UI i18n (ADR-021/034)", () => {
             time: "17 nov 2026 13:40",
             n: 1,
             below: "Térreo",
+            area: "70 m²",
             kn: "13",
             kg: "1.330",
             pack: "Brasil",
