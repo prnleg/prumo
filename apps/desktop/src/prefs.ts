@@ -17,8 +17,8 @@ export interface Prefs {
   tourDone?: boolean;
   /** Module manager stage 1 (ADR-020): the Structural module switched off (no UI, no checks; data kept). */
   structuralOff?: boolean;
-  /** Electrical module turned on (ADR-058; off by default). */
-  electricalOn?: boolean;
+  /** Optional modules turned on / off by the user (ADR-059), by module id. Missing = the module's default. */
+  modules?: Record<string, boolean>;
   /** Your name on notes and hand-offs (Q-092: a local display name, no accounts; ADR-044). */
   name?: string;
 }
@@ -49,7 +49,7 @@ export function parsePrefs(text: string | null): LoadedPrefs {
     raw = {};
   }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) raw = {};
-  const { v, locale, angleStepDeg, gridSize, tourDone, structuralOff, electricalOn, name, ...rest } = raw as Record<
+  const { v, locale, angleStepDeg, gridSize, tourDone, structuralOff, modules, name, ...rest } = raw as Record<
     string,
     unknown
   >;
@@ -59,7 +59,13 @@ export function parsePrefs(text: string | null): LoadedPrefs {
   if (isPositive(gridSize)) prefs.gridSize = gridSize;
   if (tourDone === true) prefs.tourDone = true;
   if (structuralOff === true) prefs.structuralOff = true;
-  if (electricalOn === true) prefs.electricalOn = true;
+  if (modules && typeof modules === "object" && !Array.isArray(modules)) {
+    const m = Object.fromEntries(Object.entries(modules).filter(([, on]) => typeof on === "boolean")) as Record<
+      string,
+      boolean
+    >;
+    if (Object.keys(m).length) prefs.modules = m;
+  }
   const n = cleanName(name);
   if (n) prefs.name = n;
   return { prefs, rest, v: isPositive(v) && v > PREFS_VERSION ? v : PREFS_VERSION };

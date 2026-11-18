@@ -1017,3 +1017,13 @@ Branch `phase5b/electrical`, stacked on `phase4/3d-polish`.
 **Tests**: core +1 (point items transform), electrical +8 (hand-calculated minimums, face counting, links, mirror, missing-module round trip).
 
 **Next**: circuits (graph of items → circuit → panel, VA loads), items in 3D / export.
+
+### Session #13, part 4 — modules bring their own screen parts (ADR-059), 2026-11-18
+
+Branch `modules/ui-extension-points`, stacked on `phase5b/electrical`. Owner: Electrical / plumbing / ventilation must stay out of the core and the app so anyone can add their own; "Yes" to the refactor.
+
+**Done**: `packages/ui-api` (`ModuleUi`, `UiContext`, `UiTool`, `ToolContribution`, `PlanMark`, `PlanLink`, panel props). Electrical's UI moved into `module-electrical/src/ui` (render-function panels, its 38 strings, tools, marks, links, dev demo). App files restored to their pre-Electrical state and made generic: module registry + `uiCtx`, "mod:" tools (created lazily, floor follows), plan `marks` / `links` (generic SVG path symbols), panel `.module-section` slots (unscoped panel look), Settings module lines, `prefs.modules`, `registerMessages`. `installed-modules.ts` = the only file naming optional modules. Test `module-boundary` (screens never mention Electrical). Dev `?demo=module`, `?demo=module-room`. Q-142 (plumbing / ventilation as future modules).
+
+**Decided alone (reversible):** render functions (no .vue files) inside modules, so a module needs no Vue compiler setup; the app's catalogue wins on a string-key clash; Export also listed in the install list.
+
+**Tests**: electrical +1 (own strings complete), desktop +4 (boundary). Screenshots: same screens as before (switch panel + links, room minimums), now through the hooks.

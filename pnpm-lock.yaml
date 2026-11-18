@@ -59,6 +59,9 @@ importers:
       '@prumo/renderer-3d':
         specifier: workspace:*
         version: link:../../packages/renderer-3d
+      '@prumo/ui-api':
+        specifier: workspace:*
+        version: link:../../packages/ui-api
       '@tauri-apps/api':
         specifier: 2.12.5
         version: 2.12.5
@@ -108,12 +111,22 @@ importers:
 
   packages/module-electrical:
     dependencies:
+      '@lucide/vue':
+        specifier: 1.67.0
+        version: 1.67.0(vue@3.5.45(typescript@6.0.3))
       '@prumo/core':
         specifier: workspace:*
         version: link:../core
       '@prumo/module-architect':
         specifier: workspace:*
         version: link:../module-architect
+      '@prumo/ui-api':
+        specifier: workspace:*
+        version: link:../ui-api
+    devDependencies:
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
 
   packages/module-export:
     dependencies:
@@ -155,6 +168,19 @@ importers:
       '@types/three':
         specifier: 0.186.0
         version: 0.186.0
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-tsc:
+        specifier: 3.3.14
+        version: 3.3.14(typescript@6.0.3)
+
+  packages/ui-api:
+    dependencies:
+      '@prumo/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       vue:
         specifier: 3.5.45
         version: 3.5.45(typescript@6.0.3)

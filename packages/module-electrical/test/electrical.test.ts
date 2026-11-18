@@ -141,3 +141,16 @@ describe("a file with electrical items, opened without Electrical (ADR-032)", ()
     expect(r.file.project.elements.L).toEqual(p.elements.L);
   });
 });
+
+describe("Electrical's screen part (ADR-059)", () => {
+  it("brings its own strings, the same keys in every locale, for every key it uses", async () => {
+    const { electricalUi } = await import("../src/ui");
+    const en = Object.keys(electricalUi.messages.en ?? {}).sort();
+    expect(Object.keys(electricalUi.messages["pt-BR"] ?? {}).sort()).toEqual(en);
+    for (const tl of electricalUi.tools ?? []) {
+      expect(en).toContain(tl.label);
+      expect(en).toContain(tl.tip);
+    }
+    expect(en).toContain(electricalUi.name);
+  });
+});

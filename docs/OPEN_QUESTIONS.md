@@ -86,7 +86,8 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 - **Q-062 🟡** Imperial units: not in v1, formatter-ready.
 - **Q-063 🟡** Auto-update: later.
 - **Q-064 🟡** Min OS versions: whatever Tauri 2 supports for Win/macOS.
-- **Q-067 🟡** Third Vision: Electrical.
+- **Q-067 🟡** Third Vision: Electrical. → slice 1 done (ADR-058), screen part pluggable (ADR-059).
+- **Q-142 🟡** Plumbing (hidráulica), ventilation and similar: future **modules** (never core, never wired into the app — ADR-059). Owner 2026-11-18: keep them out so anyone can add their own. Not scheduled; a candidate for the first module written only against the public API. — 2026-11-18
 - **Q-070 🟡** Which codes/systems does the engineer know best?
 
 ---
