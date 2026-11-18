@@ -556,3 +556,13 @@ Status: **ACCEPTED (2026-11-18)** — owner chose "click rooms + draw".
 - **Rules:** outline must be simple with an area (`slab-invalid`, refused like other geometric impossibilities). A slab travels when selected, or when every corner sits on a moved wall (a slab over rooms moves with all their walls); mirrored outlines are made CCW again.
 - **Plan:** dashed outline + light fill + a badge ("Joist slab"); the badge is what you click (the edges sit under the walls). Joist arrows like rooms. Room panel: a room covered by a drawn slab says so instead of asking "what's above".
 - **Not yet:** copying slabs (duplicate/paste skip them), holes (an unselected room surrounded by picked ones is covered too), slabs in checks/loads (step 4), editing corners after drawing (redraw for now).
+
+## ADR-051 — Load takedown per wall (Phase 3 step 4)
+Status: **ACCEPTED (2026-11-18)** — owner: show numbers "rounded + range" (2 significant digits, a range from the uncertain inputs, kN + tonnes in plain words, the calculation behind a toggle, always UNVERIFIED).
+- **What:** for the selected wall (structure on), kN per metre on its most loaded stretch = own weight + the slab(s) over this floor resting on it. **Information only**: no limit, no pass/fail, no finding (a capacity check needs strength values → engineer).
+- **Own weight** = thickness × height × unit weight ("Built with"; not set → range over every material with a value, 13–25 kN/m³). Openings not subtracted (conservative).
+- **Slab q (kN/m²)** = own weight + finishes + live load, from the Brazil pack: live 1.5 (NBR 6120:1980 T2, residential); finishes 0.5–1.5, joist-slab own weight 1.5–3.0 and solid-slab thickness 8–15 cm when unknown are **UNSOURCED placeholders** (ADR-018: allowed, shown UNVERIFIED; E-43). Solid: thickness × 25 kN/m³ (NBR 6118 8.2.2).
+- **Distribution:** solid (two-way) = 45° split (NBR 6118:2014 14.7.6.1) computed as "each point goes to its nearest edge" on a fitted grid (exact for convex shapes, ~1 % on a rectangle; ties split evenly). Joist (one-way) = the area shared by the edges across the joists, in proportion to their length (exact for rectangles). Unknown type / joist direction → every possibility, range = min…max. "What's above: don't know" → low end 0.
+- **Areas:** drawn slabs (ADR-050), else each room's "what's above" answer over its centre-line polygon. Load goes to the walls whose centre line the edge sits on (1 mm).
+- **Not counted (listed under the numbers):** floors above (Phase 5), roofs, slab edges without a wall (balconies), concrete frames (beams/columns not drawn → slab loads skipped).
+- **Code:** `module-structural/src/loads.ts` (`wallLoads`, `twoWayShares` (memoized), `oneWayShares`); UI formatting `sig2` / `wallLoadText`.

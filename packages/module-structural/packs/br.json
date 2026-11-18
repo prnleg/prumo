@@ -4,8 +4,11 @@
   "id": "br",
   "parent": null,
   "module": "org.prumo.structural",
-  "version": "2026.11.1",
-  "name": { "en": "Brazil", "pt-BR": "Brasil" },
+  "version": "2026.11.2",
+  "name": {
+    "en": "Brazil",
+    "pt-BR": "Brasil"
+  },
   "values": {
     "material.ceramic-block.unitWeight": {
       "value": 13,
@@ -30,6 +33,62 @@
       "confidence": "high",
       "review": "UNVERIFIED",
       "note": "Reinforced concrete (walls, slabs). Plain concrete is lighter."
+    },
+    "load.live.residential": {
+      "value": 1.5,
+      "unit": "kPa",
+      "source": "NBR 6120:1980, Tabela 2 (edifícios residenciais: dormitórios, sala, copa, cozinha e banheiro)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "People and furniture in a home. To confirm against NBR 6120:2019 (E-43)."
+    },
+    "load.finishes.min": {
+      "value": 0.5,
+      "unit": "kPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Floor finish + screed + ceiling plaster on a slab, low end. Placeholder until the engineer gives a value (E-43)."
+    },
+    "load.finishes.max": {
+      "value": 1.5,
+      "unit": "kPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Same, high end (E-43)."
+    },
+    "slab.joist.selfWeight.min": {
+      "value": 1.5,
+      "unit": "kPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Own weight of a joist slab (beams + blocks + topping), low end. Depends on the system and height; engineer to give values (E-43)."
+    },
+    "slab.joist.selfWeight.max": {
+      "value": 3.0,
+      "unit": "kPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Same, high end (E-43)."
+    },
+    "slab.solid.thickness.min": {
+      "value": 80,
+      "unit": "mm",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Used only when a solid slab's thickness isn't known: low end of the range (E-43)."
+    },
+    "slab.solid.thickness.max": {
+      "value": 150,
+      "unit": "mm",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Same, high end (E-43)."
     }
   }
 }

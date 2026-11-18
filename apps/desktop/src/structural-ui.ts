@@ -1,7 +1,15 @@
 // Turn structural findings into words (ADR-021: params are typed and formatted at display time) and
 // group them one card per rule (Q-135). Framework-free, unit-tested.
 import { wallLength, type Project } from "@prumo/core";
-import { isChase, kgPerM3, type AssumptionUse, type Finding, type Param, type RuleDef } from "@prumo/module-structural";
+import {
+  isChase,
+  kgPerM3,
+  type WallLoad,
+  type AssumptionUse,
+  type Finding,
+  type Param,
+  type RuleDef,
+} from "@prumo/module-structural";
 import type { ResolvedValue } from "@prumo/core";
 import { formatLength, translate, type Locale } from "./i18n";
 
@@ -81,5 +89,53 @@ export function unitWeightText(v: ResolvedValue, locale: Locale, packName: strin
     text: translate(locale, "material.weight", { kn: n(value, 1), kg: n(Math.round(kgPerM3(value) / 10) * 10) }),
     review: translate(locale, `value.review.${v.review.toLowerCase()}`),
     from: translate(locale, "pack.from", { pack: packName, source: v.source }),
+  };
+}
+
+/** Two significant digits (owner: rounded + range — more digits would be false precision). */
+export function sig2(x: number, locale: Locale): string {
+  if (!x) return "0";
+  const d = Math.max(0, 1 - Math.floor(Math.log10(Math.abs(x))));
+  const r = Number(x.toPrecision(2));
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: d }).format(r);
+}
+const span = (lo: number, hi: number, locale: Locale) =>
+  sig2(lo, locale) === sig2(hi, locale) ? sig2(lo, locale) : `${sig2(lo, locale)}–${sig2(hi, locale)}`;
+
+/** A wall's load for the panel: headline + range + calculation lines + what isn't counted. */
+export function wallLoadText(
+  L: WallLoad,
+  locale: Locale,
+  nameOf: (ref: string) => string,
+): { headline: string; range: string; lines: string[]; notCounted: string[] } {
+  const t = (k: string, p?: Record<string, string | number>) => translate(locale, k, p);
+  const mid = (L.lo + L.hi) / 2;
+  const lines = L.lines.map((l) => {
+    const p = l.params;
+    if (l.key === "load.line.self")
+      return t(l.key, {
+        t: sig2(Number(p.t), locale),
+        h: sig2(Number(p.h), locale),
+        g: sig2(Number(p.gLo), locale),
+        w: span(l.lo, l.hi, locale),
+      });
+    if (l.key === "load.line.selfUnknown")
+      return t(l.key, {
+        gLo: sig2(Number(p.gLo), locale),
+        gHi: sig2(Number(p.gHi), locale),
+        w: span(l.lo, l.hi, locale),
+      });
+    return t(l.key, {
+      name: nameOf(String(p.ref)),
+      kind: t(`load.kind.${String(p.kind)}`),
+      q: span(Number(p.qLo), Number(p.qHi), locale),
+      w: span(l.lo, l.hi, locale),
+    });
+  });
+  return {
+    headline: t("load.headline", { kn: sig2(mid, locale), t: sig2(mid / 9.80665, locale) }),
+    range: t("load.range", { range: span(L.lo, L.hi, locale) }),
+    lines,
+    notCounted: L.notCounted.map((k) => t(k)),
   };
 }
