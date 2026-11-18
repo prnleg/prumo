@@ -19,6 +19,8 @@ const props = defineProps<{
   name: string | null;
   /** Saved versions in this file (Q-124), oldest first; `inUse` = the existing building (can't delete). */
   versions: readonly { id: string; name: string; createdAt: string; author: string | null; inUse: boolean }[];
+  /** Values the checks use (ADR-049), shown when Structural is on: label, value text, review, source. */
+  values?: readonly { key: string; label: string; text: string | null; review: string; from: string }[];
   /** Rough size of the saved versions, bytes. */
   versionsSize: number;
 }>();
@@ -88,6 +90,19 @@ const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateS
         </select>
       </label>
       <p class="tip">{{ t("settings.system.tip") }}</p>
+      <template v-if="structural && values?.length">
+        <h4>{{ t("values.title") }}</h4>
+        <p class="tip">{{ t("values.tip") }}</p>
+        <ul class="values">
+          <li v-for="v in values" :key="v.key" :title="v.from">
+            <span>{{ v.label }}</span>
+            <span v-if="v.text"
+              >{{ v.text }} · <em class="unverified">{{ v.review }}</em></span
+            >
+            <span v-else class="muted">{{ t("material.noValue.short") }}</span>
+          </li>
+        </ul>
+      </template>
       <h4>{{ t("versions.title") }}</h4>
       <p v-if="!versions.length" class="tip">{{ t("versions.none") }}</p>
       <ul v-else class="versions">
@@ -255,5 +270,22 @@ footer button {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+}
+.values {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 12px;
+}
+.values li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.unverified {
+  color: var(--warn);
+  font-style: normal;
 }
 </style>

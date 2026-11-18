@@ -1,7 +1,8 @@
 // Turn structural findings into words (ADR-021: params are typed and formatted at display time) and
 // group them one card per rule (Q-135). Framework-free, unit-tested.
 import { wallLength, type Project } from "@prumo/core";
-import { isChase, type AssumptionUse, type Finding, type Param, type RuleDef } from "@prumo/module-structural";
+import { isChase, kgPerM3, type AssumptionUse, type Finding, type Param, type RuleDef } from "@prumo/module-structural";
+import type { ResolvedValue } from "@prumo/core";
 import { formatLength, translate, type Locale } from "./i18n";
 
 export function paramText(p: Param, project: Project, locale: Locale): string {
@@ -67,4 +68,18 @@ export function cards(
     })
     .filter((c) => c.findings.length)
     .sort((a, b) => SEV[a.severity] - SEV[b.severity] || (a.rule.id < b.rule.id ? -1 : 1));
+}
+
+/**
+ * A pack value for people (ADR-049): "13 kN/m³ (≈ 1,330 kg/m³)" + its review level and where it came from.
+ * kg rounded to 10: the value itself is a rounded table figure, more digits would be false precision.
+ */
+export function unitWeightText(v: ResolvedValue, locale: Locale, packName: string) {
+  const n = (x: number, d = 0) => new Intl.NumberFormat(locale, { maximumFractionDigits: d }).format(x);
+  const value = Number(v.value);
+  return {
+    text: translate(locale, "material.weight", { kn: n(value, 1), kg: n(Math.round(kgPerM3(value) / 10) * 10) }),
+    review: translate(locale, `value.review.${v.review.toLowerCase()}`),
+    from: translate(locale, "pack.from", { pack: packName, source: v.source }),
+  };
 }

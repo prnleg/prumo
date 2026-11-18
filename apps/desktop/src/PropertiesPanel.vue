@@ -13,12 +13,15 @@ import {
   type Note,
   type Opening,
   type Project,
+  type PackSet,
   type Wall,
 } from "@prumo/core";
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import {
   ABOVE,
+  STRUCTURAL,
   WALL_MATERIALS,
+  unitWeight,
   wallMaterial,
   type WallMaterial,
   ROLE_ORIGINS,
@@ -38,7 +41,7 @@ import {
 } from "@prumo/module-structural";
 import { computed, ref } from "vue";
 import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
-import { paramText } from "./structural-ui";
+import { paramText, unitWeightText } from "./structural-ui";
 
 const props = defineProps<{
   project: Project;
@@ -56,6 +59,8 @@ const props = defineProps<{
   }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
+  /** Installed data packs (ADR-049): material values shown with their source. */
+  packs?: PackSet | null;
   /** The project's construction system when the Structural module is on; null = module off. */
   structural?: ConstructionSystem | null;
 }>();
@@ -86,6 +91,11 @@ const room = computed(() => {
   const id = props.selection.length === 1 ? (props.selection[0] ?? "") : "";
   return id.startsWith(ROOM_PREFIX) ? (props.rooms.find((r) => r.key === id.slice(ROOM_PREFIX.length)) ?? null) : null;
 });
+function weightOf(w: Wall) {
+  const m = wallMaterial(w);
+  const v = m && props.packs ? unitWeight(props.packs, props.project, m) : null;
+  return v && props.packs ? unitWeightText(v, props.locale, props.packs.name(STRUCTURAL, v.pack, props.locale)) : null;
+}
 const keepOriginal = defineModel<boolean>("keepOriginal", { default: true });
 const hasWalls = computed(() =>
   props.selection.some((id) => id.startsWith(ROOM_PREFIX) || props.project.elements[id]?.type === "wall"),
@@ -341,6 +351,10 @@ function commitLength(w: Wall, ev: Event) {
             <option v-for="m in WALL_MATERIALS" :key="m" :value="m">{{ t(`material.${m}`) }}</option>
           </select>
         </label>
+        <p v-if="weightOf(wall)" class="ro" :title="weightOf(wall)?.from">
+          {{ weightOf(wall)?.text }} · <span class="unverified">{{ weightOf(wall)?.review }}</span>
+        </p>
+        <p v-else-if="wallMaterial(wall)" class="ro">{{ t("material.noValue") }}</p>
         <p v-if="wallMaterial(wall) === 'drywall'" class="ro">{{ t("material.drywall.note") }}</p>
         <label class="stack" :title="t('role.tip')">
           {{ t("props.role") }}
@@ -670,5 +684,8 @@ input.text {
 .warn {
   color: var(--warn);
   margin: 6px 0 0;
+}
+.unverified {
+  color: var(--warn);
 }
 </style>

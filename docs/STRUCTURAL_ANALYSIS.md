@@ -259,6 +259,12 @@ Every placeholder threshold/material value lives here until verified.
 | r-wall-006.t-min | 140 (memory; exception for low buildings) | mm | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-36) | UNVERIFIED |
 | r-open-002.bearing-min | 200 (common practice) or ½–1 block (modular) | mm / modules | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-34) | UNVERIFIED |
 | masonry.E | ≈ 800·f_pk (concrete block) / 600·f_pk (ceramic) (memory) | MPa | br-nbr masonry | UNSOURCED – placeholder (engineer hint, E-37) | UNVERIFIED |
+| material.ceramic-block.unitWeight | 13 | kN/m³ | Brazil pack (`packs/br.json`) | NBR 6120:1980, Tabela 1 (tijolos furados) — 1980 edition; 2019 lists walls per m² (E-42) | UNVERIFIED |
+| material.solid-brick.unitWeight | 18 | kN/m³ | Brazil pack | NBR 6120:1980, Tabela 1 (tijolos maciços) (E-42) | UNVERIFIED |
+| material.concrete.unitWeight | 25 | kN/m³ | Brazil pack | NBR 6118:2014, 8.2.2 (reinforced concrete) | UNVERIFIED |
+| material.concrete-block.unitWeight / drywall | — (no value: none I can cite) | — | Brazil pack | asked in E-42 | missing |
+
+Since ADR-049 the values live in data packs, not in code; this register mirrors the Brazil pack.
 
 ## 7. Known simplifications (shown to users)
 

@@ -883,3 +883,15 @@ Branch `phase3/data-packs` (from main). Owner approved JSON. **Done**: core `pac
 **Decided alone (reversible):** pack format errors are in English (for pack authors, not end users); later packs with the same module + id replace earlier ones; region = profile country until projects can pick a state/city.
 
 **Tests**: core +4, structural +2. Production build checked (JSON import).
+
+### Session #12, part 2 — material values (Phase 3 step 2), 2026-11-18
+
+Branch `phase3/materials`, stacked on `phase3/data-packs`. Only the property step 4 needs: **unit weight**.
+
+**Done**: Brazil pack 2026.11.1 — ceramic block 13, solid brick 18 (NBR 6120:1980 Tabela 1), reinforced concrete 25 kN/m³ (NBR 6118:2014 8.2.2); all UNVERIFIED, with notes. Concrete block and drywall left **without** a value (nothing I can cite) — the UI says "no sourced value yet". Structural `materials.ts` (`unitWeight`, `materialTable`, `kgPerM3`). UI: weight line under "Built with" (kN/m³ + ≈ kg/m³ rounded to 10, UNVERIFIED badge, source + pack on hover); Settings → "Values the checks use". 12 strings. Dev `?demo=materials`, `?demo=values`. Engineer question E-42 (parked). Register in STRUCTURAL_ANALYSIS §6.
+
+**Decided alone (reversible):** kg/m³ shown next to kN/m³ for beginners, rounded to 10 (table values are rounded already); values not copied into the project file yet (DATA_MODEL note).
+
+**Doubt**: the 1980 values are a superseded edition — honest source, but the engineer should say which table to use (E-42).
+
+**Tests**: structural +3. Screenshots checked (pt-BR).
