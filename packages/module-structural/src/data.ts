@@ -26,6 +26,10 @@ export interface StructuralData {
   role?: WallRole;
   origin?: RoleOrigin;
   lintel?: true;
+  /** Opening: the lintel's total height, mm, if known (ADR-052). */
+  lintelHeight?: number;
+  /** Opening: the lintel's bottom bars, if known (ADR-052). Diameter in mm. */
+  lintelBars?: { count: number; diameter: number };
   /** Window: has a sill reinforcement (contraverga). */
   contraverga?: true;
   /** Wall: has a tie beam (cinta de respaldo) on top. */

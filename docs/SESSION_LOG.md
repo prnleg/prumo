@@ -915,3 +915,15 @@ Branch `phase3/loads`, stacked on `phase3/slabs`. Owner: numbers "rounded + rang
 **Decided alone (reversible):** unknown wall material ranges over every material with a value (incl. concrete, 13–25); openings not subtracted; per-wall value = most loaded stretch; the selected wall only (computed on demand; 45° shares memoized).
 
 **Tests**: structural +7 (hand-calculated). Screenshot checked (whole-house joist slab: 3.5 q = 12–21 kN/m + 4.9 own weight).
+
+### Session #12, part 5 — lintel check (Phase 3 step 5, ADR-052), 2026-11-18
+
+Branch `phase3/lintel` (from main). Owner: "if the questions only verify, continue; I'll confirm with the engineer later".
+
+**Done**: Brazil pack 2026.11.3 (+ bearing, untested-concrete fck range as UNSOURCED placeholders; cover, fyk, γf/γc/γs, stress block, x/d max from NBR 6118 / 7480). `lintel.ts`: span, load (everything above, no arching), M/V, γf·M, RC bending strength range, verdict unknown/below/maybe/above. Opening data `lintelHeight` / `lintelBars`. UI: lintel size (height cm + bottom bars) under "Has a lintel", "Lintel over this opening" box (headline, bending, strength, verdict, calculation, not checked, disclaimer). 30 strings. Dev `?demo=lintel`. STRUCTURAL_ANALYSIS §4.y hand calcs + §6 register; E-44 (parked).
+
+**Decided alone (reversible):** information only, no finding (a pass/fail on an unreviewed method would be noisy: the conservative load flags common small lintels); strength range over fck instead of one value; 5 mm bars kept at CA-50 500 MPa (low side); the box shows for any opening in a carrying wall, size fields only when "Has a lintel" is ticked.
+
+**Doubt**: the "everything above" load overstates for typical lintels (arching) — E-44 (a).
+
+**Tests**: structural +4 (hand-calculated). Screenshot checked (pt-BR: 10 cm 2 Ø8 under the house's joist slab → "above").

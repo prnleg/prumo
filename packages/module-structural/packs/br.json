@@ -4,43 +4,72 @@
   "id": "br",
   "parent": null,
   "module": "org.prumo.structural",
-  "version": "2026.11.2",
+  "version": "2026.11.3",
   "name": {
     "en": "Brazil",
     "pt-BR": "Brasil"
   },
   "values": {
-    "material.ceramic-block.unitWeight": {
-      "value": 13,
-      "unit": "kN/m3",
-      "source": "NBR 6120:1980, Tabela 1 (tijolos furados)",
-      "confidence": "medium",
-      "review": "UNVERIFIED",
-      "note": "Apparent unit weight of hollow ceramic masonry. The 2019 edition of NBR 6120 lists walls by weight per m² instead; which to use goes to the engineer (E-42)."
-    },
-    "material.solid-brick.unitWeight": {
-      "value": 18,
-      "unit": "kN/m3",
-      "source": "NBR 6120:1980, Tabela 1 (tijolos maciços)",
-      "confidence": "medium",
-      "review": "UNVERIFIED",
-      "note": "1980 edition value; to confirm against NBR 6120:2019 (E-42)."
-    },
-    "material.concrete.unitWeight": {
-      "value": 25,
-      "unit": "kN/m3",
-      "source": "NBR 6118:2014, 8.2.2 (concreto armado)",
+    "concrete.block.alpha": {
+      "value": 0.85,
+      "source": "NBR 6118:2014, 17.2.2 (diagrama retangular, concretos até C50)",
       "confidence": "high",
       "review": "UNVERIFIED",
-      "note": "Reinforced concrete (walls, slabs). Plain concrete is lighter."
+      "note": "Stress-block factor αc (E-44)."
     },
-    "load.live.residential": {
-      "value": 1.5,
-      "unit": "kPa",
-      "source": "NBR 6120:1980, Tabela 2 (edifícios residenciais: dormitórios, sala, copa, cozinha e banheiro)",
+    "concrete.block.lambda": {
+      "value": 0.8,
+      "source": "NBR 6118:2014, 17.2.2 (diagrama retangular, concretos até C50)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Stress-block depth factor λ (E-44)."
+    },
+    "concrete.xd.max": {
+      "value": 0.45,
+      "source": "NBR 6118:2014, 14.6.4.3 (concretos até C50)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Largest neutral-axis depth / d allowed for a beam; above it extra steel adds no strength in this check (E-44)."
+    },
+    "lintel.bearing": {
+      "value": 200,
+      "unit": "mm",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "How far a lintel goes into the wall on each side, used for its span. Engineer hint: common practice 20 cm (NBR 8545, check); in modular masonry maybe half a block to one block (E-34)."
+    },
+    "lintel.concrete.fck.max": {
+      "value": 25,
+      "unit": "MPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Same, high end (E-44)."
+    },
+    "lintel.concrete.fck.min": {
+      "value": 15,
+      "unit": "MPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Concrete strength of an existing lintel nobody tested, low end. Old or site-mixed lintels can be weak (E-44)."
+    },
+    "lintel.cover": {
+      "value": 25,
+      "unit": "mm",
+      "source": "NBR 6118:2014, 7.4.7.2, Tabela 7.2 (viga, classe de agressividade I)",
       "confidence": "medium",
       "review": "UNVERIFIED",
-      "note": "People and furniture in a home. To confirm against NBR 6120:2019 (E-43)."
+      "note": "Concrete between the bars and the lintel's bottom face; used for the bars' depth d. Class I = dry indoors; more aggressive places need more (E-44)."
+    },
+    "load.finishes.max": {
+      "value": 1.5,
+      "unit": "kPa",
+      "source": "UNSOURCED – placeholder",
+      "confidence": "low",
+      "review": "UNVERIFIED",
+      "note": "Same, high end (E-43)."
     },
     "load.finishes.min": {
       "value": 0.5,
@@ -50,8 +79,69 @@
       "review": "UNVERIFIED",
       "note": "Floor finish + screed + ceiling plaster on a slab, low end. Placeholder until the engineer gives a value (E-43)."
     },
-    "load.finishes.max": {
+    "load.live.residential": {
       "value": 1.5,
+      "unit": "kPa",
+      "source": "NBR 6120:1980, Tabela 2 (edifícios residenciais: dormitórios, sala, copa, cozinha e banheiro)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "People and furniture in a home. To confirm against NBR 6120:2019 (E-43)."
+    },
+    "material.ceramic-block.unitWeight": {
+      "value": 13,
+      "unit": "kN/m3",
+      "source": "NBR 6120:1980, Tabela 1 (tijolos furados)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Apparent unit weight of hollow ceramic masonry. The 2019 edition of NBR 6120 lists walls by weight per m² instead; which to use goes to the engineer (E-42)."
+    },
+    "material.concrete.unitWeight": {
+      "value": 25,
+      "unit": "kN/m3",
+      "source": "NBR 6118:2014, 8.2.2 (concreto armado)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Reinforced concrete (walls, slabs). Plain concrete is lighter."
+    },
+    "material.solid-brick.unitWeight": {
+      "value": 18,
+      "unit": "kN/m3",
+      "source": "NBR 6120:1980, Tabela 1 (tijolos maciços)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "1980 edition value; to confirm against NBR 6120:2019 (E-42)."
+    },
+    "material.steel.fyk": {
+      "value": 500,
+      "unit": "MPa",
+      "source": "NBR 7480:2007 (CA-50)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Yield strength of the usual rebar (CA-50). 5 mm bars are often CA-60 (600 MPa); using 500 is on the low side."
+    },
+    "safety.gammaC": {
+      "value": 1.4,
+      "source": "NBR 6118:2014, 12.4.1, Tabela 12.1 (combinações normais)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Concrete strength is divided by this (E-44)."
+    },
+    "safety.gammaF": {
+      "value": 1.4,
+      "source": "NBR 6118:2014, 11.7.1, Tabela 11.1 (combinações normais)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Load factor applied to the weight before comparing with the strength (E-44)."
+    },
+    "safety.gammaS": {
+      "value": 1.15,
+      "source": "NBR 6118:2014, 12.4.1, Tabela 12.1 (combinações normais)",
+      "confidence": "high",
+      "review": "UNVERIFIED",
+      "note": "Steel strength is divided by this (E-44)."
+    },
+    "slab.joist.selfWeight.max": {
+      "value": 3.0,
       "unit": "kPa",
       "source": "UNSOURCED – placeholder",
       "confidence": "low",
@@ -66,9 +156,9 @@
       "review": "UNVERIFIED",
       "note": "Own weight of a joist slab (beams + blocks + topping), low end. Depends on the system and height; engineer to give values (E-43)."
     },
-    "slab.joist.selfWeight.max": {
-      "value": 3.0,
-      "unit": "kPa",
+    "slab.solid.thickness.max": {
+      "value": 150,
+      "unit": "mm",
       "source": "UNSOURCED – placeholder",
       "confidence": "low",
       "review": "UNVERIFIED",
@@ -81,14 +171,6 @@
       "confidence": "low",
       "review": "UNVERIFIED",
       "note": "Used only when a solid slab's thickness isn't known: low end of the range (E-43)."
-    },
-    "slab.solid.thickness.max": {
-      "value": 150,
-      "unit": "mm",
-      "source": "UNSOURCED – placeholder",
-      "confidence": "low",
-      "review": "UNVERIFIED",
-      "note": "Same, high end (E-43)."
     }
   }
 }

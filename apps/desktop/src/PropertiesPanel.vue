@@ -20,6 +20,10 @@ import {
 import { FINISHES, ROOM_PREFIX, ROOM_TYPES, architectData, roomTypeKey } from "@prumo/module-architect";
 import {
   ABOVE,
+  BAR_COUNTS,
+  BAR_DIAMETERS,
+  lintelSize,
+  type LintelSize,
   SLAB_KINDS,
   slabInfo,
   type SlabKind,
@@ -67,6 +71,15 @@ const props = defineProps<{
   wallSides?: { left: string; right: string } | null;
   /** The selected wall's estimated load (ADR-051), already formatted; null = none / structure off. */
   load?: { headline: string; range: string; lines: string[]; notCounted: string[] } | null;
+  /** The selected opening's lintel estimate (ADR-052), formatted; null = none / structure off. */
+  lintelLoad?: {
+    headline: string;
+    bending: string;
+    strength: string | null;
+    verdict: string;
+    lines: string[];
+    notChecked: string[];
+  } | null;
   /** Installed data packs (ADR-049): material values shown with their source. */
   packs?: PackSet | null;
   /** The project's construction system when the Structural module is on; null = module off. */
@@ -85,6 +98,7 @@ const emit = defineEmits<{
   above: [roomKey: string, above: Above | undefined, joists: JoistDir | undefined];
   role: [wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined];
   lintel: [openingId: string, has: boolean];
+  lintelSize: [openingId: string, size: LintelSize];
   contraverga: [openingId: string, has: boolean];
   tieBeam: [wallId: string, has: boolean];
   protect: [wallId: string];
@@ -156,6 +170,28 @@ function slabThickness(e: Event) {
   }
   emitSlab({ thickness: Math.round(cm * 10) });
 }
+function lintelHeight(o: Opening, e: Event) {
+  const text = (e.target as HTMLInputElement).value.trim();
+  const cur = lintelSize(o);
+  if (!text) return emit("lintelSize", o.id, { ...cur, height: undefined });
+  const cm = parseNumber(text, props.locale);
+  if (cm === null || cm <= 0 || cm > 200) {
+    rev.value++;
+    return;
+  }
+  emit("lintelSize", o.id, { ...cur, height: Math.round(cm * 10) });
+}
+function lintelBars(o: Opening, e: Event) {
+  const v = (e.target as HTMLSelectElement).value;
+  const [n, d] = v.split("x").map(Number);
+  emit("lintelSize", o.id, { ...lintelSize(o), bars: v && n && d ? { count: n, diameter: d } : undefined });
+}
+const barValue = (o: Opening) => {
+  const b = lintelSize(o).bars;
+  return b ? `${b.count}x${b.diameter}` : "";
+};
+const num = (x: number) => new Intl.NumberFormat(props.locale).format(x);
+const BAR_OPTIONS = BAR_COUNTS.flatMap((n) => BAR_DIAMETERS.map((d) => ({ n, d, v: `${n}x${d}` })));
 /** Has a side to flip (hinge / slide direction, which face): doors and side-dependent windows (ADR-046). */
 const sided = (o: Opening) =>
   o.kind === "door" || (o.kind === "window" && ["sliding", "casement", "top-hung"].includes(openingStyle(o) ?? ""));
@@ -597,6 +633,52 @@ function commitLength(w: Wall, ev: Event) {
           />
           {{ t("props.lintel") }}
         </label>
+        <template v-if="structuralData(opening).lintel">
+          <p class="ro">{{ t("lintel.size") }}</p>
+          <label :title="t('lintel.height.tip')">
+            {{ t("lintel.height") }}
+            <span class="field">
+              <input
+                :key="opening.id + (lintelSize(opening).height ?? '') + '/' + rev"
+                :value="lintelSize(opening).height ? formatCm(lintelSize(opening).height ?? 0, locale) : ''"
+                :placeholder="t('above.unknown')"
+                @change="lintelHeight(opening, $event)"
+              />cm
+            </span>
+          </label>
+          <label class="stack" :title="t('lintel.bars.tip')">
+            {{ t("lintel.bars") }}
+            <select :value="barValue(opening)" @change="lintelBars(opening, $event)">
+              <option value="">{{ t("lintel.bars.unknown") }}</option>
+              <option v-for="b in BAR_OPTIONS" :key="b.v" :value="b.v">
+                {{ t("lintel.bar", { n: b.n, d: num(b.d) }) }}
+              </option>
+            </select>
+          </label>
+        </template>
+        <div v-if="lintelLoad" class="load">
+          <p class="ro">{{ t("lintel.load.title") }}</p>
+          <p>
+            <strong>{{ lintelLoad.headline }}</strong><br />
+            <span class="ro">{{ lintelLoad.bending }}</span>
+            <template v-if="lintelLoad.strength"
+              ><br /><span class="ro">{{ lintelLoad.strength }}</span></template
+            >
+            · <span class="unverified">{{ t("value.review.unverified") }}</span>
+          </p>
+          <p>{{ lintelLoad.verdict }}</p>
+          <details>
+            <summary>{{ t("load.show") }}</summary>
+            <ul>
+              <li v-for="(l, k) in lintelLoad.lines" :key="k">{{ l }}</li>
+            </ul>
+            <p class="ro">{{ t("lintel.notChecked") }}</p>
+            <ul class="ro">
+              <li v-for="(n, k) in lintelLoad.notChecked" :key="k">{{ n }}</li>
+            </ul>
+            <p class="ro">{{ t("lintel.disclaimer") }}</p>
+          </details>
+        </div>
         <label v-if="opening.kind === 'window'" class="check" :title="t('contraverga.tip')">
           <input
             type="checkbox"

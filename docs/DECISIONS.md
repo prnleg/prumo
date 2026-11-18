@@ -566,3 +566,14 @@ Status: **ACCEPTED (2026-11-18)** — owner: show numbers "rounded + range" (2 s
 - **Areas:** drawn slabs (ADR-050), else each room's "what's above" answer over its centre-line polygon. Load goes to the walls whose centre line the edge sits on (1 mm).
 - **Not counted (listed under the numbers):** floors above (Phase 5), roofs, slab edges without a wall (balconies), concrete frames (beams/columns not drawn → slab loads skipped).
 - **Code:** `module-structural/src/loads.ts` (`wallLoads`, `twoWayShares` (memoized), `oneWayShares`); UI formatting `sig2` / `wallLoadText`.
+
+## ADR-052 — Lintel check (Phase 3 step 5)
+Status: **ACCEPTED (2026-11-18)** — owner: "if the questions are not blocking (only verifying) continue; I'll confirm with the engineer later". Every value UNVERIFIED (E-44).
+- **What:** select a door/window in a wall that carries (structure on) → "Lintel over this opening": kN per metre on the lintel + the span, the bending it has to take (γf·M), and — when the user enters the lintel's **height** and **bottom bars** — its bending strength and a plain-words comparison. **Information only:** no finding, no pass/fail mark (same as ADR-051); a finding can come once the engineer reviews the method.
+- **Load (Q-033 default, conservative):** everything above the opening — masonry from the lintel to the wall top (unit weight of "Built with"; unknown → range up to concrete) + the lintel's own weight (25 kN/m³) + **all** the slab load on that wall (ADR-051). No arching. Listed as "can overstate".
+- **Span** = opening width + bearing each side (pack `lintel.bearing` = 200 mm, UNSOURCED placeholder, E-34).
+- **Mechanics:** simply supported beam, M = wL²/8, V = wL/2 (textbook). **Strength:** reinforced-concrete rectangle, NBR 6118:2014 17.2.2 stress block (αc 0.85, λ 0.8), x/d ≤ 0.45 (14.6.4.3), γc 1.4 / γs 1.15 (Tabela 12.1), γf 1.4 (Tabela 11.1), CA-50 fyk 500 (NBR 7480), cover 25 mm (Tabela 7.2, CAA I), b = wall thickness, d = h − cover − Ø/2. Concrete of an untested lintel: fck 15–25 MPa (UNSOURCED placeholder). All constants live in the Brazil pack, not in code (ADR-049).
+- **Verdict words:** need ≤ strength everywhere → "strength is above the bending this weight causes" + what isn't checked; overlap → "may be more… depends on values not known yet"; need > strength everywhere → "more than this lintel can take… can overstate. Ask an engineer". Never "safe/OK" (rule 5).
+- **Not checked (listed):** shear, sag (deflection), local crushing where the lintel rests (VC-004/005), arching, + what the wall load doesn't count.
+- **Data (persisted names):** opening Structural data `lintelHeight` (mm) and `lintelBars: { count, diameter }` (mm). Bar list in the UI: 1–4 × Ø 5 / 6.3 / 8 / 10 / 12.5 mm (NBR 7480 sizes).
+- **Code:** `module-structural/src/lintel.ts` (`lintelCheck`, `strength`, `lintelSize`, `setLintelSize`); UI `lintelText`.

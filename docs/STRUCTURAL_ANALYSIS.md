@@ -133,6 +133,13 @@ Hand calculations (`module-structural/test/loads.test.ts`), room 4 × 3 m on cen
 - Joist slab spanning 3 m: q = (1.5…3.0) + (0.5…1.5) + 1.5 = **3.5…6.0 kN/m²**; rests on the 4 m walls: 12 × 4/8 = 6 m² each → 1.5 q = 5.25…9.0 kN/m; 3 m walls get only their own weight.
 - Joist direction unknown: the 3 m walls range 0…(2 q = 12) kN/m from the slab.
 
+### 4.y Lintel check (implemented 2026-11-18, ADR-052 — UNVERIFIED, information only)
+
+Hand calculations (`module-structural/test/lintel.test.ts`). Same 4 × 3 m room, joist slab spanning 3 m → bottom wall carries 5.25…9.0 kN/m from the slab. Window 1.20 m wide, sill 1.00, 1.20 tall → 0.50 m of wall above. Bearing 0.20 → L = 1.60 m, L²/8 = 0.32.
+- Size unknown: strip above 0.14 × 0.50 × (13…25) = 0.91…1.75 → w = 6.16…10.75 kN/m; M = 1.9712…3.44 kN·m; V = 0.8 w = 4.928…8.6 kN; γf M = 2.75968…4.816.
+- 15 cm, 2 Ø10: strip 0.14 × 0.35 × 13 + 0.14 × 0.15 × 25 = 1.162 → γf M hi = 0.448 × 10.162 = 4.5526. d = 150 − 25 − 5 = 120; As = 157.08 mm²; As·fyd = 68 295.5 N. fck 15: 0.68 × 140 × 10.714 = 1020 N/mm → x = 66.96 > 0.45 d = 54 → x = 54, MRd = 1020 × 54 × (120 − 21.6) = 5.4199 kN·m. fck 25: x = 40.17, MRd = 68 295.5 × 103.93 = 7.098. 4.55 ≤ 5.42 → "below".
+- 10 cm, 2 Ø8: γf M lo = 0.448 × 6.328 = 2.8349; d = 71, As·fyd = 43 709 N; fck 25: x = 25.71, MRd = 43 709 × 60.72 = 2.6538 → 2.83 > 2.65 → "above". (Real lintels like this often stand thanks to arching, Q-033: the conservative method overstates.)
+
 ## 5. Validation cases (must exist before any calculator ships)
 
 Every calculator needs **≥ 2 hand-calculated cases** written here *and* as tests. Template:
@@ -274,6 +281,12 @@ Every placeholder threshold/material value lives here until verified.
 | load.finishes.min / max | 0.5 / 1.5 | kN/m² | Brazil pack | UNSOURCED – placeholder (E-43) | UNVERIFIED |
 | slab.joist.selfWeight.min / max | 1.5 / 3.0 | kN/m² | Brazil pack | UNSOURCED – placeholder (E-43) | UNVERIFIED |
 | slab.solid.thickness.min / max | 80 / 150 | mm | Brazil pack | UNSOURCED – placeholder, used only when unknown (E-43) | UNVERIFIED |
+| lintel.bearing | 200 | mm | Brazil pack | UNSOURCED – placeholder (E-34) | UNVERIFIED |
+| lintel.concrete.fck.min / max | 15 / 25 | MPa | Brazil pack | UNSOURCED – placeholder, untested existing lintel (E-44) | UNVERIFIED |
+| lintel.cover | 25 | mm | Brazil pack | NBR 6118:2014 Tabela 7.2 (beam, CAA I) (E-44) | UNVERIFIED |
+| material.steel.fyk | 500 | MPa | Brazil pack | NBR 7480:2007 (CA-50) | UNVERIFIED |
+| safety.gammaF / gammaC / gammaS | 1.4 / 1.4 / 1.15 | — | Brazil pack | NBR 6118:2014 Tabelas 11.1 / 12.1 (E-44) | UNVERIFIED |
+| concrete.block.alpha / lambda, concrete.xd.max | 0.85 / 0.8, 0.45 | — | Brazil pack | NBR 6118:2014 17.2.2, 14.6.4.3 (E-44) | UNVERIFIED |
 | material.concrete-block.unitWeight / drywall | — (no value: none I can cite) | — | Brazil pack | asked in E-42 | missing |
 
 Since ADR-049 the values live in data packs, not in code; this register mirrors the Brazil pack.

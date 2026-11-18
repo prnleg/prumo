@@ -7,7 +7,7 @@ export const STRUCTURAL = "org.prumo.structural";
  * stays in the file untouched (MODULES rule 7). Component v1 (ADR-042):
  *   wall    → { role?: "bearing" | "non-bearing", origin?: "drawing" | "professional" | "own-judgement",
  *               tieBeam?: true, bonded?: { start?: true, end?: true } }
- *   opening → { lintel?: true, contraverga?: true }
+ *   opening → { lintel?: true, lintelHeight?: mm, lintelBars?: { count, diameter }, contraverga?: true }
  *   chase   → { dir: "horizontal" | "vertical" }   (element type `org.prumo.structural:chase`, hosted on a
  *             wall; a horizontal chase's run along the wall is `host.length`, a vertical one is a point)
  *   protection → { wallId, wall: { start, end, kind }, author, createdAt }   (element type

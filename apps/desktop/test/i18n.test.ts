@@ -51,6 +51,15 @@ describe("UI i18n (ADR-021/034)", () => {
             what: "parede de 4,00 m",
             author: "Ana",
             size: "1,2",
+            L: "1,6",
+            md: "4,6",
+            mrd: "5,4–7,1",
+            gf: "1,4",
+            m: "2–3,4",
+            v: "4,9–8,6",
+            d: "10",
+            fck: "15–25",
+            bearing: "0,2",
           }),
         ).not.toThrow();
     }
