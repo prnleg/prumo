@@ -13,6 +13,11 @@ export interface ComponentDecl {
   migrations: Record<number, (data: unknown) => unknown>;
   /** The element was mirrored: e.g. swap per-side data. Absent = data unchanged. Must be pure. */
   mirror?: (data: unknown) => unknown;
+  /**
+   * The element was copied (paste, duplicate, mirror copy) together with others: point references at
+   * their copies. `idOf(old)` = the copy's id, or undefined if that element wasn't copied. Pure.
+   */
+  remap?: (data: unknown, idOf: (old: string) => string | undefined) => unknown;
 }
 
 export interface ModuleManifest {
@@ -113,6 +118,12 @@ export class ModuleHost {
       },
     };
   }
+
+  /** For paste / duplicate / mirror copy: each module's own `remap` (uninstalled modules: unchanged). */
+  readonly remapComponent = (moduleId: ModuleId, data: unknown, idOf: (old: Id) => Id | undefined): unknown => {
+    const r = this.manifests.get(moduleId)?.component?.remap;
+    return r ? r(structuredClone(data), idOf) : data;
+  };
 
   /** For mirrorCommand: apply each module's own mirror rule to its data (uninstalled modules: unchanged). */
   readonly mirrorComponent = (moduleId: ModuleId, data: unknown): unknown => {

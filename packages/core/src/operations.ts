@@ -20,7 +20,7 @@ import {
 } from "./model";
 import { ccw } from "./geometry/slabs";
 import { detectRooms, matchRoomTags, roomTags } from "./geometry/rooms";
-import { copyToClipboard, pasteCommand } from "./clipboard";
+import { copyToClipboard, pasteCommand, remapCopies, type RemapComponent } from "./clipboard";
 
 export interface MoveOptions {
   /** Q-022 default: walls joined to a moved wall stretch to keep the junction. Off = detach (modifier key). */
@@ -177,10 +177,16 @@ export interface DuplicateResult {
  * remapped). An opening selected without its host is skipped (pasting needs a target wall).
  * Ids are drawn now, so redo reproduces the same copies.
  */
-export function duplicateCommand(p: Project, ids: readonly Id[], delta: V, newId: IdSource): DuplicateResult {
+export function duplicateCommand(
+  p: Project,
+  ids: readonly Id[],
+  delta: V,
+  newId: IdSource,
+  remap?: RemapComponent,
+): DuplicateResult {
   const clip = copyToClipboard(p, ids);
   const count = clip.walls.length + clip.hosted.length + clip.points.length;
-  return pasteCommand(clip, delta, undefined, newId, { key: "cmd.duplicate", params: { count } });
+  return pasteCommand(clip, delta, undefined, newId, { key: "cmd.duplicate", params: { count } }, remap);
 }
 
 /**
@@ -316,7 +322,15 @@ export function mirrorCommand(
   ids: readonly Id[],
   axis: MirrorAxis,
   through: V,
-  mode: { copy: boolean; newId: IdSource; stretch?: boolean; joinTol?: number; mirrorComponent?: MirrorComponent },
+  mode: {
+    copy: boolean;
+    newId: IdSource;
+    stretch?: boolean;
+    joinTol?: number;
+    mirrorComponent?: MirrorComponent;
+    /** Mirror COPY: modules point references at the copies (see `remapCopies`). */
+    remapComponent?: RemapComponent;
+  },
 ): MirrorResult {
   const f = reflector(axis, through);
   const walls = [...new Set(ids)]
@@ -362,19 +376,25 @@ export function mirrorCommand(
   const skipped = walls.filter(onAxis).map((w) => w.id);
   const copies: Element[] = [];
   const newIds: Id[] = [];
+  const idMap = new Map<Id, Id>();
   for (const w of walls) {
     if (skipped.includes(w.id)) continue;
     const id = mode.newId();
     newIds.push(id);
+    idMap.set(w.id, id);
     copies.push({ ...mirrorWall(structuredClone(w), f, mode.mirrorComponent), id });
-    for (const o of hostedOn(w.id))
-      copies.push({ ...mirrorOpening(structuredClone(o)), id: mode.newId(), host: { ...o.host, elementId: id } });
+    for (const o of hostedOn(w.id)) {
+      const oid = mode.newId();
+      idMap.set(o.id, oid);
+      copies.push({ ...mirrorOpening(structuredClone(o)), id: oid, host: { ...o.host, elementId: id } });
+    }
   }
   // point items picked with them (ADR-058): mirrored copies too
   for (const e of Object.values(p.elements)) {
     if (!ids.includes(e.id) || !isModuleElement(e) || e.host || !e.at) continue;
     const id = mode.newId();
     newIds.push(id);
+    idMap.set(e.id, id);
     const data = mode.mirrorComponent
       ? Object.fromEntries(
           Object.entries(e.components).map(([m, c]) => [m, { ...c, data: mode.mirrorComponent?.(m, c.data) }]),
@@ -383,7 +403,8 @@ export function mirrorCommand(
     copies.push({ ...structuredClone(e), id, at: f(e.at), components: structuredClone(data) });
   }
   const label: Label = { key: "cmd.mirrorCopy", params: { count: newIds.length } };
-  return { command: { label, apply: (q) => putElements(q, copies), exact: true }, newIds, skipped };
+  const out = remapCopies(copies, idMap, mode.remapComponent);
+  return { command: { label, apply: (q) => putElements(q, out), exact: true }, newIds, skipped };
 }
 
 // --- room names --------------------------------------------------------------------------------

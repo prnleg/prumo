@@ -1365,6 +1365,7 @@ function mirrorSelection(axis: MirrorAxis) {
     copy: keepOriginal.value,
     newId: randomIds,
     mirrorComponent: modules.mirrorComponent,
+    remapComponent: modules.remapComponent,
   });
   run(r.command);
   if (r.newIds.length) selectTool.selection = r.newIds;
@@ -1375,7 +1376,7 @@ function duplicateSelection() {
   const ids = selectTool.elementIds();
   if (!ids.length) return;
   const g = 500; // 50 cm down-right (EDITING_OPERATIONS "fixed offset" default)
-  const d = duplicateCommand(history.current, ids, { x: g, y: -g }, randomIds);
+  const d = duplicateCommand(history.current, ids, { x: g, y: -g }, randomIds, modules.remapComponent);
   run(d.command);
   if (d.newIds.length) selectTool.selection = d.newIds;
   sync();
@@ -1401,7 +1402,7 @@ function paste() {
     const g = gridSize.value;
     const raw = cursorAt ? { x: cursorAt.x - clip.anchor.x, y: cursorAt.y - clip.anchor.y } : { x: 500, y: -500 };
     const delta = { x: Math.round(raw.x / g) * g + 0, y: Math.round(raw.y / g) * g + 0 };
-    const r = pasteCommand(clip, delta, level.value, randomIds);
+    const r = pasteCommand(clip, delta, level.value, randomIds, undefined, modules.remapComponent);
     if (run(r.command)) {
       setTool("select");
       selectTool.selection = r.newIds;
