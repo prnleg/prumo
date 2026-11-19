@@ -1081,3 +1081,15 @@ Branch `modules/structural-checks`, stacked on `modules/structural-panels`.
 **Tests**: structural +2 (reach hand values; checks wait for the edit to settle, export notes, stop), desktop +1 (App doesn't run checks). Screenshots: checks panel, 3D colours, exported sheet notes page — same as before.
 
 **Next**: step 4 — Settings → values (material weights, pack sources), the "structure" menu item and the remaining dev demos; then the strings sweep (all Structural keys into the module) and Structural's manifest into the install list.
+
+### Session #13, part 9 — Structural onto the module hooks, step 4: Settings, 3D, menu, strings sweep (ADR-059), 2026-11-18
+
+Branch `modules/structural-finish`, stacked on `modules/structural-checks`.
+
+**Done**: `ModuleUi.settings` (Settings section; Structural's values table moved, `module-structural/src/ui/settings.ts`), `ModuleUi.slabThickness` (3D), View menu → one on/off item per module, Structural's manifest into `installed-modules.ts`. Strings sweep: 223 keys (rules, checks panel, loads, lintels, roles, protection, slabs, materials…) moved into `module-structural/src/ui/messages.ts`; `menu.structureChecks` removed (unused). i18n tests: every installed module's strings — same keys in en / pt-BR, valid ICU with sample values, banned words (SAFETY_AND_LIABILITY) — the banned-word guard now covers module strings too. `structural-ui.test.ts` registers the module's strings first.
+
+**Decided alone (reversible):** the construction-system question stays in the app for now and is logged as Q-143 (owner decides); the dev demos keep a few direct Structural calls (dev-only).
+
+**Tests**: desktop +2 (module strings complete + ICU per installed module; banned words over module strings). Screenshots: Settings values table (pt-BR), lintel panel (en) — same as before.
+
+**Next**: ADR-020 public API + ADR-023 trust model need the owner. Unblocked meanwhile: Electrical next slices (circuits) — ROADMAP Phase 5b.

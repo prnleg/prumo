@@ -1,7 +1,11 @@
 import { emptyProject, putElements, type Opening, type Wall } from "@prumo/core";
 import { R_OPEN_001, runChecks } from "@prumo/module-structural";
 import { describe, expect, it } from "vitest";
+import { structuralUi } from "@prumo/module-structural/ui";
+import { registerMessages } from "../src/i18n";
 import { cards, findingText, paramText } from "../src/structural-ui";
+
+registerMessages(structuralUi.messages); // Structural's words live in the module (ADR-059)
 
 const wall: Wall = {
   id: "w",

@@ -1,7 +1,7 @@
 // What a module can add to the app's screens (ADR-059). The app knows these shapes, never a module's
 // name: a module hands over one `ModuleUi` and the app shows its tools, plan symbols, panel sections,
 // strings and its line in Settings → Modules. Internal API (ADR-020: public only after it settles).
-import type { Command, Element, History, IdSource, Project, V } from "@prumo/core";
+import type { Command, Element, History, IdSource, Project, Slab, V } from "@prumo/core";
 import type { Component } from "vue";
 
 /** Where the pointer is, in plan terms (same shape the Architect tools use). */
@@ -160,6 +160,10 @@ export interface ModuleUi {
    * fields. Props: `ctx` + `element` (as `elementPanel`). ADR-059 step 2.
    */
   sections?: Readonly<Partial<Record<"wall" | "opening" | "slab", PanelSection>>>;
+  /** A section in Settings → "This project" (e.g. the values its checks use). Props: `ctx`. */
+  settings?: PanelSection;
+  /** How thick a slab is drawn in 3D, mm, from the module's data; null / undefined = the default. */
+  slabThickness?(slab: Slab): number | null | undefined;
   /** Switched on: start its session (analysis, panels, marks). `ctx` always returns the current context. */
   start?(ctx: () => UiContext): ModuleSession;
   /** Dev only (`?demo=module`): add sample items; returns an item and a room key to select. */
