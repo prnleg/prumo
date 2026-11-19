@@ -29,6 +29,7 @@ import {
 } from "../data";
 import { ELECTRICAL, LIGHT, OUTLET, SWITCH } from "../manifest";
 import { facePoint, roomElectrical } from "../minimums";
+import { electricalSolids } from "../solids";
 import { electricalPacks } from "../packs";
 import { ElectricalTool, sideOf } from "../tool";
 import { MESSAGES } from "./messages";
@@ -43,6 +44,9 @@ const PATHS = {
   light: `${CIRCLE(7)} M-5,-5 L5,5 M5,-5 L-5,5`,
 };
 
+/** Plan symbols sit this far past the wall face, mm (drawing value: clear of the wall's outline). */
+const SYMBOL_OFF = 30;
+
 /** Where each item's symbol goes: outlets / switches just off the face they're on; lights at their point. */
 function marks(ctx: UiContext): PlanMark[] {
   const p = ctx.project;
@@ -53,7 +57,7 @@ function marks(ctx: UiContext): PlanMark[] {
     const w = "host" in e && e.host ? p.elements[e.host.elementId] : undefined;
     if (w?.type !== "wall" || !("host" in e) || !e.host) return [];
     const d = electricalData(e);
-    const at = facePoint({ ...w, thickness: 0 }, e.host.offset, d.face ?? "left");
+    const at = facePoint(w, e.host.offset, d.face ?? "left", SYMBOL_OFF);
     return k === "switch"
       ? [{ id: e.id, at, path: PATHS.switch, text: "S" }]
       : [{ id: e.id, at, path: PATHS.outlet, filled: d.purpose === "dedicated" }];
@@ -350,6 +354,7 @@ export const electricalUi: ModuleUi = {
   tools: [tool("outlet", Plug), tool("switch", ToggleRight), tool("light", Lightbulb)],
   marks,
   links,
+  solids3d: (ctx) => electricalSolids(ctx.project),
   elementTypes: [OUTLET, SWITCH, LIGHT],
   elementPanel: ElementPanel,
   roomPanel: RoomPanel,

@@ -27,6 +27,7 @@ import {
   switchLights,
   withElectricalData,
   electricalData,
+  facePoint,
 } from "../src";
 
 const W = (id: string, x1: number, y1: number, x2: number, y2: number): Wall => ({
@@ -199,5 +200,30 @@ describe("copying a switch (paste / duplicate / mirror copy)", () => {
     );
     const q = m.command.apply(p());
     expect(switchLights(q, q.elements["c2"]!)).toEqual(["c3", "c4"]);
+  });
+});
+
+describe("items in 3D and on the wall face", () => {
+  it("an outlet's plate sits on the wall's face, centred at its height; a light hangs under the ceiling", async () => {
+    const { electricalSolids } = await import("../src");
+    const out = newWallItem("o", "outlet", walls[0]!, 500, "left"); // bot: (0,0)→(4000,0), left = +y
+    const q = project([out, newLight("L", "l", { x: 2000, y: 1500 })]);
+    const s = electricalSolids(q);
+    const plate = s.find((x) => x.id === "o")!;
+    // centre wall 140 → left face at y = 70; plate 80 wide (460…540), 12 out (70…82), 120 tall around 300
+    const ys = plate.outline.map((v) => v.y);
+    const xs = plate.outline.map((v) => v.x);
+    expect([Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]).toEqual([460, 540, 70, 82]);
+    expect([plate.z0, plate.z1, plate.host, plate.kind]).toEqual([240, 360, "bot", "fixture"]);
+    const light = s.find((x) => x.id === "L")!;
+    const H = q.levels[0]!.defaultWallHeight;
+    expect([light.z0, light.z1]).toEqual([H - 50, H]);
+  });
+
+  it("a wall drawn by its outside face (body on the left): the left face is a whole thickness away", () => {
+    const w = { ...walls[0]!, alignment: "left" as const };
+    // the room the item looks into: 140 (face) + 100 past it
+    expect(facePoint(w, 500, "left")).toEqual({ x: 500, y: 240 });
+    expect(facePoint(w, 500, "right")).toEqual({ x: 500, y: -100 });
   });
 });

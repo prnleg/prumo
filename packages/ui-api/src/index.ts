@@ -1,7 +1,7 @@
 // What a module can add to the app's screens (ADR-059). The app knows these shapes, never a module's
 // name: a module hands over one `ModuleUi` and the app shows its tools, plan symbols, panel sections,
 // strings and its line in Settings → Modules. Internal API (ADR-020: public only after it settles).
-import type { Command, Element, History, IdSource, Project, Slab, V } from "@prumo/core";
+import type { Command, Element, History, IdSource, Project, Slab, Solid, V } from "@prumo/core";
 import type { Component } from "vue";
 
 /** Where the pointer is, in plan terms (same shape the Architect tools use). */
@@ -153,6 +153,12 @@ export interface ModuleUi {
   messages: Readonly<Record<string, Readonly<Record<string, string>>>>;
   tools?: readonly ToolContribution[];
   marks?(ctx: UiContext): PlanMark[];
+  /**
+   * Small 3D items of the WHOLE project (every floor), as vertical prisms (core `Solid`, kind "fixture";
+   * `id` = the element, so a click selects it; `host` = the wall it hangs on, hidden with that wall's upper
+   * part). Drawing only, never stored.
+   */
+  solids3d?(ctx: UiContext): Solid[];
   links?(ctx: UiContext): PlanLink[];
   /** Element types whose panel this module draws, and the section component. */
   elementTypes?: readonly string[];

@@ -38,6 +38,7 @@ export interface Palette {
   advisory: number;
   frame: number;
   leaf: number;
+  fixture: number;
 }
 
 export const LIGHT: Palette = {
@@ -53,6 +54,7 @@ export const LIGHT: Palette = {
   advisory: 0x4a90d9,
   frame: 0xf3f1ec,
   leaf: 0xa8784f,
+  fixture: 0xfbf7ee,
 };
 export const DARK: Palette = { ...LIGHT, edge: 0x222222 };
 
@@ -83,7 +85,9 @@ function color(kind: SolidKind, wallKind: Solid["wallKind"], c: Palette, selecte
         ? c.frame
         : kind === "leaf"
           ? c.leaf
-          : c.floor;
+          : kind === "fixture"
+            ? c.fixture
+            : c.floor;
 }
 
 function material(kind: SolidKind, col: number, map: Texture | null = null) {
@@ -295,9 +299,10 @@ export function buildGroup(model: BuildingModel, c: Palette, o: BuildOptions = {
     mesh.receiveShadow = true;
     if (s.kind === "glass" || s.kind === "slab") mesh.renderOrder = 1;
     group.add(mesh);
-    if (s.kind === "slab") {
+    if (s.kind === "slab" || s.kind === "fixture") {
+      // outlined: a slab's edge, and a small fixture (white plate on a light wall) stays visible
       const edges = new LineSegments(new EdgesGeometry(mesh.geometry, 30), edgeMat);
-      edges.userData = { id: s.id, levelId: s.levelId, edge: true, kind: "slab" };
+      edges.userData = { id: s.id, levelId: s.levelId, edge: true, kind: s.kind, host: s.host };
       edges.raycast = () => undefined;
       group.add(edges);
     }

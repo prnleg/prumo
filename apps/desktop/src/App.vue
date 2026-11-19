@@ -654,20 +654,22 @@ const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
 const prefersDark = ref(darkQuery?.matches ?? false);
 darkQuery?.addEventListener?.("change", (e) => (prefersDark.value = e.matches));
 const EMPTY_MODEL = { solids: [], shells: [] };
-const model3d = computed(() =>
-  show3d.value
-    ? buildingModel(project.value, {
-        // a module may know a slab's thickness (Structural keeps it in its data)
-        slabThickness: (s) => {
-          for (const m of activeUis.value) {
-            const th = m.slabThickness?.(s);
-            if (th) return th;
-          }
-          return undefined;
-        },
-      })
-    : EMPTY_MODEL,
-);
+const model3d = computed(() => {
+  if (!show3d.value) return EMPTY_MODEL;
+  const model = buildingModel(project.value, {
+    // a module may know a slab's thickness (Structural keeps it in its data)
+    slabThickness: (s) => {
+      for (const m of activeUis.value) {
+        const th = m.slabThickness?.(s);
+        if (th) return th;
+      }
+      return undefined;
+    },
+  });
+  // small items modules add (outlet plates, ceiling lights…; ADR-059)
+  const extra = activeUis.value.flatMap((u) => u.solids3d?.(uiCtx.value) ?? []);
+  return extra.length ? { ...model, solids: [...model.solids, ...extra] } : model;
+});
 /** Walls of the floor being edited in 3D (ADR-054): low / see inside (default) / full. */
 const wallMode = ref<WallMode>("cutaway");
 const WALL_MODES = [
@@ -2247,7 +2249,13 @@ if (demo === "export" || demo === "export-full") {
       document.body.append(img);
     });
 }
-if (demo === "module" || demo === "module-room" || demo === "module-sheet" || demo === "module-alt") {
+if (
+  demo === "module" ||
+  demo === "module-room" ||
+  demo === "module-sheet" ||
+  demo === "module-alt" ||
+  demo === "module-3d"
+) {
   // every module with a screen part on, its sample items placed (`ModuleUi.demo`)
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -2262,6 +2270,11 @@ if (demo === "module" || demo === "module-room" || demo === "module-sheet" || de
           ];
       }
       sync();
+      if (demo === "module-3d") {
+        selectTool.selection = [];
+        setViewMode("3d");
+        wallMode.value = "cutaway";
+      }
       if (demo === "module-sheet") {
         // the exported sheet with the modules' symbols (checking the output)
         const c = exportCanvases({ format: "png", paper: "a4", scale: "fit", floors: "this", marks: false }).sheets[0];
