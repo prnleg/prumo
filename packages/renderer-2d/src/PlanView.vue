@@ -478,6 +478,8 @@ function wheel(e: WheelEvent) {
       class="north"
       :transform="`translate(${size.w - 30} ${size.h - 34})`"
       @pointerdown.stop
+      @mousedown.prevent
+      @dblclick.stop.prevent
       @click="emit('north', $event.shiftKey ? -45 : 45)"
     >
       <title>{{ northTip }}</title>
@@ -501,6 +503,7 @@ function wheel(e: WheelEvent) {
   background: var(--plan-bg);
   touch-action: none;
   cursor: crosshair;
+  -webkit-user-select: none; /* WebKit (macOS app window) still needs the prefix */
   user-select: none;
 }
 .grid line {

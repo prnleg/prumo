@@ -31,7 +31,6 @@ const emit = defineEmits<{
   angle: [deg: number];
   outsideFaces: [on: boolean];
   system: [s: ConstructionSystem];
-  structural: [on: boolean];
   module: [id: string, on: boolean];
   name: [name: string];
   deleteVersion: [id: string];
@@ -132,14 +131,6 @@ const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateS
       <label class="check">
         <input type="checkbox" checked disabled />
         <span>{{ t("module.architect.name") }} · {{ t("settings.modules.required") }}</span>
-      </label>
-      <label class="check">
-        <input
-          type="checkbox"
-          :checked="structural"
-          @change="emit('structural', ($event.target as HTMLInputElement).checked)"
-        />
-        <span>{{ t("module.structural.name") }}</span>
       </label>
       <label v-for="m in moduleToggles ?? []" :key="m.id" class="check">
         <input

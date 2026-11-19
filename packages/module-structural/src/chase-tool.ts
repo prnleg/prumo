@@ -56,7 +56,7 @@ export class ChaseTool {
     const base = this.gesture?.base ?? this.h.current;
     if (this.options.dir === "vertical") {
       this.move(p);
-      this.commit();
+      this.place();
       return;
     }
     if (!this.first) {
@@ -68,7 +68,7 @@ export class ChaseTool {
     }
     this.move(p);
     if (!this.length) return; // zero-length: keep waiting for a real second point
-    this.commit();
+    this.place();
   }
 
   /** Tool switch / Esc / right-click / before undo: drop the preview and any half-drawn chase. */
@@ -80,7 +80,7 @@ export class ChaseTool {
     this.length = null;
   }
 
-  private commit() {
+  private place() {
     const g = this.gesture;
     if (g && this.id && g.project.elements[this.id]) g.commit();
     else g?.cancel();

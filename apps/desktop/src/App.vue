@@ -80,7 +80,6 @@ import {
   diffFindings,
   profileIdFor,
   runChecks,
-  ChaseTool,
   isChase,
   isProtection,
   protectCommand,
@@ -97,12 +96,9 @@ import {
   aboveOf,
   joistDirection,
   setAbove,
-  SLAB_KINDS,
-  SlabTool,
   setSlabInfo,
   slabInfo,
   type SlabKind,
-  type SlabMode,
   STRUCTURAL,
   materialTable,
   wallLoads,
@@ -114,7 +110,6 @@ import {
   type WallMaterial,
   type Above,
   type JoistDir,
-  type ChaseDir,
   type CheckResult,
   type Finding,
   type ConstructionSystem,
@@ -136,7 +131,6 @@ import {
   Columns2,
   Compass,
   Map as MapIcon,
-  Cable,
   DoorOpen,
   GitCompare,
   Grid2x2,
@@ -144,14 +138,11 @@ import {
   Maximize,
   MessageSquare,
   MousePointer2,
-  MoveHorizontal,
-  MoveVertical,
   Pentagon,
   RectangleHorizontal,
   Redo2,
   Save,
   Send,
-  SquareStack,
   Settings as SettingsIcon,
   SquareDashed,
   SquareSplitHorizontal,
@@ -197,7 +188,8 @@ import {
   translate,
   type Params,
 } from "./i18n";
-import type { ModuleUi, UiContext, UiTool } from "@prumo/ui-api";
+import type { ModuleUi, ToolPreview, UiContext, UiTool } from "@prumo/ui-api";
+import { SlabUiTool } from "@prumo/module-structural/ui"; // dev demos only
 import { MODULE_UIS, OPTIONAL_MANIFESTS } from "./installed-modules";
 
 // dev screenshots: ?lang=pt-BR forces the language (ignored in builds)
@@ -350,55 +342,9 @@ const openingTool = new OpeningTool(history, {
   magnetPx: DEFAULT_SNAP.endpointRadiusPx,
 });
 
-/** Chase tool (Structural, R-WALL-004): where a wall gets cut for pipes or wiring. */
-const chaseTool = new ChaseTool(history, {
-  ids: randomIds,
-  levelId: firstLevelId,
-  dir: "horizontal",
-  grid: DEFAULT_SNAP.grid,
-});
-const chaseDirection = ref<ChaseDir>("horizontal");
-
-// --- slab tool (ADR-050): cover rooms, or draw an outline -------------------------------------------
-const slabTool = new SlabTool(history, {
-  ids: randomIds,
-  levelId: firstLevelId,
-  mode: "rooms",
-  grid: DEFAULT_SNAP.grid,
-  snapPx: DEFAULT_SNAP.endpointRadiusPx,
-});
-const slabMode = ref<SlabMode>("rooms");
-/** Type for new slabs; "" = don't know. */
-const slabNewKind = ref<SlabKind | "">("");
-const slabPreview = shallowRef<V[][]>([]);
-const slabPicked = ref<string[]>([]);
-function setSlabMode(m: SlabMode) {
-  slabTool.cancel();
-  slabMode.value = m;
-  slabTool.options = { ...slabTool.options, mode: m };
-  sync();
-}
-function setSlabNewKind(k: SlabKind | "") {
-  slabNewKind.value = k;
-  const o = { ...slabTool.options };
-  delete o.kind;
-  slabTool.options = k ? { ...o, kind: k } : o;
-}
-function finishSlab() {
-  slabTool.finish();
-  sync();
-}
 function editSlab(id: string, info: { kind?: SlabKind; joists?: JoistDir; thickness?: number }) {
   run(updateCommand({ key: "cmd.editSlab" }, [id], (e) => (e.type === "slab" ? setSlabInfo(e, info) : e)));
 }
-function setChaseDir(d: ChaseDir) {
-  chaseTool.finish();
-  slabTool.cancel();
-  chaseDirection.value = d;
-  chaseTool.options = { ...chaseTool.options, dir: d };
-  sync();
-}
-
 /** After New/Open (or undoing "add floor") the level is gone: go to the lowest floor. */
 history.subscribe((e) => {
   if (e.project.levels.some((l) => l.id === level.value)) return;
@@ -407,7 +353,7 @@ history.subscribe((e) => {
 });
 function pointToolsAt(id: string, wallHeight: number) {
   level.value = id;
-  for (const tl of [openingTool, selectTool, chaseTool, slabTool]) tl.options = { ...tl.options, levelId: id };
+  for (const tl of [openingTool, selectTool]) tl.options = { ...tl.options, levelId: id };
   wallTool.options = { ...wallTool.options, levelId: id, height: wallHeight };
   roomTool.options = { ...roomTool.options, levelId: id, height: wallHeight };
   selectTool.selection = [];
@@ -448,6 +394,7 @@ watch(
     roomTool.options = { ...roomTool.options, snap: s };
     openingTool.options = { ...openingTool.options, grid: s.grid };
     selectTool.options = { ...selectTool.options, grid: s.grid };
+    for (const tl of modTools.values()) if (tl.options.grid !== undefined) tl.options = { ...tl.options, grid: s.grid };
   },
   { immediate: true },
 );
@@ -489,16 +436,16 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   prefsReady.value = true;
   if (prefs.prefs.locale && !devLang) locale.value = prefs.prefs.locale;
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
-  if (prefs.prefs.structuralOff) structuralOn.value = false;
+  // before ADR-059 step 1 Structural had its own switch (`structuralOff`); now it's one of the modules
+  if (prefs.prefs.structuralOff && prefs.prefs.modules?.[STRUCTURAL] === undefined) structuralOn.value = false;
   if (prefs.prefs.modules) modulesOn.value = { ...modulesOn.value, ...prefs.prefs.modules };
   if (prefs.prefs.name) myName.value = prefs.prefs.name;
-  watch(structuralOn, (on) => savePrefs({ structuralOff: !on }));
   watch(modulesOn, (m) => savePrefs({ modules: m }));
   watch(locale, (l) => savePrefs({ locale: l }));
   watch(angleStep, (a) => savePrefs({ angleStepDeg: a }));
 });
 
-type ToolName = "select" | "room" | "wall" | "door" | "window" | "chase" | "note" | "slab" | ModTool;
+type ToolName = "select" | "room" | "wall" | "door" | "window" | "note" | ModTool;
 const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
 const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
@@ -511,7 +458,10 @@ const walls = computed(() => wallsOnLevel(project.value, level.value));
 // Module manager stage 1 (ADR-020): Structural can be switched off in Settings → Modules (no UI, no
 // checks; its data stays in the file). Quiet while creating (ADR-025): checks re-run only after an
 // edit settles (not during a drag), with a short delay so findings don't flicker while working.
-const structuralOn = ref(true);
+const structuralOn = computed({
+  get: () => modulesOn.value[STRUCTURAL] !== false,
+  set: (on: boolean) => (modulesOn.value = { ...modulesOn.value, [STRUCTURAL]: on }),
+});
 const checks = shallowRef<CheckResult | null>(null);
 const checksDiff = shallowRef<FindingsDiff | null>(null);
 const SETTLE_MS = 1500;
@@ -536,7 +486,7 @@ history.subscribe((e) => {
   if (e.type === "commit") scheduleCheck(e.label.key !== "cmd.open");
 });
 watch(structuralOn, (on) => {
-  if (!on && tool.value === "chase") setTool("select");
+  if (!on && isModTool(tool.value) && tool.value.startsWith(`mod:${STRUCTURAL}/`)) setTool("select");
   recheck(false);
 });
 onBeforeUnmount(() => settleTimer && clearTimeout(settleTimer));
@@ -704,7 +654,7 @@ const rooms = computed(() =>
       floor: r.floor,
       at: r.labelAt,
       label: [r.label, formatArea(r.floorArea, locale.value)],
-      selected: selection.value.includes(ROOM_PREFIX + r.key) || slabPicked.value.includes(r.key),
+      selected: selection.value.includes(ROOM_PREFIX + r.key) || (modPreview.value.rooms ?? []).includes(r.key),
       ...(() => {
         const f = finishById(r.floorFinish);
         return f ? { fill: f.color } : {};
@@ -741,6 +691,7 @@ const uiCtx = computed<UiContext>(() => ({
   ids: randomIds,
   t: (k, p) => t(k, p),
   run,
+  refresh: () => sync(),
   formatLength: (mm) => formatLength(mm, locale.value),
   formatArea: (mm2) => formatArea(mm2, locale.value),
   formatCm: (mm) => formatCm(mm, locale.value),
@@ -1214,8 +1165,9 @@ function sync() {
         ? { point: roomTool.hover, kind: "grid" as const }
         : null;
   roomHover.value = roomTool.hover;
-  slabPreview.value = tool.value === "slab" ? slabTool.preview : [];
-  slabPicked.value = tool.value === "slab" ? [...slabTool.picked] : [];
+  const mt = currentModTool();
+  const mdef = modToolDef(tool.value);
+  modPreview.value = mt && mdef?.preview ? mdef.preview(uiCtx.value, mt) : {};
   selection.value = [...selectTool.selection];
   box.value = selectTool.box ? { ...selectTool.box } : null;
   const pan = selectTool.takePan();
@@ -1227,11 +1179,9 @@ function sync() {
         ? selectTool.blocked
         : tool.value === "room"
           ? roomTool.blocked
-          : tool.value === "chase" || isModTool(tool.value)
-            ? []
-            : tool.value === "slab"
-              ? slabTool.blocked
-              : openingTool.blocked;
+          : mt
+            ? (mt.blocked ?? [])
+            : openingTool.blocked;
   blocked.value = [...new Set(probs.map((p) => p.code))];
   tooShort.value = (tool.value === "door" || tool.value === "window") && openingTool.tooShort;
 }
@@ -1240,7 +1190,6 @@ function endTools() {
   if (wallTool.active) wallTool.finish();
   roomTool.finish();
   openingTool.finish();
-  chaseTool.finish();
   for (const tl of modTools.values()) tl.finish();
   noteDraft.value = null;
   selectTool.cancel();
@@ -1480,7 +1429,7 @@ async function takeOver() {
   if (await session.takeOver(name)) sync();
 }
 /** Tools that change the plan; off while it's not your turn. */
-const EDIT_TOOLS: readonly ToolName[] = ["room", "wall", "door", "window", "chase", "slab"];
+const EDIT_TOOLS: readonly ToolName[] = ["room", "wall", "door", "window"];
 /** Every module tool edits the plan. */
 const editsPlan = (n: ToolName) => EDIT_TOOLS.includes(n) || isModTool(n);
 watch(notMyTurn, (locked) => {
@@ -1664,6 +1613,7 @@ function onPointer(e: PlanPointer) {
     if (e.type === "move") mt.move(info);
     else if (e.type === "down" && e.button === 0) mt.click(info);
     else if (e.type === "down" && e.button === 2) mt.finish();
+    else if (e.type === "dblclick") mt.dblclick?.(info);
     sync();
     return;
   }
@@ -1675,21 +1625,6 @@ function onPointer(e: PlanPointer) {
   }
   if (tool.value === "note") {
     if (e.type === "down" && e.button === 0 && !noteDraft.value) startNote(e.at, e.scale);
-    return;
-  }
-  if (tool.value === "chase") {
-    if (e.type === "move") chaseTool.move(info);
-    else if (e.type === "down" && e.button === 0) chaseTool.click(info);
-    else if (e.type === "down" && e.button === 2) chaseTool.finish();
-    sync();
-    return;
-  }
-  if (tool.value === "slab") {
-    if (e.type === "move") slabTool.move(info);
-    else if (e.type === "down" && e.button === 0) slabTool.click(info);
-    else if (e.type === "down" && e.button === 2) slabTool.cancel();
-    else if (e.type === "dblclick") slabTool.finish();
-    sync();
     return;
   }
   if (tool.value === "select") {
@@ -1738,11 +1673,7 @@ const labels = computed(() => {
       return [];
     });
   }
-  if (tool.value === "chase") {
-    void tick.value;
-    const at = chaseTool.at;
-    return at && chaseTool.length ? [{ at, text: formatLength(chaseTool.length, locale.value) }] : [];
-  }
+  if (isModTool(tool.value)) return [...(modPreview.value.labels ?? [])];
   if (tool.value === "room") {
     const r = roomHover.value;
     if (!roomTool.size || !r) return [];
@@ -1795,6 +1726,23 @@ function currentModTool(): UiTool | null {
   if (tl.options.levelId !== level.value) tl.options = { ...tl.options, levelId: level.value };
   return tl;
 }
+/** What the module tool that's on shows on the plan (outlines, picked rooms, live labels). */
+const modPreview = shallowRef<ToolPreview>({});
+/** The module tool's options bar (direction, mode…), if it has one. */
+const modBar = computed(() => {
+  void tick.value;
+  const d = modToolDef(tool.value);
+  const tl = d?.bar ? currentModTool() : null;
+  return d?.bar && tl ? { bar: d.bar, tool: tl } : null;
+});
+/** Dev demos: the Structural slab tool, on, making slabs of this type. */
+function demoSlabTool(kind: SlabKind) {
+  setTool(`mod:${STRUCTURAL}/slab`);
+  const tl = currentModTool();
+  if (!(tl instanceof SlabUiTool)) return null;
+  tl.options = { ...tl.options, kind };
+  return tl.slab;
+}
 /** The contribution behind a module tool id (for its hint). */
 const modToolDef = (n: ToolName) => {
   if (!isModTool(n)) return null;
@@ -1804,7 +1752,6 @@ const modToolDef = (n: ToolName) => {
 function onLeave() {
   cursorAt = null;
   if (tool.value === "door" || tool.value === "window") openingTool.finish();
-  if (tool.value === "chase" && !chaseTool.active) chaseTool.finish();
   const mt = currentModTool();
   if (mt && !mt.active) mt.finish();
   sync();
@@ -1830,21 +1777,8 @@ const hint = computed(() => {
   if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
   if (tool.value === "note") return t("hint.note");
   const mdef = modToolDef(tool.value);
-  if (mdef) return mdef.hint(uiCtx.value);
-  if (tool.value === "slab")
-    return slabMode.value === "rooms"
-      ? slabPicked.value.length
-        ? t("hint.slab.rooms.active", { count: slabPicked.value.length })
-        : t("hint.slab.rooms.idle")
-      : slabPreview.value.length
-        ? t("hint.slab.outline.active")
-        : t("hint.slab.outline.idle");
-  if (tool.value === "chase")
-    return chaseDirection.value === "vertical"
-      ? t("hint.chase.vertical")
-      : chaseTool.active
-        ? t("hint.chase.active")
-        : t("hint.chase.idle");
+  const mt = currentModTool();
+  if (mdef && mt) return mdef.hint(uiCtx.value, mt);
   if (tool.value === "door" || tool.value === "window")
     return tooShort.value ? t("hint.opening.tooShort", { kind: tool.value }) : t("hint.opening", { kind: tool.value });
   if (dividerMode.value) return wallTool.active ? t("hint.divider.active") : t("hint.divider.idle");
@@ -1942,30 +1876,6 @@ const toolButtons = computed(() => [
     on: tool.value === "note",
     pick: () => setTool("note"),
   },
-  ...(structuralOn.value
-    ? [
-        {
-          id: "chase",
-          icon: Cable,
-          label: "tool.chase",
-          tip: "tool.chase.tip",
-          tour: undefined,
-          edits: true,
-          on: tool.value === "chase",
-          pick: () => setTool("chase"),
-        },
-        {
-          id: "slab",
-          icon: SquareStack,
-          label: "tool.slab",
-          tip: "tool.slab.tip",
-          tour: undefined,
-          edits: true,
-          on: tool.value === "slab",
-          pick: () => setTool("slab"),
-        },
-      ]
-    : []),
   ...activeUis.value.flatMap((m) =>
     (m.tools ?? []).map((tl) => ({
       id: modToolId(m, tl.id),
@@ -2168,10 +2078,10 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key === "Escape" || e.key === "Enter") {
     if (wallTool.active) wallTool.finish();
     else if (roomTool.active && !(e.key === "Enter" && roomTool.close())) roomTool.finish();
-    else if (chaseTool.active) chaseTool.finish();
-    else if (slabTool.active) {
-      if (e.key === "Enter") slabTool.finish();
-      else slabTool.cancel();
+    else if (currentModTool()?.active) {
+      const mt = currentModTool();
+      if (e.key === "Enter" && mt?.commit) mt.commit();
+      else mt?.finish();
     } else if (e.key === "Escape") setTool("select");
     openingTool.finish();
     sync();
@@ -2357,10 +2267,9 @@ if (
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
-      setTool("slab");
-      setSlabNewKind("joist");
-      for (const r of detected.value) slabTool.click({ at: r.labelAt, scale: 0.1, free: false });
-      slabTool.finish();
+      const slabTool = demoSlabTool("joist");
+      for (const r of detected.value) slabTool?.click({ at: r.labelAt, scale: 0.1, free: false });
+      slabTool?.finish();
       setTool("select");
       const s = Object.values(history.current.elements).find((e) => e.type === "slab");
       if (s) editSlab(s.id, { kind: "joist", joists: "short" });
@@ -2456,16 +2365,15 @@ if (demo === "slabs" || demo === "slab-pick") {
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
-      setTool("slab");
-      setSlabNewKind("joist");
+      const slabTool = demoSlabTool("joist");
+      if (!slabTool) return;
       const P = (q: V) => ({ at: q, scale: 0.1, free: false });
       const rs = [...detected.value].sort((a, b) => b.floorArea - a.floorArea);
       for (const r of rs.slice(0, demo === "slabs" ? rs.length : 2)) slabTool.click(P(r.labelAt));
       if (demo === "slabs") {
         slabTool.finish();
         // a balcony drawn by its outline, sticking out at the front
-        setSlabMode("outline");
-        setSlabNewKind("solid");
+        slabTool.options = { ...slabTool.options, mode: "outline", kind: "solid" };
         for (const q of [
           { x: 1000, y: 0 },
           { x: 1000, y: -1200 },
@@ -2765,49 +2673,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           </option>
         </select>
       </label>
-      <span v-if="tool === 'chase'" class="seg" role="group" :aria-label="t('chaseDir.label')">
-        <button
-          :class="{ on: chaseDirection === 'horizontal' }"
-          :title="t('chaseDir.horizontal.tip')"
-          @click="setChaseDir('horizontal')"
-        >
-          <MoveHorizontal :size="14" /> {{ t("chaseDir.horizontal") }}
-        </button>
-        <button
-          :class="{ on: chaseDirection === 'vertical' }"
-          :title="t('chaseDir.vertical.tip')"
-          @click="setChaseDir('vertical')"
-        >
-          <MoveVertical :size="14" /> {{ t("chaseDir.vertical") }}
-        </button>
+      <span v-if="modBar" class="module-bar">
+        <component :is="modBar.bar" :ctx="uiCtx" :tool="modBar.tool" :rev="tick" />
       </span>
-      <template v-if="tool === 'slab'">
-        <span class="seg" role="group" :aria-label="t('slabMode.label')">
-          <button :class="{ on: slabMode === 'rooms' }" :title="t('slabMode.rooms.tip')" @click="setSlabMode('rooms')">
-            <SquareDashed :size="14" /> {{ t("slabMode.rooms") }}
-          </button>
-          <button
-            :class="{ on: slabMode === 'outline' }"
-            :title="t('slabMode.outline.tip')"
-            @click="setSlabMode('outline')"
-          >
-            <Pentagon :size="14" /> {{ t("slabMode.outline") }}
-          </button>
-        </span>
-        <label class="cmp-pick">
-          {{ t("props.openingStyle") }}
-          <select
-            :value="slabNewKind"
-            @change="setSlabNewKind(($event.target as HTMLSelectElement).value as SlabKind | '')"
-          >
-            <option value="">{{ t("above.unknown") }}</option>
-            <option v-for="k in SLAB_KINDS" :key="k" :value="k">{{ t(`slabKind.${k}`) }}</option>
-          </select>
-        </label>
-        <button v-if="slabMode === 'rooms'" :disabled="!slabPicked.length" @click="finishSlab">
-          {{ t("slab.create", { count: slabPicked.length }) }}
-        </button>
-      </template>
       <span class="spacer" />
       <span class="seg" role="group" :aria-label="t('view3d.label')">
         <button
@@ -2882,7 +2750,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             :hover="tool === 'wall' || tool === 'room' ? hover : null"
             :rooms="rooms"
             :slabs="slabMarks"
-            :slab-preview="slabPreview"
+            :slab-preview="modPreview.outlines ?? []"
             :faces="faces"
             :selected-ids="selection"
             :box="box"
@@ -3116,7 +2984,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           @export-clean="file(() => session.exportClean())"
           @name="setMyName"
           @system="(s) => run(setSystemCommand(s))"
-          @structural="(on) => (structuralOn = on)"
           @module="setModuleOn"
           @grid="setGrid"
           @angle="(a) => (angleStep = a)"
@@ -3485,5 +3352,55 @@ select.compare {
   color: var(--muted);
   background: var(--panel);
   border-top: 1px solid var(--line);
+}
+</style>
+
+<style>
+/* A module's options bar (ADR-059): the module renders plain buttons / lists; they get the bar's look here
+   (not scoped, since the module's elements don't carry this file's scope). */
+.module-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.module-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.module-bar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.module-bar button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.module-bar .seg {
+  display: inline-flex;
+}
+.module-bar .seg button {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+.module-bar .seg button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.module-bar .seg button:last-child {
+  border-radius: 0 6px 6px 0;
+  border-left: none;
+}
+.module-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 </style>
