@@ -154,3 +154,50 @@ describe("Electrical's screen part (ADR-059)", () => {
     expect(en).toContain(electricalUi.name);
   });
 });
+
+describe("copying a switch (paste / duplicate / mirror copy)", () => {
+  const host = new ModuleHost([architectManifest, electricalManifest]);
+  const sw = setSwitchLight(
+    setSwitchLight(newWallItem("sw", "switch", walls[0]!, 500, "left"), "L1", true),
+    "L2",
+    true,
+  );
+  const p = () => project([sw, newLight("L1", "l", { x: 1000, y: 1500 }), newLight("L2", "l", { x: 3000, y: 1500 })]);
+  const ids = () => {
+    let n = 0;
+    return () => `c${++n}`;
+  };
+
+  it("with one of its lights: the copy turns on the copied light, and still the light left behind", async () => {
+    const { duplicateCommand } = await import("@prumo/core");
+    // copies in order: walls (none), the switch is hosted on "bot" (not copied → skipped), points…
+    // so copy the wall too: bot → c1, sw → c2, L1 → c3
+    const d = duplicateCommand(p(), ["bot", "L1"], { x: 0, y: -5000 }, ids(), host.remapComponent);
+    const q = d.command.apply(p());
+    expect(switchLights(q, q.elements["c2"]!)).toEqual(["L2", "c3"]);
+    expect(switchLights(q, q.elements["sw"]!)).toEqual(["L1", "L2"]); // the original is untouched
+  });
+
+  it("without the hook (no Electrical installed) the data is copied as is", async () => {
+    const { duplicateCommand } = await import("@prumo/core");
+    const q = duplicateCommand(p(), ["bot", "L1"], { x: 0, y: -5000 }, ids()).command.apply(p());
+    expect(electricalData(q.elements["c2"]!).lights).toEqual(["L1", "L2"]);
+  });
+
+  it("mirror copy remaps too", async () => {
+    const { mirrorCommand } = await import("@prumo/core");
+    const m = mirrorCommand(
+      p(),
+      ["bot", "L1", "L2"],
+      "vertical",
+      { x: 0, y: -100 },
+      {
+        copy: true,
+        newId: ids(),
+        remapComponent: host.remapComponent,
+      },
+    );
+    const q = m.command.apply(p());
+    expect(switchLights(q, q.elements["c2"]!)).toEqual(["c3", "c4"]);
+  });
+});

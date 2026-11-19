@@ -5,8 +5,9 @@
 //   - an opening copied WITHOUT its wall is "loose": pasting it needs a target wall
 //   - room names don't travel with copies (same as duplicate/mirror copy)
 //   - module items placed at a point (ADR-058: a ceiling light) travel like walls, moved by the delta.
-//     Module data is copied as is: a copied switch still lists the original lights (core doesn't read
-//     module data, MODULES rule 1)
+//   - module data is copied as is, then each module may point its references at the copies made in the
+//     same paste (`ComponentDecl.remap`; core never reads module data, MODULES rule 1): a switch copied
+//     with its lights turns on the copied lights
 import { putElements, wallLength, type Label } from "./edit";
 import { add, sub, type V } from "./geometry/vec";
 import type { Command } from "./history";
@@ -40,6 +41,26 @@ export interface Clipboard {
 }
 
 const byId = <T extends { id: Id }>(a: T, b: T) => (a.id < b.id ? -1 : 1);
+
+/**
+ * A module's references to other elements, after a copy: `idOf(old)` = the copy made in the same
+ * operation, or undefined when that element wasn't copied. Pure. (`ModuleHost.remapComponent`.)
+ */
+export type RemapComponent = (moduleId: string, data: unknown, idOf: (old: Id) => Id | undefined) => unknown;
+
+/** Apply `remap` to every copy's module data (copies made in one operation; `idMap` old → new). */
+export function remapCopies<T extends Element>(copies: T[], idMap: ReadonlyMap<Id, Id>, remap?: RemapComponent): T[] {
+  if (!remap) return copies;
+  const idOf = (old: Id) => idMap.get(old);
+  return copies.map((e) => {
+    const ms = Object.keys(e.components);
+    if (!ms.length) return e;
+    const components = Object.fromEntries(
+      Object.entries(e.components).map(([m, c]) => [m, { ...c, data: remap(m, c.data, idOf) }]),
+    );
+    return { ...e, components };
+  });
+}
 
 export function copyToClipboard(p: Project, ids: readonly Id[]): Clipboard {
   const sel = new Set(ids);
@@ -86,8 +107,10 @@ export function pasteCommand(
   levelId: Id | undefined,
   newId: IdSource,
   label: Label = { key: "cmd.paste", params: { count: clip.walls.length + clip.hosted.length + clip.points.length } },
+  remap?: RemapComponent,
 ): PasteResult {
   const map = new Map(clip.walls.map((w) => [w.id, newId()]));
+  const idMap = new Map(map);
   const copies: Element[] = clip.walls.map((w) => ({
     ...structuredClone(w),
     id: map.get(w.id) ?? "",
@@ -97,22 +120,21 @@ export function pasteCommand(
   }));
   for (const o of clip.hosted) {
     const host = map.get(o.host.elementId);
-    if (host)
-      copies.push({
-        ...structuredClone(o),
-        id: newId(),
-        levelId: levelId ?? o.levelId,
-        host: { ...o.host, elementId: host },
-      });
+    if (!host) continue;
+    const id = newId();
+    idMap.set(o.id, id);
+    copies.push({ ...structuredClone(o), id, levelId: levelId ?? o.levelId, host: { ...o.host, elementId: host } });
   }
   const pointIds: Id[] = [];
   for (const e of clip.points) {
     const id = newId();
     pointIds.push(id);
+    idMap.set(e.id, id);
     copies.push({ ...structuredClone(e), id, levelId: levelId ?? e.levelId, at: add(e.at, delta) });
   }
+  const out = remapCopies(copies, idMap, remap);
   return {
-    command: { label, apply: (q) => putElements(q, copies), exact: true },
+    command: { label, apply: (q) => putElements(q, out), exact: true },
     newIds: [...map.values(), ...pointIds],
   };
 }

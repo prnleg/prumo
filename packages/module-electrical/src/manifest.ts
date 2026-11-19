@@ -28,6 +28,14 @@ export const electricalManifest: ModuleManifest = {
       const x = d as { face?: string } | null;
       return x && (x.face === "left" || x.face === "right") ? { ...x, face: x.face === "left" ? "right" : "left" } : d;
     },
+    // a switch copied together with its lights turns on the copies; lights not copied stay linked (two
+    // switches for one light, like a hallway's)
+    remap: (d, idOf) => {
+      const x = d as { lights?: unknown } | null;
+      return x && Array.isArray(x.lights)
+        ? { ...x, lights: [...new Set((x.lights as string[]).map((id) => idOf(id) ?? id))].sort() }
+        : d;
+    },
   },
   elementTypes: [OUTLET, SWITCH, LIGHT],
 };
