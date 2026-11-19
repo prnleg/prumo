@@ -40,6 +40,26 @@ export const MESSAGES: Readonly<Record<string, Readonly<Record<string, string>>>
     "elec.source": "Minimums of NBR 5410 for homes, from memory",
     "elec.height": "Height",
     "elec.unverified": "UNVERIFIED",
+    "elec.circuits": "Circuit",
+    "elec.circuit": "Circuit number",
+    "elec.circuit.tip":
+      "Which breaker on the panel feeds it (the number written on the panel). Choosing circuits is the electrician's job; Prumo only adds them up.",
+    "elec.circuit.none": "— not given —",
+    "elec.circuit.items":
+      "On circuit {n}: {lights, plural, one {# light} other {# lights}}, {outlets, plural, one {# outlet} other {# outlets}}{dedicated, plural, =0 {} one {, # for one appliance} other {, # for one appliance each}}",
+    "elec.circuit.load": "Estimated load: about {va} VA",
+    "elec.circuit.unknown": "{count, plural, one {# item has} other {# items have}} no estimate yet (not in the total)",
+    "elec.circuit.mixed":
+      "Lights and outlets share this circuit. NBR 5410 asks for separate lighting and outlet circuits.",
+    "elec.circuit.dedicatedShared":
+      "A one-appliance outlet shares this circuit. NBR 5410 asks for a circuit of its own for appliances above 10 A.",
+    "elec.circuit.unassigned":
+      "{count, plural, one {# light or outlet} other {# lights and outlets}} in the project still {count, plural, one {has} other {have}} no circuit.",
+    "elec.power": "Appliance power",
+    "elec.power.tip": "The appliance's power from its label, in VA (or W). Leave empty if you don't know.",
+    "elec.loads.source": "Loads: NBR 5410 rules for homes, from memory · rough sums, not a circuit design",
+    "elec.loads.source.tip":
+      "Lighting: 100 VA for the first 6 m² of a room, +60 VA per whole 4 m² more, shared by its light points. Outlets: 100 VA; kitchens, laundry areas and bathrooms 600 VA for the first 3 (2 if more than 6). An electrician sizes the real circuits.",
   },
   "pt-BR": {
     "module.electrical.name": "Elétrica",
@@ -84,5 +104,27 @@ export const MESSAGES: Readonly<Record<string, Readonly<Record<string, string>>>
     "elec.source": "Mínimos da NBR 5410 para casas, de memória",
     "elec.height": "Altura",
     "elec.unverified": "NÃO VERIFICADO",
+    "elec.circuits": "Circuito",
+    "elec.circuit": "Número do circuito",
+    "elec.circuit.tip":
+      "Qual disjuntor do quadro alimenta este ponto (o número escrito no quadro). Escolher os circuitos é trabalho do eletricista; o Prumo só soma.",
+    "elec.circuit.none": "— não definido —",
+    "elec.circuit.items":
+      "No circuito {n}: {lights, plural, one {# luz} other {# luzes}}, {outlets, plural, one {# tomada} other {# tomadas}}{dedicated, plural, =0 {} one {, # de uso específico} other {, # de uso específico}}",
+    "elec.circuit.load": "Carga estimada: cerca de {va} VA",
+    "elec.circuit.unknown":
+      "{count, plural, one {# ponto ainda não tem} other {# pontos ainda não têm}} estimativa (fora do total)",
+    "elec.circuit.mixed":
+      "Luzes e tomadas no mesmo circuito. A NBR 5410 pede circuitos separados para iluminação e tomadas.",
+    "elec.circuit.dedicatedShared":
+      "Uma tomada de uso específico divide este circuito. A NBR 5410 pede um circuito só dela para aparelhos acima de 10 A.",
+    "elec.circuit.unassigned":
+      "{count, plural, one {# luz ou tomada} other {# luzes e tomadas}} do projeto ainda {count, plural, one {está} other {estão}} sem circuito.",
+    "elec.power": "Potência do aparelho",
+    "elec.power.tip": "A potência na etiqueta do aparelho, em VA (ou W). Deixe vazio se não souber.",
+    "elec.loads.source":
+      "Cargas: regras da NBR 5410 para casas, de memória · somas grosseiras, não é projeto de circuitos",
+    "elec.loads.source.tip":
+      "Iluminação: 100 VA para os primeiros 6 m² do cômodo, +60 VA a cada 4 m² inteiros a mais, divididos entre os pontos de luz. Tomadas: 100 VA; cozinhas, áreas de serviço e banheiros 600 VA para as 3 primeiras (2 se forem mais de 6). Um eletricista dimensiona os circuitos de verdade.",
   },
 };

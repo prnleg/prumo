@@ -1115,3 +1115,13 @@ Branch `export/module-symbols`, stacked on `fixes/export-north-paste`.
 **Tests**: none new (drawing only; checked by screenshot — the sheet with a light, a switch and two outlets).
 
 **Still open**: Electrical items in 3D.
+
+### Session #13, part 12 — Electrical slice 2: circuits and loads (ADR-061), 2026-11-18
+
+Branch `phase5b/electrical-circuits`, stacked on `export/module-symbols`.
+
+**Done**: `module-electrical/src/circuits.ts` (`roomLightingVA`, `itemLoads`, `circuits`, `validCircuit`); pack values for loads (9 new, all UNVERIFIED, EL-02); light / outlet panel → "Circuit": number (existing ones + the next), appliance power for one-appliance outlets, what's on that circuit with its estimated VA, notes (lights + outlets together; shared one-appliance outlet), how many have no circuit. Demo items get circuits (`?demo=module-alt` selects the second outlet). EL-02 added to ENGINEER_QUESTIONS.
+
+**Decided alone (reversible):** circuit = a number on each item (no circuit element, no panel-board element yet); lights carry the circuit, switches don't; wet-room order by id; notes in the item panel, not a checks panel (avoids a second floating panel in the same corner — the overlay stacking is still open).
+
+**Tests**: electrical +6 (hand-calculated lighting blocks, shared light load 80 + 80 VA, kitchen 600 × 3 + 100 and 7 outlets = 1,700 VA, appliance power / unknown, circuit sums 260 / 2,100 VA with notes, circuit numbers). Screenshot: outlet panel in a 15.36 m² bedroom — circuit 1 = 220 VA light + 100 VA outlet = 320 VA with the "lights and outlets" note.

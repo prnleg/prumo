@@ -60,6 +60,10 @@ const SAMPLE = {
   paper: "A4",
   min: 2,
   perimeter: "12,40 m",
+  lights: 1,
+  outlets: 2,
+  dedicated: 1,
+  va: "1.260",
 };
 
 describe("UI i18n (ADR-021/034)", () => {

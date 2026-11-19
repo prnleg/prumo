@@ -14,6 +14,7 @@ import {
 import type { ModuleUi, PlanLink, PlanMark, UiContext } from "@prumo/ui-api";
 import { Lightbulb, Plug, ToggleRight } from "@lucide/vue";
 import { defineComponent, h, ref, type PropType } from "vue";
+import { circuits, MAX_CIRCUIT } from "../circuits";
 import {
   electricalData,
   kindOf,
@@ -84,9 +85,78 @@ function links(ctx: UiContext): PlanLink[] {
 function edit(ctx: UiContext, id: string, f: (e: ModuleElement, d: ElectricalData) => ModuleElement) {
   ctx.run(
     updateCommand({ key: "cmd.editElectrical" }, [id], (e) =>
-      e.type === OUTLET || e.type === SWITCH ? f(e as ModuleElement, electricalData(e)) : e,
+      e.type === OUTLET || e.type === SWITCH || e.type === LIGHT ? f(e as ModuleElement, electricalData(e)) : e,
     ),
   );
+}
+
+/**
+ * Circuit part of a light / outlet panel (ADR-061): which circuit, the appliance's power for a
+ * one-appliance outlet, and what's on that circuit with its estimated load and notes. Information only.
+ */
+function circuitPart(ctx: UiContext, e: Element, d: ElectricalData, rev: { value: number }) {
+  const t = ctx.t;
+  const all = circuits(ctx.project, packs);
+  const used = all.list.map((c) => c.n);
+  const top = Math.min(MAX_CIRCUIT, Math.max(0, ...used) + 1);
+  const nums = [...new Set([...used, top, ...(d.circuit ? [d.circuit] : [])])].sort((a, b) => a - b);
+  const num = (x: number) => new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 0 }).format(x);
+  const out = [
+    h("h4", t("elec.circuits")),
+    h("label", { title: t("elec.circuit.tip") }, [
+      t("elec.circuit"),
+      h(
+        "select",
+        {
+          value: d.circuit ? String(d.circuit) : "",
+          onChange: (ev: Event) => {
+            const v = Number((ev.target as HTMLSelectElement).value);
+            edit(ctx, e.id, (x, dd) => withElectricalData(x, { ...dd, circuit: v || undefined }));
+          },
+        },
+        [
+          h("option", { value: "" }, t("elec.circuit.none")),
+          ...nums.map((n) => h("option", { value: String(n) }, String(n))),
+        ],
+      ),
+    ]),
+  ];
+  if (kindOf(e) === "outlet" && d.purpose === "dedicated")
+    out.push(
+      h("label", { title: t("elec.power.tip") }, [
+        t("elec.power"),
+        h("span", { class: "field" }, [
+          h("input", {
+            key: `${e.id}/p/${d.power ?? ""}/${rev.value}`,
+            value: d.power ? num(d.power) : "",
+            placeholder: "?",
+            onChange: (ev: Event) => {
+              const text = (ev.target as HTMLInputElement).value.trim();
+              const va = text ? ctx.parseNumber(text) : null;
+              if (text && (va === null || va <= 0 || va > 100000)) return void rev.value++;
+              edit(ctx, e.id, (x, dd) => withElectricalData(x, { ...dd, power: va ? Math.round(va) : undefined }));
+            },
+          }),
+          "VA",
+        ]),
+      ]),
+    );
+  const c = all.list.find((x) => x.n === d.circuit);
+  if (c) {
+    out.push(
+      h("p", t("elec.circuit.items", { n: c.n, lights: c.lights, outlets: c.outlets, dedicated: c.dedicated })),
+      h("p", [
+        t("elec.circuit.load", { va: num(c.va) }),
+        " · ",
+        h("span", { class: "unverified" }, t("elec.unverified")),
+      ]),
+    );
+    if (c.unknown) out.push(h("p", { class: "ro" }, t("elec.circuit.unknown", { count: c.unknown })));
+    for (const note of c.notes) out.push(h("p", { class: "warn" }, t(`elec.circuit.${note}`)));
+  }
+  if (all.unassigned) out.push(h("p", { class: "ro" }, t("elec.circuit.unassigned", { count: all.unassigned })));
+  out.push(h("p", { class: "ro", title: t("elec.loads.source.tip") }, t("elec.loads.source")));
+  return out;
 }
 
 /** The selected item's panel: height, use (outlet), which lights a switch turns on. */
@@ -158,6 +228,7 @@ const ElementPanel = defineComponent({
           );
       }
       if (k === "light") out.push(h("p", { class: "ro" }, t("elec.light.note")));
+      if (k !== "switch") out.push(...circuitPart(ctx, e, d, rev));
       return h("div", out);
     };
   },
@@ -227,7 +298,7 @@ const tool = (id: ItemKind, icon: typeof Plug) => ({
 });
 
 /** Dev only: a bedroom with two outlets, a ceiling light and a switch that turns it on. */
-function demo(ctx: UiContext): { item: string; room: string } | null {
+function demo(ctx: UiContext): { item: string; room: string; alt?: string } | null {
   const r = [...ctx.rooms].sort((a, b) => b.floorArea - a.floorArea)[1];
   if (!r) return null;
   const roomWalls = Object.values(ctx.project.elements).filter(
@@ -251,17 +322,21 @@ function demo(ctx: UiContext): { item: string; room: string } | null {
     .map(near)
     .filter((x) => x.t > 0 && x.t < wallLength(x.w))
     .sort((a, b) => a.d - b.d);
-  const items: Element[] = [newLight("demo-light", ctx.level, { x: r.labelAt.x, y: r.labelAt.y - 600 })];
-  ws.slice(0, 2).forEach((x, i) =>
-    items.push(newWallItem(`demo-outlet-${i}`, "outlet", x.w, x.t, sideOf(x.w, r.labelAt))),
-  );
+  // circuits (ADR-061): the light on 1, the outlets on 2 — and the second outlet also on 1 (a "mixed" note)
+  const items: Element[] = [
+    withElectricalData(newLight("demo-light", ctx.level, { x: r.labelAt.x, y: r.labelAt.y - 600 }), { circuit: 1 }),
+  ];
+  ws.slice(0, 2).forEach((x, i) => {
+    const o = newWallItem(`demo-outlet-${i}`, "outlet", x.w, x.t, sideOf(x.w, r.labelAt));
+    items.push(withElectricalData(o, { ...electricalData(o), circuit: i ? 1 : 2 }));
+  });
   const s = ws[2];
   if (s)
     items.push(
       setSwitchLight(newWallItem("demo-switch", "switch", s.w, s.t + 800, sideOf(s.w, r.labelAt)), "demo-light", true),
     );
   ctx.run(putCommand({ key: "cmd.add.light" }, items));
-  return { item: "demo-switch", room: r.key };
+  return { item: "demo-switch", room: r.key, alt: "demo-outlet-1" };
 }
 
 export const electricalUi: ModuleUi = {

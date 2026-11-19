@@ -4,8 +4,11 @@
   "id": "br",
   "parent": null,
   "module": "org.prumo.electrical",
-  "version": "2026.11.1",
-  "name": { "en": "Brazil", "pt-BR": "Brasil" },
+  "version": "2026.11.2",
+  "name": {
+    "en": "Brazil",
+    "pt-BR": "Brasil"
+  },
   "values": {
     "lights.minPerRoom": {
       "value": 1,
@@ -51,6 +54,75 @@
       "confidence": "medium",
       "review": "UNVERIFIED",
       "note": "Other rooms: up to 6 m² at least one outlet; larger, one per 5 m of perimeter (EL-01)."
+    },
+    "lighting.firstArea": {
+      "value": 6,
+      "unit": "m2",
+      "source": "NBR 5410:2004, 9.5.2.1.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Lighting load per room: up to this area, the first block (EL-02)."
+    },
+    "lighting.firstVA": {
+      "value": 100,
+      "unit": "VA",
+      "source": "NBR 5410:2004, 9.5.2.1.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Lighting load for the first 6 m² of a room (EL-02)."
+    },
+    "lighting.stepArea": {
+      "value": 4,
+      "unit": "m2",
+      "source": "NBR 5410:2004, 9.5.2.1.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Above 6 m²: one more block for each whole 4 m² (EL-02)."
+    },
+    "lighting.stepVA": {
+      "value": 60,
+      "unit": "VA",
+      "source": "NBR 5410:2004, 9.5.2.1.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Each whole extra 4 m² adds 60 VA (EL-02)."
+    },
+    "outlets.va": {
+      "value": 100,
+      "unit": "VA",
+      "source": "NBR 5410:2004, 9.5.2.2.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "General outlets in most rooms: 100 VA each (EL-02)."
+    },
+    "outlets.wet.va": {
+      "value": 600,
+      "unit": "VA",
+      "source": "NBR 5410:2004, 9.5.2.2.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "Kitchens, laundry areas, bathrooms: 600 VA for the first outlets (EL-02)."
+    },
+    "outlets.wet.first": {
+      "value": 3,
+      "source": "NBR 5410:2004, 9.5.2.2.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "How many outlets of a kitchen / laundry / bathroom count at 600 VA; the rest 100 VA (EL-02)."
+    },
+    "outlets.wet.many": {
+      "value": 6,
+      "source": "NBR 5410:2004, 9.5.2.2.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "With more than this many outlets in such a room, only the first 2 count at 600 VA (EL-02)."
+    },
+    "outlets.wet.firstIfMany": {
+      "value": 2,
+      "source": "NBR 5410:2004, 9.5.2.2.2 (from memory — to check)",
+      "confidence": "medium",
+      "review": "UNVERIFIED",
+      "note": "See outlets.wet.many (EL-02)."
     }
   }
 }
