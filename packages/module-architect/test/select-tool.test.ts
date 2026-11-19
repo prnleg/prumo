@@ -53,7 +53,9 @@ function setup() {
     tool.move(P(...b, o));
     tool.up(P(...b, o));
   };
-  return { h, tool, click, drag };
+  /** Click (select), then drag from the same point: how things are moved. */
+  const grab = (a: [number, number], b: [number, number], o = {}) => (click(...a), drag(a, b, o));
+  return { h, tool, click, drag, grab };
 }
 
 describe("select tool", () => {
@@ -76,8 +78,8 @@ describe("select tool", () => {
   });
 
   it("dragging a wall moves it by a 100 mm-snapped delta, stretching neighbours, as ONE undo step", () => {
-    const { h, tool, drag } = setup();
-    drag([4000, 1500], [5040, 1530]); // raw (1040, 30) → (1000, 0)
+    const { h, tool, grab } = setup();
+    grab([4000, 1500], [5040, 1530]); // raw (1040, 30) → (1000, 0)
     expect(tool.selection).toEqual(["w2"]);
     expect((h.current.elements["w2"] as Wall).start).toEqual({ x: 5000, y: 0 });
     expect((h.current.elements["w1"] as Wall).end).toEqual({ x: 5000, y: 0 });
@@ -88,21 +90,21 @@ describe("select tool", () => {
   });
 
   it("Alt = free delta; detach = neighbours stay", () => {
-    const { h, drag } = setup();
-    drag([4000, 1500], [4033, 1500], { free: true, detach: true });
+    const { h, grab } = setup();
+    grab([4000, 1500], [4033, 1500], { free: true, detach: true });
     expect((h.current.elements["w2"] as Wall).start).toEqual({ x: 4033, y: 0 });
     expect((h.current.elements["w1"] as Wall).end).toEqual({ x: 4000, y: 0 });
   });
 
   it("dragging the door slides it along its wall", () => {
-    const { h, drag } = setup();
-    drag([1400, 0], [1900, 400]);
+    const { h, grab } = setup();
+    grab([1400, 0], [1900, 400]);
     expect((h.current.elements["o1"] as Opening).host.offset).toBe(1500);
   });
 
   it("dragging the door onto another wall re-hosts it: centred on the pointer, own undo label", () => {
-    const { h, drag } = setup();
-    drag([1400, 0], [4000, 1500]); // w2 runs (4000,0)→(4000,3000): along 1500 − 800/2 = 1100
+    const { h, grab } = setup();
+    grab([1400, 0], [4000, 1500]); // w2 runs (4000,0)→(4000,3000): along 1500 − 800/2 = 1100
     expect((h.current.elements["o1"] as Opening).host).toEqual({ elementId: "w2", offset: 1100 });
     expect(h.undoLabel).toEqual({ key: "cmd.rehost", params: { kind: "door" } });
     h.undo();
@@ -110,14 +112,15 @@ describe("select tool", () => {
   });
 
   it("re-host near the wall's end is clamped inside it (3000 − 800 = 2200)", () => {
-    const { h, drag } = setup();
-    drag([1400, 0], [4000, 2950]);
+    const { h, grab } = setup();
+    grab([1400, 0], [4000, 2950]);
     expect((h.current.elements["o1"] as Opening).host).toEqual({ elementId: "w2", offset: 2200 });
   });
 
   it("over another wall and back in the same drag = an ordinary slide (label 'move')", () => {
-    const { h, tool } = setup();
+    const { h, tool, click } = setup();
     const P = (x: number, y: number) => ({ at: { x, y }, scale: SCALE, free: false, additive: false });
+    click(1400, 0);
     tool.down(P(1400, 0));
     tool.move(P(4000, 1500));
     tool.move(P(1900, 0));
@@ -156,9 +159,33 @@ describe("select tool", () => {
     expect(h.canUndo).toBe(false);
   });
 
-  it("a blocked move (would squeeze the door out) commits nothing", () => {
-    const { h, tool } = setup();
+  it("dragging something NOT selected moves the view: nothing moves, the selection stays (owner, 2026-11-19)", () => {
+    const { h, tool, click } = setup();
+    click(1400, 0); // the door
     const P = (x: number, y: number) => ({ at: { x, y }, scale: SCALE, free: false, additive: false });
+    tool.down(P(2000, 1500)); // the room's floor
+    tool.move(P(3000, 1500));
+    expect(tool.takePan()).toEqual({ x: -1000, y: 0 });
+    tool.up(P(3000, 1500));
+    tool.down(P(4000, 1500)); // a wall
+    tool.move(P(5000, 1500));
+    expect(tool.takePan()).toEqual({ x: -1000, y: 0 });
+    tool.up(P(5000, 1500));
+    expect(h.canUndo).toBe(false);
+    expect(tool.selection).toEqual(["o1"]);
+  });
+
+  it("Shift + drag from something not selected draws the box (doesn't move it)", () => {
+    const { h, tool, drag } = setup();
+    drag([2000, 1500], [-300, 3300], { additive: true }); // from the room's floor, right→left = touching
+    expect(h.canUndo).toBe(false);
+    expect(tool.selection).toContain("w3");
+  });
+
+  it("a blocked move (would squeeze the door out) commits nothing", () => {
+    const { h, tool, click } = setup();
+    const P = (x: number, y: number) => ({ at: { x, y }, scale: SCALE, free: false, additive: false });
+    click(4000, 1500);
     tool.down(P(4000, 1500));
     tool.move(P(500, 1500)); // w1 → 500 mm, door needs 1000…1800
     expect(tool.blocked.map((p) => p.code)).toContain("opening-outside-wall");

@@ -21,6 +21,7 @@ Each edge case below needs a test. ❓ = owner decision needed (defaults shown).
 
 - Click, Shift+click (add), box-select (left→right = fully inside; right→left = touching — CAD convention ❓), Ctrl+A.
 - **Changed 2026-11-18 (owner):** a plain drag on empty space now **moves the view** (the pressed point stays under the pointer; selection kept); **Shift+drag** on empty space box-selects (adds). Right-drag (any tool) also moves the view; a right *click* still finishes / closes the current tool's shape. Dragging a room's floor still moves the room.
+- **Changed 2026-11-19 (owner, Windows test):** pressing a room or wall to move the view grabbed it by accident. Now only **what is already selected** can be dragged; dragging anything else (an unselected room, wall, door, or empty space) moves the view, and Shift+drag from there box-selects. To move something: click it, then drag it. A click without a drag still selects.
 - Selecting a wall does **not** auto-select its openings, but operations on the wall carry them (see below).
 
 ## Move

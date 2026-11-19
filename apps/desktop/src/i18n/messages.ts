@@ -267,7 +267,7 @@ export const en = {
   "tour.door.text": "Move over a wall and click. They snap to the middle, the ends, and next to each other.",
   "tour.select.title": "Change things",
   "tour.select.text":
-    "Click anything to select it, drag to move it, and edit sizes on the right. Ctrl/⌘+C and V copy and paste.",
+    "Click anything to select it, then drag it to move it, and edit sizes on the right. Ctrl/⌘+C and V copy and paste.",
   "tour.undo.title": "Nothing is final",
   "tour.undo.text": "Every change can be undone (Ctrl/⌘+Z), so experiment freely.",
   "tour.settings.title": "Settings",
@@ -485,7 +485,7 @@ export const en = {
     "Move over a wall and click to place a {kind, select, door {door} other {window}}. It snaps to the middle, the ends, and next to other openings. Hold Alt to place freely.",
   "hint.opening.tooShort": "This wall is too short for this {kind, select, door {door} other {window}}.",
   "hint.select":
-    "Click to select, drag to move (Ctrl/⌘ = don't pull joined walls). Shift+click adds. Drag on empty space to move around; Shift+drag selects an area. Delete removes, Ctrl/⌘+D duplicates, Ctrl/⌘+C / X / V copy, cut, paste.",
+    "Click to select, then drag what's selected to move it (Ctrl/⌘ = don't pull joined walls). Shift+click adds. Drag anywhere else to move around; Shift+drag selects an area. Delete removes, Ctrl/⌘+D duplicates, Ctrl/⌘+C / X / V copy, cut, paste.",
   "hint.pan": "Scroll, or drag with the right or middle button, to move around · pinch or Ctrl+wheel to zoom",
 
   "status.snap": "Grid {grid} · {angle}° steps · hold Alt to place freely",
@@ -775,7 +775,7 @@ export const ptBR: Record<MessageKey, string> = {
   "tour.door.text": "Passe sobre uma parede e clique. Elas se encaixam no meio, nas pontas e ao lado umas das outras.",
   "tour.select.title": "Altere o que quiser",
   "tour.select.text":
-    "Clique em algo para selecionar, arraste para mover e ajuste as medidas à direita. Ctrl/⌘+C e V copiam e colam.",
+    "Clique em algo para selecionar, depois arraste para mover, e ajuste as medidas à direita. Ctrl/⌘+C e V copiam e colam.",
   "tour.undo.title": "Nada é definitivo",
   "tour.undo.text": "Toda alteração pode ser desfeita (Ctrl/⌘+Z), então experimente à vontade.",
   "tour.settings.title": "Configurações",
@@ -995,7 +995,7 @@ export const ptBR: Record<MessageKey, string> = {
     "Passe sobre uma parede e clique para colocar uma {kind, select, door {porta} other {janela}}. Ela se encaixa no meio, nas pontas e ao lado de outras aberturas. Mantenha Alt apertado para posicionar livremente.",
   "hint.opening.tooShort": "Esta parede é curta demais para esta {kind, select, door {porta} other {janela}}.",
   "hint.select":
-    "Clique para selecionar, arraste para mover (Ctrl/⌘ = sem puxar as paredes ligadas). Shift+clique adiciona. Arraste no vazio para mover a vista; Shift+arraste seleciona uma área. Delete apaga, Ctrl/⌘+D duplica, Ctrl/⌘+C / X / V copia, recorta, cola.",
+    "Clique para selecionar, depois arraste o que está selecionado para mover (Ctrl/⌘ = sem puxar as paredes ligadas). Shift+clique adiciona. Arraste em qualquer outro lugar para mover a vista; Shift+arraste seleciona uma área. Delete apaga, Ctrl/⌘+D duplica, Ctrl/⌘+C / X / V copia, recorta, cola.",
   "hint.pan": "Role, ou arraste com o botão direito ou do meio, para mover · pinça ou Ctrl+roda para zoom",
 
   "status.snap": "Grade {grid} · passos de {angle}° · mantenha Alt apertado para posicionar livremente",
