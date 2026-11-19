@@ -1968,9 +1968,13 @@ const marks3d = computed(() => {
     }
   return out;
 });
-const overlays = computed(() =>
-  [...sessions.value.entries()].flatMap(([id, m]) => (m.overlay ? [{ id, c: m.overlay }] : [])),
-);
+/** Modules' floating panels, stacked bottom-left in module order (each shrinks to share the height). */
+const overlays = computed(() => {
+  const list = [...sessions.value.entries()].flatMap(([id, m]) => (m.overlay ? [{ id, c: m.overlay }] : []));
+  // dev screenshot: a second copy, to see two modules' panels together
+  const dup = import.meta.env.DEV && new URLSearchParams(location.search).get("demo") === "overlays";
+  return dup && list[0] ? [...list, { ...list[0], id: list[0].id + "#2" }] : list;
+});
 
 const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
 if (demo === "rooms" || demo === "names" || demo === "paint") {
@@ -2872,9 +2876,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :selected="selection"
           @select="selectNote"
         />
-        <section v-for="o in overlays" :key="o.id" class="module-overlay">
-          <component :is="o.c" :ctx="uiCtx" />
-        </section>
+        <div v-if="overlays.length" class="module-overlays">
+          <section v-for="o in overlays" :key="o.id" class="module-overlay">
+            <component :is="o.c" :ctx="uiCtx" />
+          </section>
+        </div>
         <SettingsPanel
           v-if="showSettings"
           :locale="locale"
@@ -3313,12 +3319,24 @@ select.compare {
 }
 /* A module's floating panel over the plan (ADR-059 step 3): the app draws the frame (bottom-left); the
    module renders a header + body with these classes (cards by severity, never a green state). */
-.module-overlay {
+/* modules' floating panels: one column bottom-left, each shares the height (2026-11-19) */
+.module-overlays {
   position: absolute;
   left: 12px;
   bottom: 44px;
   width: min(360px, calc(100% - 24px));
-  max-height: 55%;
+  max-height: 70%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  z-index: 4;
+  pointer-events: none;
+}
+.module-overlay {
+  pointer-events: auto;
+  flex: 0 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--panel);
@@ -3326,7 +3344,6 @@ select.compare {
   border-radius: 8px;
   box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
   font-size: 13px;
-  z-index: 4;
 }
 .module-overlay > div {
   display: flex;
