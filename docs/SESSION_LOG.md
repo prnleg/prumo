@@ -1093,3 +1093,13 @@ Branch `modules/structural-finish`, stacked on `modules/structural-checks`.
 **Tests**: desktop +2 (module strings complete + ICU per installed module; banned words over module strings). Screenshots: Settings values table (pt-BR), lintel panel (en) — same as before.
 
 **Next**: ADR-020 public API + ADR-023 trust model need the owner. Unblocked meanwhile: Electrical next slices (circuits) — ROADMAP Phase 5b.
+
+### Session #13, part 10 — north arrow on the exported sheet; copy / paste of point items, 2026-11-18
+
+Branch `fixes/export-north-paste`, stacked on `modules/structural-finish`.
+
+**Done**: export sheet draws a north arrow left of the scale bar (ADR-060; `SheetInput.north`). Core clipboard: `points` (module items placed at a point, ADR-058) — copied, cut, pasted at the cursor and duplicated (anchor = bbox of walls + points); `isPointItem` exported. Closes two "known limitations" from parts 4 and 5.
+
+**Decided alone (reversible):** module data is copied as is (a copied switch still lists the original lights): remapping ids inside module data needs a module hook like `mirror` — left for Electrical's circuits slice, where ids between items matter more.
+
+**Tests**: core +1 (point item copy / paste / duplicate). Screenshot: exported sheet with the north arrow.

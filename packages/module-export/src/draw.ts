@@ -13,6 +13,8 @@ export interface SheetInput {
   rooms: { at: V; lines: string[] }[];
   /** Structure-check marks (numbered; the numbers match the notes page). */
   marks?: { at: V; label: string; severity: Severity }[];
+  /** Where north is (ADR-060), degrees clockwise from the plan's up: a north arrow in the title block. */
+  north?: number;
   /** Overall size of the plan, mm (for the dimension lines). */
   bounds: { minX: number; minY: number; maxX: number; maxY: number };
   texts: {
@@ -208,4 +210,32 @@ export function drawSheet(g: CanvasRenderingContext2D, s: SheetInput, L: SheetLa
   g.fillText(s.texts.metres(0), mm(x0), mm(y0 + 5));
   g.fillText(s.texts.metres(sb.metres), mm(x0 + sb.mm), mm(y0 + 5));
   g.fillText(`1:${L.scale}`, mm(x0 + sb.mm / 2), mm(y0 - 1.5));
+
+  // north arrow, left of the scale bar (ADR-060); the sheet is drawn with the plan's up = the page's up
+  if (s.north !== undefined) {
+    const cx = mm(x0 - 10);
+    const cy = mm(ty + TITLE_H / 2);
+    const r = mm(4.5);
+    g.save();
+    g.translate(cx, cy);
+    g.strokeStyle = INK;
+    g.lineWidth = mm(0.18);
+    g.beginPath();
+    g.arc(0, 0, r, 0, 2 * Math.PI);
+    g.stroke();
+    g.rotate((s.north * Math.PI) / 180);
+    g.fillStyle = INK;
+    g.beginPath();
+    g.moveTo(0, -r * 0.2);
+    g.lineTo(r * 0.3, r * 0.75);
+    g.lineTo(0, r * 0.5);
+    g.lineTo(-r * 0.3, r * 0.75);
+    g.closePath();
+    g.fill();
+    g.font = `600 ${mm(2.6)}px ${FONT}`;
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText("N", 0, -r * 0.5);
+    g.restore();
+  }
 }

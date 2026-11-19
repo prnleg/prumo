@@ -247,3 +247,30 @@ describe("module items placed at a point (ADR-058)", () => {
     expect(at(flipped, "b").x).toBeCloseTo(1000);
   });
 });
+
+describe("copy / paste / duplicate carry module point items (ADR-058)", () => {
+  it("a light alone: anchor = its point; paste moves it by the delta with a new id; duplicate too", async () => {
+    const { copyToClipboard, pasteCommand, duplicateCommand, emptyProject } = await import("../src");
+    const light = {
+      id: "a",
+      type: "org.example.electrical:light" as const,
+      ownerModule: "org.example.electrical",
+      levelId: "l",
+      at: { x: 1000, y: 500 },
+      components: { "org.example.electrical": { v: 1, data: { x: 1 } } },
+    };
+    const p0 = putCommand({ key: "x" }, [light]).apply(
+      emptyProject({ id: "p", levelId: "l", name: "t", now: "2026-11-18T00:00:00Z", profileId: "x" }),
+    );
+    const clip = copyToClipboard(p0, ["a"]);
+    expect(clip.anchor).toEqual({ x: 1000, y: 500 });
+    expect(clip.points.map((e) => e.id)).toEqual(["a"]);
+    const r = pasteCommand(clip, { x: 200, y: -100 }, "l", counterIds("c"));
+    const q = r.command.apply(p0);
+    expect(r.newIds).toEqual(["c-1"]);
+    expect(q.elements["c-1"]).toMatchObject({ at: { x: 1200, y: 400 }, components: light.components });
+    expect(q.elements["a"]).toBe(p0.elements["a"]);
+    const d = duplicateCommand(p0, ["a"], { x: 500, y: -500 }, counterIds("d"));
+    expect(d.command.apply(p0).elements["d-1"]).toMatchObject({ at: { x: 1500, y: 0 } });
+  });
+});
