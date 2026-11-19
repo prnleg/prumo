@@ -13,4 +13,11 @@ describe("module boundary (ADR-059)", () => {
     const text = readFileSync(join(SRC, f), "utf8");
     for (const re of OPTIONAL) expect(re.test(text), `${f} mentions ${re}`).toBe(false);
   });
+
+  // Structural moves onto the hooks step by step (ADR-059). Step 1: its tools.
+  it("App.vue doesn't build Structural's tools itself (step 1)", () => {
+    const text = readFileSync(join(SRC, "App.vue"), "utf8");
+    expect(text).not.toMatch(/new (ChaseTool|SlabTool)\b/);
+    expect(text).not.toMatch(/"(chaseDir|slabMode|hint\.(chase|slab))\./);
+  });
 });

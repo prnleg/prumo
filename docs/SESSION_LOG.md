@@ -1045,3 +1045,15 @@ Branch `fixes/ui-polish`, stacked on `modules/ui-extension-points`. Owner: fix t
 **Tests**: core +3 (north), architect +1 (drag on empty pans, Shift box).
 
 **Next**: Structural onto the module hooks, step 1 (chase + slab tools).
+
+### Session #13, part 6 — Structural onto the module hooks, step 1: its tools (ADR-059), 2026-11-18
+
+Branch `modules/structural-tools`, stacked on `fixes/ui-polish`. Owner away; asked to keep going with unblocked work.
+
+**Done**: `packages/module-structural/src/ui` — `structuralUi` (tools: chase, slab; option bars as render functions; hints; plan previews), `SlabUiTool` (Esc / right-click drop the picks, Enter / double-click create), its own strings (22 tool strings + the module's name moved out of the app catalogue). `@prumo/ui-api`: `ToolContribution.bar` / `preview`, `ToolPreview`, `UiTool.dblclick` / `commit` / `blocked`, `options.grid`, `UiContext.refresh`. App: chase / slab code removed (tool instances, option state, bar template, hints, pointer and key handling, tool buttons); generic module tool handling gained double-click, Enter, Esc-while-active (was missing for module tools), blocked messages, previews, grid sync. Structural's switch = its Settings → Modules line; `structuralOff` preference migrated on load. `ChaseTool`'s private `commit` renamed `place` (it clashed with the hook's name).
+
+**Decided alone (reversible):** module strings that still name app-wide things (slab types, "don't know") stay in the app's catalogue and are read through `ctx.t`; the dev demos reach `SlabUiTool` directly (dev-only import).
+
+**Tests**: structural +2 (strings complete, slab tool Esc / Enter), desktop +1 (App doesn't build Structural's tools). Screenshot: slab tool picking 2 rooms, bar and hint from the module.
+
+**Next**: step 2 — panel sections (what's above, wall loads, lintel, wall role / tie beam / bonded, slab panel).

@@ -40,6 +40,8 @@ export interface UiContext {
   t(key: string, params?: Record<string, string | number>): string;
   /** Run an edit as one undo step; false = refused (e.g. invalid). */
   run(cmd: Command): boolean;
+  /** Redraw after a tool changed by itself (an options-bar button, a finished shape). */
+  refresh(): void;
   formatLength(mm: number): string;
   formatArea(mm2: number): string;
   formatCm(mm: number): string;
@@ -54,8 +56,24 @@ export interface UiTool {
   finish(): void;
   /** Mid-gesture (quiet while creating, ADR-025). */
   readonly active: boolean;
-  /** The app sets `levelId` when the floor changes. */
-  options: { levelId: string };
+  /** The app sets `levelId` when the floor changes, and `grid` (mm) when the grid changes — if present. */
+  options: { levelId: string; grid?: number };
+  /** Double click on the plan (e.g. close a shape). */
+  dblclick?(p: PointerInfo): void;
+  /** Enter: complete what's being drawn. Without it, Enter does what Esc does (`finish`). */
+  commit?(): void;
+  /** Why the current preview can't be made: problem codes (shown as the app's `problem.<code>`). */
+  readonly blocked?: readonly { code: string }[];
+}
+
+/** What a tool shows on the plan while it's on (ADR-059, Structural step 1). */
+export interface ToolPreview {
+  /** Dashed outlines being drawn (open while drawing corners). */
+  outlines?: readonly (readonly V[])[];
+  /** Rooms picked so far (highlighted like a selected room). */
+  rooms?: readonly string[];
+  /** Live measurements next to the pointer. */
+  labels?: readonly { at: V; text: string }[];
 }
 
 export interface ToolContribution {
@@ -66,9 +84,22 @@ export interface ToolContribution {
   /** i18n keys. */
   label: string;
   tip: string;
-  /** The status-bar hint while the tool is on. */
-  hint(ctx: UiContext): string;
+  /** The status-bar hint while the tool is on (`tool` = the instance `create` made). */
+  hint(ctx: UiContext, tool: UiTool): string;
   create(ctx: UiContext): UiTool;
+  /** The plan preview while the tool is on. */
+  preview?(ctx: UiContext, tool: UiTool): ToolPreview;
+  /**
+   * The tool's options in the bar above the plan (direction, mode, type…). Props: `ctx`, `tool`.
+   * Change `tool.options` and call `ctx.refresh()`.
+   */
+  bar?: Component;
+}
+
+/** Props an options-bar component receives. */
+export interface ToolBarProps {
+  ctx: UiContext;
+  tool: UiTool;
 }
 
 /** A symbol on the plan (screen px around `at`): an SVG path, optional text, outline or filled. */
