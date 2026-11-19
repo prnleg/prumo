@@ -48,6 +48,19 @@ export interface UiContext {
   now(): string;
   /** A floor's display name ("Ground floor", "Floor 1", or the name the user gave). */
   levelName(levelId: string): string;
+  /** Room keys hidden in the layers panel (draw nothing over them). */
+  readonly hiddenRooms: ReadonlySet<string>;
+  /** "The existing building" (ADR-043): the marked version, when it was marked; mark it now / clear it. */
+  readonly baseline: {
+    project(): Project | null;
+    date(): string | null;
+    mark(): void;
+    clear(): void;
+  };
+  /** Select these elements on the plan (switches to the Select tool). */
+  select(ids: readonly string[]): void;
+  /** Open the Settings panel. */
+  openSettings(): void;
   formatLength(mm: number): string;
   formatArea(mm2: number): string;
   formatCm(mm: number): string;
@@ -147,8 +160,58 @@ export interface ModuleUi {
    * fields. Props: `ctx` + `element` (as `elementPanel`). ADR-059 step 2.
    */
   sections?: Readonly<Partial<Record<"wall" | "opening" | "slab", PanelSection>>>;
+  /** Switched on: start its session (analysis, panels, marks). `ctx` always returns the current context. */
+  start?(ctx: () => UiContext): ModuleSession;
   /** Dev only (`?demo=module`): add sample items; returns an item and a room key to select. */
   demo?(ctx: UiContext): { item: string; room: string } | null;
+}
+
+/** How serious a mark is (never a green / "OK" level: SAFETY_AND_LIABILITY). */
+export type Severity = "critical" | "warning" | "advisory" | "info";
+
+/** What a running module draws on the plan (ADR-059 step 3). All optional. */
+export interface PlanLayers {
+  /** A "!" per element, coloured by severity. */
+  badges?: readonly { id: string; at: V; severity: Severity }[];
+  /** A lock symbol; `broken` = drawn as a warning. */
+  locks?: readonly { id: string; at: V; broken: boolean }[];
+  /** Dashed lines where something used to be. */
+  ghosts?: readonly { id: string; a: V; b: V }[];
+  /** Two-headed arrows (e.g. joist direction). */
+  arrows?: readonly { key: string; a: V; b: V }[];
+  /** Outlined areas with a clickable badge (e.g. drawn slabs). */
+  areas?: readonly { id: string; outline: readonly V[]; at: V; label: string; selected?: boolean }[];
+}
+
+/** Numbered notes for an exported sheet: each item gets a number on the plan and a line on the notes page. */
+export interface ExportNotes {
+  /**
+   * Worst first. Each gets a number; `at` places it on the plan (one mark per element, its numbers
+   * joined; null = listed on the notes page only).
+   */
+  items: readonly { elementId: string; at: V | null; severity: Severity; text: string }[];
+  /** "No issues detected by the N checks…" wording uses this count. */
+  checksRun: number;
+  /** Closing text of the notes page. */
+  disclaimer: string;
+}
+
+/**
+ * A module that's on and running (ADR-059 step 3): created by `ModuleUi.start` when the module is
+ * switched on (inside the app's reactive scope, so it may use Vue refs / watchers), stopped when it's
+ * switched off. Results it computes live here; the app reads them through these hooks.
+ */
+export interface ModuleSession {
+  stop(): void;
+  /** Re-run its analysis now (dev demos; normally it follows the history itself). */
+  refresh?(): void;
+  /** A floating panel over the plan, bottom-left (the app draws the frame). Props: `ctx`. */
+  overlay?: Component;
+  plan?(ctx: UiContext): PlanLayers;
+  /** Element id → severity, coloured in the 3D view. */
+  marks3d?(ctx: UiContext): Readonly<Record<string, Severity>>;
+  /** Notes for an exported floor (the export's "marks" option); null = nothing to add. */
+  exportNotes?(ctx: UiContext, levelId: string): ExportNotes | null;
 }
 
 /** Narrow helper for module authors: the props panel sections receive. */
