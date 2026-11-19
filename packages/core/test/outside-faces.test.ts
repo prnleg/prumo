@@ -142,3 +142,53 @@ describe("copies stay exact (ADR-038)", () => {
     expect(align(h, ...r.newIds)).toEqual(["center", "center", "center", "center"]);
   });
 });
+
+describe("a new wall drawn on from an outside wall continues its face (owner, 2026-11-19)", () => {
+  // CCW 4000 × 3000 room → every wall "left" (body inward, outer faces on the drawn lines)
+  const room = () => {
+    const h = hist();
+    h.execute(putCommand(K, rect(0, 0, 4000, 3000)));
+    return h;
+  };
+
+  it("straight on from r1's end: same side → outer face stays on y = 0", () => {
+    const h = room();
+    h.execute(putCommand(K, [wall("n", 4000, 0, 7000, 0)]));
+    expect(align(h, "n")).toEqual(["left"]);
+    expect(faceOffsets(h.current.elements["n"] as Wall)).toEqual(faceOffsets(h.current.elements["r1"] as Wall));
+  });
+
+  it("drawn the other way (ends at the corner): mirrored alignment, same faces", () => {
+    const h = room();
+    h.execute(putCommand(K, [wall("n", 7000, 0, 4000, 0)]));
+    expect(align(h, "n")).toEqual(["right"]);
+  });
+
+  it("out of the corner straight on from the side wall r2 → follows r2 (outer face on x = 4000)", () => {
+    const h = room();
+    h.execute(putCommand(K, [wall("n", 4000, 0, 4000, -2000)]));
+    // r2 leaves the corner going +y with body on its left (−x); n leaves going −y → body on its right (−x)
+    expect(align(h, "n")).toEqual(["right"]);
+  });
+
+  it("out of the corner at an angle (no wall straight behind it) → stays centred", () => {
+    const h = room();
+    h.execute(putCommand(K, [wall("n", 4000, 0, 6000, -2000)]));
+    expect(align(h, "n")).toEqual(["center"]);
+  });
+
+  it("a chain drawn in one go spreads the face along it (same side of the drawn line)", () => {
+    const h = room();
+    h.execute(putCommand(K, [wall("n1", 4000, 0, 7000, 0), wall("n2", 7000, 0, 7000, -2000)]));
+    expect(align(h, "n1", "n2")).toEqual(["left", "left"]);
+  });
+
+  it("from the middle of a wall (a T) → stays centred; with the setting off → nothing changes", () => {
+    const h = room();
+    h.execute(putCommand(K, [wall("n", 2000, 0, 2000, -2000)]));
+    expect(align(h, "n")).toEqual(["center"]);
+    const o = hist(off(blank()));
+    o.execute(putCommand(K, [...rect(0, 0, 4000, 3000), wall("n", 4000, 0, 7000, 0)]));
+    expect(align(o, "r1", "n")).toEqual(["center", "center"]);
+  });
+});
