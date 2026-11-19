@@ -11,6 +11,11 @@ export interface SheetInput {
   openings: OpeningPlan[];
   /** Room labels: lines of text at a point. */
   rooms: { at: V; lines: string[] }[];
+  /**
+   * Modules' symbols for their items (ADR-059 `ModuleUi.marks`: an SVG path in screen px around `at`),
+   * drawn in ink at `SYMBOL_MM` mm per px — e.g. Electrical's outlets, switches and lights.
+   */
+  symbols?: { at: V; path: string; text?: string; filled?: boolean }[];
   /** Structure-check marks (numbered; the numbers match the notes page). */
   marks?: { at: V; label: string; severity: Severity }[];
   /** Where north is (ADR-060), degrees clockwise from the plan's up: a north arrow in the title block. */
@@ -41,6 +46,8 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
   info: "#666666",
 };
 const FONT = `system-ui, -apple-system, "Segoe UI", sans-serif`;
+/** Module symbols are drawn for the screen in px; on paper 1 px = 0.3 mm (a 12 px outlet ≈ 3.6 mm). */
+const SYMBOL_MM = 0.3;
 
 /** Draw at `px` pixels per page mm. The canvas must be page.w × px by page.h × px. */
 export function drawSheet(g: CanvasRenderingContext2D, s: SheetInput, L: SheetLayout, px: number) {
@@ -123,6 +130,28 @@ export function drawSheet(g: CanvasRenderingContext2D, s: SheetInput, L: SheetLa
       g.fillStyle = i ? MUTED : INK;
       g.fillText(line, p.x, p.y + (i - (r.lines.length - 1) / 2) * mm(3.8));
     });
+  }
+  // modules' item symbols (outlets, lights…), under the check marks
+  for (const sy of s.symbols ?? []) {
+    const p = P(sy.at);
+    g.save();
+    g.translate(p.x, p.y);
+    g.scale(mm(SYMBOL_MM), mm(SYMBOL_MM));
+    const shape = new Path2D(sy.path);
+    g.fillStyle = "#ffffff";
+    if (!sy.filled) g.fill(shape);
+    g.fillStyle = INK;
+    if (sy.filled) g.fill(shape);
+    g.strokeStyle = INK;
+    g.lineWidth = 1.2;
+    g.stroke(shape);
+    if (sy.text) {
+      g.font = `600 7px ${FONT}`;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(sy.text, 0, 0.5);
+    }
+    g.restore();
   }
   // structure marks: a coloured disc with the finding number(s)
   for (const m of s.marks ?? []) {

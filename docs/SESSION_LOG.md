@@ -1103,3 +1103,15 @@ Branch `fixes/export-north-paste`, stacked on `modules/structural-finish`.
 **Decided alone (reversible):** module data is copied as is (a copied switch still lists the original lights): remapping ids inside module data needs a module hook like `mirror` — left for Electrical's circuits slice, where ids between items matter more.
 
 **Tests**: core +1 (point item copy / paste / duplicate). Screenshot: exported sheet with the north arrow.
+
+### Session #13, part 11 — modules' symbols on the exported sheet, 2026-11-18
+
+Branch `export/module-symbols`, stacked on `fixes/export-north-paste`.
+
+**Done**: `SheetInput.symbols` — each running module's `marks` (the same hook the plan uses, asked for the exported floor) drawn in ink on the sheet, 0.3 mm per screen px (`Path2D` from the SVG path). Electrical's outlets, switches and lights now print. Dev demo `?demo=module-sheet`.
+
+**Decided alone (reversible):** symbol size on paper (0.3 mm/px ≈ 3.6 mm outlet); no legend yet (a legend box would need each module to name its symbols — later, with Electrical's next slice).
+
+**Tests**: none new (drawing only; checked by screenshot — the sheet with a light, a switch and two outlets).
+
+**Still open**: Electrical items in 3D.
