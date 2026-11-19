@@ -1,11 +1,13 @@
 // Select tool (EDITING_OPERATIONS "Select" + "Move"). Framework-free.
 //   click element            → select it (Shift: toggle in/out of the selection)
 //   click empty              → clear (Shift: keep)
-//   drag from an element     → move the selection (one History gesture = one undo step);
+//   drag from a SELECTED one → move the selection (one History gesture = one undo step);
 //                              delta snapped to the grid, Alt = free, `detach` = don't stretch neighbours
 //   drag ONE door/window     → slides along its wall; over ANOTHER wall → re-host there (own undo label)
-//   drag from empty space    → move the view around (owner, 2026-11-18): read `panBy` after each move
-//   Shift + drag from empty  → box select (adds): left→right = fully inside, right→left = touching
+//   drag from empty space, or from something NOT selected yet → move the view around (owner, 2026-11-18
+//                              / 2026-11-19: pressing a room or wall to move the view must not grab it):
+//                              read `panBy` after each move. Click first, then drag, to move things.
+//   Shift + drag (same places) → box select (adds): left→right = fully inside, right→left = touching
 import {
   boxSelect,
   detectRooms,
@@ -60,7 +62,7 @@ export class SelectTool {
    * stays under the pointer. The app applies it to its view and calls `takePan()`.
    */
   panBy: V | null = null;
-  private press: { at: V; hit: Id | null; additive: boolean; dragging: boolean } | null = null;
+  private press: { at: V; hit: Id | null; grab: Id | null; additive: boolean; dragging: boolean } | null = null;
   private gesture: Gesture | null = null;
   /** Set while the last valid preview is a re-host: the gesture commits under that label. */
   private rehostLabel: Label | null = null;
@@ -86,8 +88,9 @@ export class SelectTool {
       );
       if (room) hit = ROOM_PREFIX + room.key;
     }
-    if (hit && !p.additive && !this.selection.includes(hit)) this.selection = [hit];
-    this.press = { at: p.at, hit, additive: p.additive, dragging: false };
+    // only what is already selected can be dragged; anything else is decided on release (click = select)
+    const grab = hit && this.selection.includes(hit) ? hit : null;
+    this.press = { at: p.at, hit, grab, additive: p.additive, dragging: false };
     this.blocked = [];
   }
 
@@ -96,12 +99,11 @@ export class SelectTool {
     if (!pr) return;
     if (!pr.dragging && dist(pr.at, p.at) * p.scale < this.options.dragPx) return;
     pr.dragging = true;
-    if (!pr.hit && !pr.additive) {
+    if (!pr.grab && !pr.additive) {
       this.panBy = { x: pr.at.x - p.at.x, y: pr.at.y - p.at.y };
       return;
     }
-    if (pr.hit) {
-      if (!this.selection.includes(pr.hit)) this.selection = sortUnique([...this.selection, pr.hit]);
+    if (pr.grab) {
       const g = this.options.grid;
       const raw = { x: p.at.x - pr.at.x, y: p.at.y - pr.at.y };
       const delta = p.free ? raw : { x: Math.round(raw.x / g) * g + 0, y: Math.round(raw.y / g) * g + 0 };
@@ -132,7 +134,7 @@ export class SelectTool {
       this.blocked = [];
       return;
     }
-    if (pr.dragging && !pr.hit && !pr.additive) return; // a view drag: the selection stays
+    if (pr.dragging && !pr.grab && !pr.additive) return; // a view drag: the selection stays
     if (this.box) {
       const ids = boxSelect(
         planGeometry(this.h.current, this.options.levelId),
