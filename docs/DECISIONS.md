@@ -637,3 +637,10 @@ Status: **ACCEPTED (2026-11-18)** — owner: Electrical (and later plumbing, ven
 - **Electrical** moved onto it completely (`@prumo/module-electrical/ui`; strings left the app's catalogue).
 - **Still internal** (ADR-020): the shapes may change while Structural moves onto them. Public API + trust model (ADR-023) come after that.
 - **Next:** Structural onto the same hooks, piece by piece (chase + slab tools, "what's above" / loads / lintel panel sections, the checks panel, 3D / export marks). Expect new hooks (options bar, floating panels, 3D marks, export marks).
+
+## ADR-060 — Where north is on the plan (project setting)
+Status: **ACCEPTED (2026-11-18)** — owner asked to be able to change the sun's direction; north was fixed at the top of the plan (ADR-057).
+- **Data:** `project.settings.north?: number` — whole degrees clockwise from the plan's up, 0…359; missing = 0 (older files open unchanged, no schema bump). Validated on load. Set through `setNorthCommand` (one undo step, label "turn north").
+- **Used by:** the approximate sun (ADR-057: its direction turns with north) and a **north arrow** in the plan's bottom-right corner (click = turn 45°, Shift = back).
+- **UI:** the 3D bar has a "North" list with 8 directions (↑ ↗ → …); a value saved by another way that isn't one of them shows as "N°".
+- **Not yet:** north arrow in the export sheet (logged in CURRENT_STATE); true sun position by date and place (still approximate).

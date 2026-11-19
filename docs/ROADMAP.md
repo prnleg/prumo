@@ -169,6 +169,8 @@ What could go wrong: data model rework if ADR-015 chose "single storey only" in 
 
 ## Phase 6+ — Maybe / later (each needs its own ADR)
 
+- **Feature backlog from other apps:** `docs/COMPETITOR_FEATURES.md` (owner request 2026-11-18) — ~100 features other home-design / BIM / structural apps have that we don't, grouped and marked against our non-goals. Pick from it when planning; nothing there is accepted.
+
 - Tier 2: 2D frame analysis (direct stiffness method) for beams/columns.
 - Lateral loads (wind; seismic only if relevant to the region).
 - Import/export DXF, IFC.

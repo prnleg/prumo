@@ -59,6 +59,9 @@ const props = defineProps<{
   faces?: readonly { key: string; wallId: string; line: readonly [V, V]; color: string }[];
   /** Rubber band (model coords); "touching" draws dashed (CAD convention). */
   box?: { minX: number; minY: number; maxX: number; maxY: number; mode: "inside" | "touching" } | null;
+  /** Where north is (ADR-060), degrees clockwise from up: a north arrow in the corner. Click = turn 45°. */
+  north?: number;
+  northTip?: string;
 }>();
 
 const emit = defineEmits<{
@@ -66,6 +69,8 @@ const emit = defineEmits<{
   "update:view": [v: ViewState];
   resize: [w: number, h: number];
   leave: [];
+  /** The north arrow was clicked: turn north by this many degrees (+45, or −45 with Shift). */
+  north: [deg: number];
 }>();
 
 const svg = ref<SVGSVGElement>();
@@ -142,6 +147,8 @@ const cmpChanged = computed(() => new Set(props.compare?.changed ?? []));
 
 // --- input -----------------------------------------------------------------------------------
 let pan: { x: number; y: number } | null = null;
+/** Right button pressed: a drag moves the view, a click goes to the tool (finish / close) on release. */
+let rightPress: { x: number; y: number; down: PointerEvent } | null = null;
 let spaceDown = false;
 const onKey = (e: KeyboardEvent) => {
   if (e.code === "Space") spaceDown = e.type === "keydown";
@@ -172,6 +179,12 @@ function report(type: PlanPointer["type"], e: MouseEvent) {
   });
 }
 function down(e: PointerEvent) {
+  if (e.button === 2) {
+    rightPress = { x: e.clientX, y: e.clientY, down: e };
+    svg.value?.setPointerCapture(e.pointerId);
+    return;
+  }
+  // middle button or Space + left: move the view in any tool
   if (e.button === 1 || (e.button === 0 && spaceDown)) {
     pan = { x: e.clientX, y: e.clientY };
     svg.value?.setPointerCapture(e.pointerId);
@@ -182,6 +195,10 @@ function down(e: PointerEvent) {
   report("down", e);
 }
 function move(e: PointerEvent) {
+  if (rightPress && Math.hypot(e.clientX - rightPress.x, e.clientY - rightPress.y) >= 4) {
+    pan = { x: rightPress.x, y: rightPress.y };
+    rightPress = null;
+  }
   if (pan) {
     const v = props.view;
     emit("update:view", { ...v, x: v.x - (e.clientX - pan.x) / v.scale, y: v.y + (e.clientY - pan.y) / v.scale });
@@ -191,6 +208,10 @@ function move(e: PointerEvent) {
   report("move", e);
 }
 function up(e: PointerEvent) {
+  if (rightPress) {
+    report("down", rightPress.down);
+    rightPress = null;
+  }
   if (pan) {
     pan = null;
     return;
@@ -452,6 +473,20 @@ function wheel(e: WheelEvent) {
         <text :x="S(sl.at).x" :y="S(sl.at).y + 4">{{ sl.label }}</text>
       </g>
     </g>
+    <g
+      v-if="north !== undefined"
+      class="north"
+      :transform="`translate(${size.w - 30} ${size.h - 34})`"
+      @pointerdown.stop
+      @click="emit('north', $event.shiftKey ? -45 : 45)"
+    >
+      <title>{{ northTip }}</title>
+      <circle r="18" />
+      <g :transform="`rotate(${north})`">
+        <path d="M0,-3 L5,13 L0,9 L-5,13 Z" />
+        <text y="-5">N</text>
+      </g>
+    </g>
     <g class="labels">
       <text v-for="(l, k) in labels ?? []" :key="k" :x="S(l.at).x + 12" :y="S(l.at).y - 12">{{ l.text }}</text>
     </g>
@@ -494,6 +529,27 @@ function wheel(e: WheelEvent) {
   stroke: var(--accent);
   stroke-width: 2;
   stroke-dasharray: 6 3;
+}
+.north {
+  cursor: pointer;
+}
+.north circle {
+  fill: var(--panel, #fff);
+  stroke: var(--line, #ccc);
+  opacity: 0.92;
+}
+.north path {
+  fill: var(--ink, #222);
+}
+.north text {
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: auto;
+  fill: var(--ink, #222);
+}
+.north:hover circle {
+  stroke: var(--accent, #2a6fdb);
 }
 .slab-badges rect {
   fill: var(--panel, #fff);

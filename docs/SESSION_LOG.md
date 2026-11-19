@@ -1027,3 +1027,19 @@ Branch `modules/ui-extension-points`, stacked on `phase5b/electrical`. Owner: El
 **Decided alone (reversible):** render functions (no .vue files) inside modules, so a module needs no Vue compiler setup; the app's catalogue wins on a string-key clash; Export also listed in the install list.
 
 **Tests**: electrical +1 (own strings complete), desktop +4 (boundary). Screenshots: same screens as before (switch panel + links, room minimums), now through the hooks.
+
+### Session #13, part 5 — owner fixes + competitor list, 2026-11-18
+
+Branch `fixes/ui-polish`, stacked on `modules/ui-extension-points`. Owner: fix the bottom scrollbar, let the sun's direction change, use the mouse to move around the 2D plan (not box-select), then continue with Structural step 1; and list what other apps do that we don't.
+
+**Done**:
+- Scrollbar: the split-view grip's 12 px icon stuck 3 px past the right edge (measured with Chrome DevTools protocol: page 1283 px in a 1280 px window). Grip 14 px + `overflow: hidden`; `html, body, #app` `overflow: hidden` (the app shell never scrolls). Checked at 900–1600 px: page width = window width.
+- Mouse pan: Select tool — plain drag on empty space moves the view (`SelectTool.panBy` / `takePan()`, the pressed model point stays under the pointer); Shift+drag box-selects (adds). PlanView — right-drag moves the view in every tool; a right click without moving is passed on as before (finish / close shapes). Hints updated (en + pt-BR); EDITING_OPERATIONS "Select" notes the change.
+- North (ADR-060): `settings.north` (whole degrees, optional, validated), `setNorthCommand` (one undo step). Sun azimuth turns with it; 3D bar "North" list (8 directions); plan north arrow bottom-right (click 45°, Shift back).
+- `docs/COMPETITOR_FEATURES.md`: ~100 features from 14 apps (Sweet Home 3D, Planner 5D, Floorplanner, RoomSketcher, Cedreo, Chief Architect, SketchUp/LayOut, Revit, Archicad, FreeCAD BIM, magicplan, Homestyler/Coohom, Eberick/QiAlvenaria, Sims 4 build mode as interaction reference), marked against GOALS non-goals. ROADMAP links it.
+
+**Decided alone (reversible):** "change the face of the sun" read as "turn north" (the sun was fixed to north = top of the plan); north saved in the project (it's a fact about the site, not a view preference); 8 directions in the UI, any whole degree in the data; plain drag on empty = move view (box select needs Shift); a drag on a room's floor still moves the room.
+
+**Tests**: core +3 (north), architect +1 (drag on empty pans, Shift box).
+
+**Next**: Structural onto the module hooks, step 1 (chase + slab tools).

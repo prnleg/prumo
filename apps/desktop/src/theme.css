@@ -43,6 +43,8 @@ body,
 #app {
   margin: 0;
   height: 100%;
+  /* the app fills the window; the page itself never scrolls (a stray pixel used to add a scrollbar) */
+  overflow: hidden;
   background: var(--bg);
   color: var(--ink);
   font:

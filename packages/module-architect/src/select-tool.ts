@@ -4,7 +4,8 @@
 //   drag from an element     → move the selection (one History gesture = one undo step);
 //                              delta snapped to the grid, Alt = free, `detach` = don't stretch neighbours
 //   drag ONE door/window     → slides along its wall; over ANOTHER wall → re-host there (own undo label)
-//   drag from empty space    → box select: left→right = fully inside, right→left = touching
+//   drag from empty space    → move the view around (owner, 2026-11-18): read `panBy` after each move
+//   Shift + drag from empty  → box select (adds): left→right = fully inside, right→left = touching
 import {
   boxSelect,
   detectRooms,
@@ -54,6 +55,11 @@ export class SelectTool {
   /** Rubber band while box-selecting (model coords) and its mode. */
   box: (Box & { mode: "inside" | "touching" }) | null = null;
   blocked: Problem[] = [];
+  /**
+   * While dragging on empty space: how far (model mm) the view must move so the point that was pressed
+   * stays under the pointer. The app applies it to its view and calls `takePan()`.
+   */
+  panBy: V | null = null;
   private press: { at: V; hit: Id | null; additive: boolean; dragging: boolean } | null = null;
   private gesture: Gesture | null = null;
   /** Set while the last valid preview is a re-host: the gesture commits under that label. */
@@ -90,6 +96,10 @@ export class SelectTool {
     if (!pr) return;
     if (!pr.dragging && dist(pr.at, p.at) * p.scale < this.options.dragPx) return;
     pr.dragging = true;
+    if (!pr.hit && !pr.additive) {
+      this.panBy = { x: pr.at.x - p.at.x, y: pr.at.y - p.at.y };
+      return;
+    }
     if (pr.hit) {
       if (!this.selection.includes(pr.hit)) this.selection = sortUnique([...this.selection, pr.hit]);
       const g = this.options.grid;
@@ -122,6 +132,7 @@ export class SelectTool {
       this.blocked = [];
       return;
     }
+    if (pr.dragging && !pr.hit && !pr.additive) return; // a view drag: the selection stays
     if (this.box) {
       const ids = boxSelect(
         planGeometry(this.h.current, this.options.levelId),
@@ -148,7 +159,15 @@ export class SelectTool {
     this.rehostLabel = null;
     this.press = null;
     this.box = null;
+    this.panBy = null;
     this.blocked = [];
+  }
+
+  /** The pending view move (see `panBy`), cleared. */
+  takePan(): V | null {
+    const v = this.panBy;
+    this.panBy = null;
+    return v;
   }
 
   /**

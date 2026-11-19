@@ -44,6 +44,18 @@ export function setOutsideFacesCommand(on: boolean): Command {
   };
 }
 
+/** Whole degrees in 0…359 (any input angle wraps around). */
+export const normalNorth = (deg: number) => ((Math.round(deg) % 360) + 360) % 360;
+
+/** Project setting (ADR-060): where north is on the plan, degrees clockwise from up. One undo step. */
+export function setNorthCommand(deg: number): Command {
+  const n = normalNorth(deg);
+  return {
+    label: { key: "cmd.north" },
+    apply: (p) => ((p.settings.north ?? 0) === n ? p : { ...p, settings: { ...p.settings, north: n } }),
+  };
+}
+
 /** Point "the existing building" at a snapshot (ADR-043), or clear it (undefined). One undo step. */
 export function setBaselineCommand(snapshotId: Id | undefined): Command {
   return {

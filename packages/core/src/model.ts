@@ -204,6 +204,11 @@ export interface Project {
     outsideFaces?: boolean;
     /** Snapshot id of "the existing building" (ADR-043): renovation checks compare against it. */
     baseline?: Id;
+    /**
+     * Where north is on the plan (ADR-060), degrees clockwise from the plan's up: 0 = up, 90 = right.
+     * Whole degrees, 0…359. Missing = 0 (older files). Used for the sun and the plan's north arrow.
+     */
+    north?: number;
   };
 }
 
