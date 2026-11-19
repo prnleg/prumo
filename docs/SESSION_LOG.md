@@ -1125,3 +1125,10 @@ Branch `phase5b/electrical-circuits`, stacked on `export/module-symbols`.
 **Decided alone (reversible):** circuit = a number on each item (no circuit element, no panel-board element yet); lights carry the circuit, switches don't; wet-room order by id; notes in the item panel, not a checks panel (avoids a second floating panel in the same corner — the overlay stacking is still open).
 
 **Tests**: electrical +6 (hand-calculated lighting blocks, shared light load 80 + 80 VA, kitchen 600 × 3 + 100 and 7 outlets = 1,700 VA, appliance power / unknown, circuit sums 260 / 2,100 VA with notes, circuit numbers). Screenshot: outlet panel in a 15.36 m² bedroom — circuit 1 = 220 VA light + 100 VA outlet = 320 VA with the "lights and outlets" note.
+
+## 2026-11-19 — README rewrite
+
+- All 2026-11-18 branches merged by the owner (through PR #75); owner testing on Windows.
+- README.md rewritten: it still said "planning only, no code". Now: what works, how to run (browser / native / installers / checks), package layout, pointers. CONTRIBUTING "early planning" → "early development".
+- CURRENT_STATE next step updated with the post-merge list (Windows findings, ADR-020/023 + Q-143, known gaps, G-1, engineer batch, name check).
+- Next: fix whatever the Windows test finds.

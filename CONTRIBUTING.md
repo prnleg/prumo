@@ -1,6 +1,6 @@
 # Contributing (DRAFT — repo is public from day 1, ADR-014)
 
-Thanks for your interest! The project is in **early planning**. Read `README.md` and `docs/CURRENT_STATE.md` first.
+Thanks for your interest! The project is in **early development**. Read `README.md` and `docs/CURRENT_STATE.md` first.
 
 ## Ground rules
 

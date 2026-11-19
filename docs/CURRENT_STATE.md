@@ -54,7 +54,7 @@ All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details 
 
 ## Next immediate step
 
-0. (2026-11-18) Owner: merge in order `modules/ui-extension-points` → `fixes/ui-polish` → `modules/structural-tools` → `modules/structural-panels` → `modules/structural-checks` → `modules/structural-finish` → `fixes/export-north-paste` → `export/module-symbols` → `phase5b/electrical-circuits`. Then: ADR-020 public module API + ADR-023 trust model (owner decisions), Q-143. Pick items from `docs/COMPETITOR_FEATURES.md` when planning later phases.
+0. (2026-11-19) All 2026-11-18 branches merged (PR #75). Owner testing on Windows. Next: (a) Windows findings → fix branch; (b) owner decisions ADR-020 public module API + ADR-023 trust model, Q-143; (c) known gaps: floating module panels share one corner, copied switch keeps the original lights, Electrical items in 3D; (d) Phase 1 exit: G-1 usability test; (e) engineer batch (E-40…E-45, EL-01, EL-02) when the owner un-defers it; (f) final name trademark check (Q-109) before any release.
 
 1. Owner: try the app — `pnpm install && pnpm --filter @prumo/desktop dev` (browser) or `cd apps/desktop && pnpm tauri dev`; on Windows, download the `prumo-windows-latest` artifact from the `desktop` workflow run (Q-130). Tell me what feels wrong (G-1 usability, early).
 2. Owner: try Save / Open in the native app (`cd apps/desktop && pnpm tauri dev`, or the `desktop` workflow's installers) — dialogs aren't click-tested by me.

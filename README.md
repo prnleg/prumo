@@ -1,34 +1,52 @@
-# Prumo (codename — final name pending, see ADR-016)
+# Prumo (codename — final name pending, see ADR-016 / Q-109)
 
-An **open-source, cross-platform, modular** building sandbox. Draw and edit walls, openings (doors/windows/voids), and other elements in the **Architect Vision**, then switch to other **Visions** (first: **Structural**) to see, with explanations, what your changes might do.
+An **open-source, cross-platform, modular** building-plan editor for beginners. Draw rooms, walls, doors and windows in the **Architect** view, then turn on other **modules** (today: **Structural** and **Electrical**) to see, with plain explanations, what your changes might mean.
 
-> ⚠️ **Status: planning only. No code.** See `docs/CURRENT_STATE.md`.
-> ⚠️ A learning/exploration tool. It does **not** replace a licensed engineer. See `docs/SAFETY_AND_LIABILITY.md`.
+> ⚠️ **Early development.** Usable, but not released. What works and what is stubbed: `docs/CURRENT_STATE.md`.
+> ⚠️ A learning/exploration tool. It does **not** replace a licensed engineer, and it never says a design is safe or approved. See `docs/SAFETY_AND_LIABILITY.md`.
 
-## Start here
+## What it does today
 
-1. Owner: answer the 🔴 questions in `docs/OPEN_QUESTIONS.md` (currently Q-050, Q-055, Q-056).
-2. AI session (Claude Code): read `CLAUDE.md`. It's the rulebook.
-3. No production code until Phase 0 in `docs/ROADMAP.md` is done (Spikes A, B, D, E).
+- **Plan editor (Architect):** room and wall tools (any angle, snapping, clean wall joins), doors / windows / openings, room dividers, room names and types, finishes, multiple floors, select / move / rotate / mirror / copy / paste / duplicate, undo / redo, dimensions, north direction.
+- **3D view:** side by side with the plan or on its own, with door leaves, frames and sun direction.
+- **Structural module:** which walls carry load, slabs, wall chases, what's above each room, 9 simplified checks with explanation cards, load estimates down the floors, lintel check. All values are marked **UNVERIFIED** until an engineer reviews them.
+- **Electrical module:** outlets, switches, ceiling lights, switch → light links, minimum counts per room, circuits with estimated loads (NBR 5410 values, UNVERIFIED).
+- **Export:** PNG / PDF sheets (A4 / A3, scale, title block, north arrow, check marks, module symbols).
+- **Files:** `.prumo` save / open, autosave + crash recovery, saved versions + compare view.
+- Português (Brasil) and English; light / dark theme.
 
-## Suggested first prompt for a Claude Code session
+## Run it
+
+Requirements: **Node ≥ 22.12**, **pnpm 9** (`corepack enable`). For the native window also **Rust** (stable) and the Tauri 2 prerequisites — on Windows: Microsoft C++ Build Tools + WebView2 (preinstalled on Windows 10/11); on macOS: Xcode command-line tools.
+
+```sh
+pnpm install
+pnpm --filter @prumo/desktop dev        # browser build, fastest (no native file dialogs)
+cd apps/desktop && pnpm tauri dev       # native window
+cd apps/desktop && pnpm tauri build     # installers (Windows NSIS/MSI, macOS .app/.dmg)
+pnpm check                              # lint + format + typecheck + tests
+```
+
+Prebuilt installers: GitHub → Actions → **desktop** → Run workflow, then download `prumo-windows-latest` / `prumo-macos-latest` from the run.
+
+## Layout
 
 ```
-Read CLAUDE.md and every file in docs/. Don't write code yet.
-1) Summarize back, in plain language, what we're building and what's decided vs proposed vs open.
-2) Ask me every 🔴 question in OPEN_QUESTIONS.md I haven't answered, in batches, using the format in CLAUDE.md §4.
-3) After I answer, update DECISIONS.md (ACCEPTED only when I explicitly agree), OPEN_QUESTIONS.md, CURRENT_STATE.md, and SESSION_LOG.md.
-4) Add any new questions you think of, then tell me the riskiest thing in the plan.
-5) Only then propose the plan for Spike D (stack) and Spike E (module boundary).
+apps/desktop/              Tauri 2 shell + Vue 3 app (screens, menus, panels)
+packages/core/             model, geometry, commands, undo, files, module host, data packs (no UI, no modules)
+packages/ui-api/           what a module may add to the screens (ADR-059)
+packages/module-architect/ walls, rooms, doors/windows, finishes
+packages/module-structural/ structural checks, slabs, chases, loads + its screen parts
+packages/module-electrical/ outlets, switches, lights, circuits + its screen parts
+packages/module-export/    PNG / PDF sheets
+packages/renderer-2d/      SVG plan
+packages/renderer-3d/      Three.js view
+spikes/                    throwaway Phase 0 experiments (not part of the app)
+docs/                      decisions, roadmap, domain notes — start with CURRENT_STATE.md
 ```
 
-## Planned layout (not created yet)
+## Contributing
 
-```
-CLAUDE.md, README.md, docs/
-apps/desktop/          Tauri 2 shell + Vue 3 front end   (PROPOSED)
-packages/core/         framework-free model, geometry, commands, module host, rules
-packages/module-architect/
-packages/module-structural/
-spikes/
-```
+Read `CONTRIBUTING.md`. AI sessions (Claude Code) read `CLAUDE.md` first — it's the rulebook. Decisions live in `docs/DECISIONS.md` (ADRs), plans in `docs/ROADMAP.md`, open questions in `docs/OPEN_QUESTIONS.md`, ideas from other apps in `docs/COMPETITOR_FEATURES.md`.
+
+License: Apache-2.0.
