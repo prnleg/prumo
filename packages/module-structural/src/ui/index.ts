@@ -8,11 +8,12 @@ import type { ModuleUi, ToolContribution, UiContext, UiTool } from "@prumo/ui-ap
 import { Cable, MoveHorizontal, MoveVertical, Pentagon, SquareDashed, SquareStack } from "@lucide/vue";
 import { defineComponent, h, type Component, type PropType } from "vue";
 import { ChaseTool } from "../chase-tool";
-import { SLAB_KINDS, type ChaseDir, type SlabKind } from "../data";
+import { SLAB_KINDS, slabInfo, type ChaseDir, type SlabKind } from "../data";
 import { STRUCTURAL } from "../manifest";
 import { SlabTool, type SlabMode } from "../slab-tool";
 import { startStructural } from "./checks";
 import { MESSAGES } from "./messages";
+import { ValuesSection } from "./settings";
 import { ChasePanel, OpeningSection, RoomSection, SlabSection, WallSection } from "./sections";
 
 /** The slab tool in the app's terms: Esc / right-click drop the picks, Enter / double-click create. */
@@ -211,6 +212,8 @@ export const structuralUi: ModuleUi = {
   elementTypes: [`${STRUCTURAL}:chase`],
   elementPanel: ChasePanel,
   start: startStructural,
+  settings: ValuesSection,
+  slabThickness: (s) => slabInfo(s).thickness,
 };
 
 export * from "./text";

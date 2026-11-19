@@ -3,7 +3,8 @@
 // Grid = this project's value (saved with it, undoable; Q-108 "Project → Drawing").
 // Angle step + language = app preferences, remembered across launches (ADR-037, prefs.ts).
 import { SYSTEMS, type ConstructionSystem } from "@prumo/module-structural";
-import { computed } from "vue";
+import type { UiContext } from "@prumo/ui-api";
+import { computed, type Component } from "vue";
 import { formatSmall, translate, type Locale, type Params } from "./i18n";
 import { ANGLE_CHOICES, GRID_CHOICES } from "./settings";
 import { NAME_MAX, cleanName } from "./prefs";
@@ -14,15 +15,16 @@ const props = defineProps<{
   angle: number;
   outsideFaces: boolean;
   system: ConstructionSystem;
-  structural: boolean;
   /** Optional modules with a screen part (ADR-059): name key + on/off. */
   moduleToggles?: readonly { id: string; name: string; on: boolean }[];
   /** Your name on notes (ADR-044), or null when not set yet. */
   name: string | null;
   /** Saved versions in this file (Q-124), oldest first; `inUse` = the existing building (can't delete). */
   versions: readonly { id: string; name: string; createdAt: string; author: string | null; inUse: boolean }[];
-  /** Values the checks use (ADR-049), shown when Structural is on: label, value text, review, source. */
-  values?: readonly { key: string; label: string; text: string | null; review: string; from: string }[];
+  /** What module sections may read or do (ADR-059). */
+  uiCtx?: UiContext | null;
+  /** Sections modules add under "This project" (e.g. the values Structural's checks use). */
+  moduleSettings?: readonly Component[];
   /** Rough size of the saved versions, bytes. */
   versionsSize: number;
 }>();
@@ -92,19 +94,9 @@ const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateS
         </select>
       </label>
       <p class="tip">{{ t("settings.system.tip") }}</p>
-      <template v-if="structural && values?.length">
-        <h4>{{ t("values.title") }}</h4>
-        <p class="tip">{{ t("values.tip") }}</p>
-        <ul class="values">
-          <li v-for="v in values" :key="v.key" :title="v.from">
-            <span>{{ v.label }}</span>
-            <span v-if="v.text"
-              >{{ v.text }} · <em class="unverified">{{ v.review }}</em></span
-            >
-            <span v-else class="muted">{{ t("material.noValue.short") }}</span>
-          </li>
-        </ul>
-      </template>
+      <div v-for="(sec, k) in moduleSettings ?? []" :key="k" class="module-settings">
+        <component :is="sec" :ctx="uiCtx" />
+      </div>
       <h4>{{ t("versions.title") }}</h4>
       <p v-if="!versions.length" class="tip">{{ t("versions.none") }}</p>
       <ul v-else class="versions">
@@ -289,5 +281,37 @@ footer button {
 .unverified {
   color: var(--warn);
   font-style: normal;
+}
+</style>
+
+<style>
+/* Module sections in Settings (ADR-059 step 4) get the panel's look (they render their own elements). */
+.module-settings h4 {
+  margin: 12px 0 4px;
+}
+.module-settings .tip {
+  margin: 2px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.module-settings .values {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 12px;
+}
+.module-settings .values li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.module-settings .unverified {
+  color: var(--warn);
+  font-style: normal;
+}
+.module-settings .muted {
+  color: var(--muted);
 }
 </style>

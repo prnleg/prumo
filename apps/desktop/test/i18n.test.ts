@@ -1,69 +1,73 @@
 import { describe, expect, it } from "vitest";
 import { detectLocale, formatCm, formatLength, formatSmall, parseNumber, translate } from "../src/i18n";
 import { CATALOGUES, LOCALES } from "../src/i18n/messages";
+import { MODULE_UIS } from "../src/installed-modules";
+import { IntlMessageFormat } from "intl-messageformat";
+
+// one set of sample values for every placeholder the strings use
+const SAMPLE = {
+  count: 2,
+  hosted: 1,
+  label: "x",
+  grid: "10 cm",
+  angle: 15,
+  module: "m",
+  kind: "door",
+  example: "14,5",
+  room: "Sala",
+  name: "casa.prumo",
+  error: "disk full",
+  modules: "org.example.electrical",
+  time: "17 nov 2026 13:40",
+  n: 1,
+  below: "Térreo",
+  area: "70 m²",
+  t: "1,2",
+  h: "2,7",
+  g: "13",
+  gLo: "13",
+  gHi: "25",
+  w: "4,9",
+  q: "4,5–5,5",
+  range: "9–15",
+  kn: "13",
+  kg: "1.330",
+  pack: "Brasil",
+  source: "NBR",
+  total: 8,
+  wall: "a parede de 4,00 m",
+  opening: "a janela (1,20 m)",
+  origin: "o projeto",
+  system: "Alvenaria estrutural",
+  length: "4,00 m",
+  width: "1,20 m",
+  before: "0,80 m",
+  other: "parede de 3,00 m",
+  date: "17 nov 2026 13:40",
+  what: "parede de 4,00 m",
+  author: "Ana",
+  size: "1,2",
+  L: "1,6",
+  md: "4,6",
+  mrd: "5,4–7,1",
+  gf: "1,4",
+  m: "2–3,4",
+  v: "4,9–8,6",
+  d: "10",
+  fck: "15–25",
+  bearing: "0,2",
+  floor: "Andar 1",
+  paper: "A4",
+  min: 2,
+  perimeter: "12,40 m",
+};
 
 describe("UI i18n (ADR-021/034)", () => {
   it("every key exists in every locale and parses as ICU", () => {
     const keys = Object.keys(CATALOGUES.en).sort();
     for (const l of LOCALES) {
       expect(Object.keys(CATALOGUES[l]).sort()).toEqual(keys);
-      for (const k of keys)
-        expect(() =>
-          translate(l, k, {
-            count: 2,
-            hosted: 1,
-            label: "x",
-            grid: "10 cm",
-            angle: 15,
-            module: "m",
-            kind: "door",
-            example: "14,5",
-            room: "Sala",
-            name: "casa.prumo",
-            error: "disk full",
-            modules: "org.example.electrical",
-            time: "17 nov 2026 13:40",
-            n: 1,
-            below: "Térreo",
-            area: "70 m²",
-            t: "1,2",
-            h: "2,7",
-            g: "13",
-            gLo: "13",
-            gHi: "25",
-            w: "4,9",
-            q: "4,5–5,5",
-            range: "9–15",
-            kn: "13",
-            kg: "1.330",
-            pack: "Brasil",
-            source: "NBR",
-            total: 8,
-            wall: "a parede de 4,00 m",
-            opening: "a janela (1,20 m)",
-            origin: "o projeto",
-            system: "Alvenaria estrutural",
-            length: "4,00 m",
-            width: "1,20 m",
-            before: "0,80 m",
-            other: "parede de 3,00 m",
-            date: "17 nov 2026 13:40",
-            what: "parede de 4,00 m",
-            author: "Ana",
-            size: "1,2",
-            L: "1,6",
-            md: "4,6",
-            mrd: "5,4–7,1",
-            gf: "1,4",
-            m: "2–3,4",
-            v: "4,9–8,6",
-            d: "10",
-            fck: "15–25",
-            bearing: "0,2",
-            floor: "Andar 1",
-            paper: "A4",
-          }),
-        ).not.toThrow();
+      for (const k of keys) expect(() => translate(l, k, SAMPLE)).not.toThrow();
     }
   });
 
@@ -85,6 +89,20 @@ describe("UI i18n (ADR-021/034)", () => {
     expect(detectLocale(["de-DE", "en-GB"])).toBe("en");
     expect(detectLocale(["ja"])).toBe("en");
   });
+
+  it.each(MODULE_UIS.map((m) => [m.moduleId, m] as const))(
+    "module %s brings every string in every locale, and each parses as ICU (ADR-059)",
+    (_id, m) => {
+      const keys = Object.keys(m.messages.en ?? {}).sort();
+      expect(keys.length).toBeGreaterThan(0);
+      for (const l of LOCALES) {
+        const cat = m.messages[l] ?? {};
+        expect(Object.keys(cat).sort()).toEqual(keys);
+        for (const k of keys)
+          expect(() => new IntlMessageFormat(cat[k] ?? "", l).format(SAMPLE), `${l} ${k}`).not.toThrow();
+      }
+    },
+  );
 
   it("banned words never appear in UI strings (SAFETY_AND_LIABILITY)", () => {
     const banned = [
@@ -108,6 +126,11 @@ describe("UI i18n (ADR-021/034)", () => {
     for (const l of LOCALES)
       for (const [k, s] of Object.entries(CATALOGUES[l]))
         for (const b of banned) expect(s.toLowerCase(), `${l} ${k}`).not.toContain(b);
+    // modules' own strings too (ADR-059): Structural's checks wording lives there now
+    for (const m of MODULE_UIS)
+      for (const l of LOCALES)
+        for (const [k, s] of Object.entries(m.messages[l] ?? {}))
+          for (const b of banned) expect(s.toLowerCase(), `${m.moduleId} ${l} ${k}`).not.toContain(b);
   });
 
   it("unknown key renders the key instead of crashing", () => {

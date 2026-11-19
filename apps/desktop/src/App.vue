@@ -82,17 +82,12 @@ import {
   protectCommand,
   setLintel,
   setSystemCommand,
-  structuralManifest,
-  aboveOf,
   setAbove,
   setSlabInfo,
-  slabInfo,
   type SlabKind,
   STRUCTURAL,
-  materialTable,
   setLintelSize,
   type LintelSize,
-  structuralPacks,
   setWallMaterial,
   type WallMaterial,
   type Above,
@@ -163,7 +158,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { paramText, unitWeightText } from "./structural-ui";
+import { paramText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -189,7 +184,7 @@ const t = (key: string, params?: Params) => translate(locale.value, key, params)
 const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
-const MANIFESTS = [architectManifest, structuralManifest, ...OPTIONAL_MANIFESTS];
+const MANIFESTS = [architectManifest, ...OPTIONAL_MANIFESTS];
 /**
  * Modules with a screen part (ADR-059). The app knows only this list: tools, plan symbols, panel
  * sections, strings and the Settings line all come from each module's `ModuleUi`.
@@ -489,8 +484,7 @@ function detectedOn(levelId: string) {
     // Label: the user's name, else the room type ("Quarto"), else nothing (area only).
     const typeKey = roomTypeKey(data.roomType);
     const label = tag?.name || (typeKey ? t(typeKey) : "");
-    const up = tag ? aboveOf(tag) : { above: null, joists: null };
-    return { ...r, name: tag?.name ?? "", label, roomType: data.roomType ?? "", floorFinish: data.floor, ...up };
+    return { ...r, name: tag?.name ?? "", label, roomType: data.roomType ?? "", floorFinish: data.floor };
   });
 }
 
@@ -602,6 +596,8 @@ const modulePanel = computed(() => {
   const e = project.value.elements[selection.value[0] ?? ""];
   return (e && activeUis.value.find((m) => m.elementTypes?.includes(e.type))?.elementPanel) ?? null;
 });
+/** Sections modules add to Settings → "This project" (ADR-059 step 4). */
+const moduleSettings = computed(() => activeUis.value.flatMap((m) => (m.settings ? [m.settings] : [])));
 /** Sections modules add to the selected wall / door / window / slab (ADR-059 step 2). */
 const moduleSections = computed(() => {
   if (selection.value.length !== 1) return [];
@@ -621,17 +617,6 @@ function setModuleOn(id: string, on: boolean) {
   modulesOn.value = { ...modulesOn.value, [id]: on };
   if (!on && isModTool(tool.value) && tool.value.startsWith(`mod:${id}/`)) setTool("select");
 }
-
-// --- data packs (ADR-049): bundled with the Structural module; values shown with their source ---------
-const packs = structuralPacks();
-const packValues = computed(() =>
-  materialTable(packs, project.value).map((r) => {
-    const label = t(`material.${r.material}`);
-    if (!r.unitWeight) return { key: r.material, label, text: null, review: "", from: "" };
-    const w = unitWeightText(r.unitWeight, locale.value, packs.name(STRUCTURAL, r.unitWeight.pack, locale.value));
-    return { key: r.material, label, ...w };
-  }),
-);
 
 // --- floors (ADR-048) ------------------------------------------------------------------------------
 /** Generated names follow the floor's place from the bottom: Ground floor, Floor 1, Floor 2… */
@@ -664,7 +649,18 @@ const prefersDark = ref(darkQuery?.matches ?? false);
 darkQuery?.addEventListener?.("change", (e) => (prefersDark.value = e.matches));
 const EMPTY_MODEL = { solids: [], shells: [] };
 const model3d = computed(() =>
-  show3d.value ? buildingModel(project.value, { slabThickness: (s) => slabInfo(s).thickness }) : EMPTY_MODEL,
+  show3d.value
+    ? buildingModel(project.value, {
+        // a module may know a slab's thickness (Structural keeps it in its data)
+        slabThickness: (s) => {
+          for (const m of activeUis.value) {
+            const th = m.slabThickness?.(s);
+            if (th) return th;
+          }
+          return undefined;
+        },
+      })
+    : EMPTY_MODEL,
 );
 /** Walls of the floor being edited in 3D (ADR-054): low / see inside (default) / full. */
 const wallMode = ref<WallMode>("cutaway");
@@ -1776,7 +1772,11 @@ const menus = computed<Menu[]>(() => {
           checked: showBelow.value,
           disabled: !levelBelow(project.value, level.value),
         },
-        { id: "structure", label: t("menu.structureChecks"), checked: structuralOn.value },
+        ...MODULE_UIS.map((m) => ({
+          id: "module:" + m.moduleId,
+          label: t(m.name),
+          checked: !!modulesOn.value[m.moduleId],
+        })),
       ],
     },
     {
@@ -1800,6 +1800,7 @@ const menus = computed<Menu[]>(() => {
 const TOOL_KEYS: Record<string, string> = { select: "V", room: "Q", wall: "W", divider: "L", door: "D", window: "J" };
 function onMenu(id: string) {
   if (id.startsWith("tool:")) return toolButtons.value.find((b) => "tool:" + b.id === id)?.pick();
+  if (id.startsWith("module:")) return setModuleOn(id.slice(7), !modulesOn.value[id.slice(7)]);
   const acts: Record<string, () => void> = {
     new: () => void doNew(),
     open: () => void doOpen(),
@@ -1829,7 +1830,6 @@ function onMenu(id: string) {
       fitAll();
       fit3d.value++;
     },
-    structure: () => (structuralOn.value = !structuralOn.value),
     layers: () => (showLayers.value = !showLayers.value),
     showBelow: () => (showBelow.value = !showBelow.value),
     tour: () => (showTour.value = true),
@@ -2818,8 +2818,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :outside-faces="project.settings.outsideFaces === true"
           :system="constructionSystem(project)"
           :module-toggles="moduleToggles"
-          :structural="structuralOn"
-          :values="packValues"
+          :ui-ctx="uiCtx"
+          :module-settings="moduleSettings"
           :name="myName"
           :versions="snapshots.map((v) => ({ ...v, inUse: v.id === project.settings.baseline }))"
           :versions-size="(void tick, void fileTick, session.snapshotsSize())"
