@@ -2028,6 +2028,28 @@ if (demo === "shape") {
   sync();
   setTimeout(fitAll, 0);
 }
+if (demo === "continue") {
+  // a room (rectangle), then walls drawn on from its corners: they keep its outside face (2026-11-19)
+  setTool("room");
+  setRoomShape("rectangle");
+  roomTool.click({ at: { x: 0, y: 0 }, scale: 0.1, free: false });
+  roomTool.click({ at: { x: 4000, y: 3000 }, scale: 0.1, free: false });
+  setTool("wall");
+  const P = (x: number, y: number) => ({ at: { x, y }, scale: 0.1, free: false });
+  for (const [x, y] of [
+    [4000, 3000],
+    [7000, 3000],
+    [7000, 0],
+  ] as const)
+    wallTool.click(P(x, y));
+  wallTool.finish();
+  wallTool.click(P(4000, 0));
+  wallTool.click(P(4000, -2000));
+  wallTool.finish();
+  setTool("select");
+  sync();
+  setTimeout(fitAll, 0);
+}
 if (demo === "structure-panel") {
   const ex = EXAMPLES.find((e) => e.id === "problems");
   if (ex)
