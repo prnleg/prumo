@@ -49,3 +49,26 @@ describe("Structural screen parts (ADR-059)", () => {
     expect(h.undoLabel?.key).toBe("cmd.addSlab");
   });
 });
+
+describe("loads in words (moved from the app, ADR-059 step 2)", () => {
+  it("two significant digits, range collapses when equal; headline in kN/m and tonnes/m", async () => {
+    const { sig2, wallLoadText } = await import("../src/ui/text");
+    expect([sig2(4.914, "en"), sig2(12.3, "en"), sig2(0.0456, "en"), sig2(0, "en")]).toEqual([
+      "4.9",
+      "12",
+      "0.046",
+      "0",
+    ]);
+    const t = (k: string, p?: Record<string, string | number>) => `${k}${p ? JSON.stringify(p) : ""}`;
+    const r = wallLoadText(
+      { wallId: "w", lo: 17, hi: 26, lines: [], notCounted: ["load.not.wind"], values: [] },
+      "en",
+      t,
+      (ref) => ref,
+    );
+    // mid = 21.5 kN/m → "22"; 21.5 / 9.80665 = 2.19 t/m → "2.2"
+    expect(r.headline).toBe('load.headline{"kn":"22","t":"2.2"}');
+    expect(r.range).toBe('load.range{"range":"17–26"}');
+    expect(r.notCounted).toEqual(["load.not.wind"]);
+  });
+});

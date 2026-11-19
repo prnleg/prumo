@@ -86,12 +86,8 @@ import {
   protectionData,
   protectionsOn,
   unprotectCommand,
-  setBonded,
-  setContraverga,
   setLintel,
   setSystemCommand,
-  setTieBeam,
-  setWallRole,
   structuralManifest,
   aboveOf,
   joistDirection,
@@ -101,8 +97,6 @@ import {
   type SlabKind,
   STRUCTURAL,
   materialTable,
-  wallLoads,
-  lintelCheck,
   setLintelSize,
   type LintelSize,
   structuralPacks,
@@ -114,9 +108,6 @@ import {
   type Finding,
   type ConstructionSystem,
   type FindingsDiff,
-  type RoleOrigin,
-  type WallEnd,
-  type WallRole,
 } from "@prumo/module-structural";
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { View3D, type Surface, type WallMode } from "@prumo/renderer-3d";
@@ -173,7 +164,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { findingText, lintelText, paramText, unitWeightText, wallLoadText } from "./structural-ui";
+import { findingText, paramText, unitWeightText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -342,6 +333,16 @@ const openingTool = new OpeningTool(history, {
   magnetPx: DEFAULT_SNAP.endpointRadiusPx,
 });
 
+// dev demos only (the panel's own edits come from the Structural module now, ADR-059 step 2)
+function setMaterial(id: string, m: WallMaterial | undefined) {
+  run(updateCommand({ key: "cmd.material" }, [id], (e) => (e.type === "wall" ? setWallMaterial(e, m) : e)));
+}
+function setOpeningLintelSize(id: string, size: LintelSize) {
+  run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintelSize(e, size) : e)));
+}
+function setOpeningLintel(id: string, has: boolean) {
+  run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
+}
 function editSlab(id: string, info: { kind?: SlabKind; joists?: JoistDir; thickness?: number }) {
   run(updateCommand({ key: "cmd.editSlab" }, [id], (e) => (e.type === "slab" ? setSlabInfo(e, info) : e)));
 }
@@ -530,22 +531,6 @@ function selectFromCheck(ids: string[]) {
   selectTool.selection = ids.filter((id) => history.current.elements[id]).slice(0, 1);
   sync();
 }
-function setRole(wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined) {
-  run(
-    updateCommand({ key: "cmd.setRole" }, [wallId], (e) =>
-      e.type === "wall" ? setWallRole(e, role, role ? (origin ?? "own-judgement") : undefined) : e,
-    ),
-  );
-}
-function setOpeningContraverga(id: string, has: boolean) {
-  run(updateCommand({ key: "cmd.setContraverga" }, [id], (e) => (e.type === "opening" ? setContraverga(e, has) : e)));
-}
-function setWallTieBeam(id: string, has: boolean) {
-  run(updateCommand({ key: "cmd.setTieBeam" }, [id], (e) => (e.type === "wall" ? setTieBeam(e, has) : e)));
-}
-function setWallBonded(id: string, end: WallEnd, bonded: boolean) {
-  run(updateCommand({ key: "cmd.setBonded" }, [id], (e) => (e.type === "wall" ? setBonded(e, end, bonded) : e)));
-}
 // "Load-bearing, don't remove" markers (ADR-044 slice 2). Author = your name (may be unknown: "").
 function protectWall(wallId: string) {
   const w = history.current.elements[wallId];
@@ -581,15 +566,6 @@ const protectionMarks = computed(() => {
   }
   return { locks, ghosts };
 });
-function setMaterial(id: string, m: WallMaterial | undefined) {
-  run(updateCommand({ key: "cmd.material" }, [id], (e) => (e.type === "wall" ? setWallMaterial(e, m) : e)));
-}
-function setOpeningLintelSize(id: string, size: LintelSize) {
-  run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintelSize(e, size) : e)));
-}
-function setOpeningLintel(id: string, has: boolean) {
-  run(updateCommand({ key: "cmd.setLintel" }, [id], (e) => (e.type === "opening" ? setLintel(e, has) : e)));
-}
 const detected = computed(() => detectedOn(level.value));
 /** Rooms of one floor with their labels (the plan, the export). */
 function detectedOn(levelId: string) {
@@ -668,9 +644,6 @@ const panelRooms = computed(() =>
     area: r.floorArea,
     floor: r.floorFinish ?? "",
     roomType: r.roomType,
-    above: r.above,
-    joists: r.joists,
-    coveredBySlab: geometry.value.slabs.some((g) => inside(r.labelAt, g.outline)),
   })),
 );
 // --- modules' screen parts (ADR-059) ---------------------------------------------------------------
@@ -692,6 +665,9 @@ const uiCtx = computed<UiContext>(() => ({
   t: (k, p) => t(k, p),
   run,
   refresh: () => sync(),
+  userName: myName.value ?? "",
+  now: () => new Date().toISOString(),
+  levelName: (id) => floorName(project.value, id),
   formatLength: (mm) => formatLength(mm, locale.value),
   formatArea: (mm2) => formatArea(mm2, locale.value),
   formatCm: (mm) => formatCm(mm, locale.value),
@@ -704,6 +680,17 @@ const modulePanel = computed(() => {
   if (selection.value.length !== 1) return null;
   const e = project.value.elements[selection.value[0] ?? ""];
   return (e && activeUis.value.find((m) => m.elementTypes?.includes(e.type))?.elementPanel) ?? null;
+});
+/** Sections modules add to the selected wall / door / window / slab (ADR-059 step 2). */
+const moduleSections = computed(() => {
+  if (selection.value.length !== 1) return [];
+  const type = project.value.elements[selection.value[0] ?? ""]?.type;
+  return type === "wall" || type === "opening" || type === "slab"
+    ? activeUis.value.flatMap((m) => {
+        const sec = m.sections?.[type];
+        return sec ? [sec] : [];
+      })
+    : [];
 });
 const moduleRoomPanels = computed(() => activeUis.value.flatMap((m) => (m.roomPanel ? [m.roomPanel] : [])));
 const moduleToggles = computed(() =>
@@ -739,32 +726,6 @@ const slabMarks = computed(() => {
       selected: selection.value.includes(g.id),
     };
   });
-});
-
-/** The selected wall's load (ADR-051), structure on only; computed for the one wall shown. */
-const selectedLoad = computed(() => {
-  if (!structuralOn.value || selection.value.length !== 1) return null;
-  const id = selection.value[0] ?? "";
-  const w = project.value.elements[id];
-  if (w?.type !== "wall") return null;
-  const L = wallLoads(project.value, level.value, packs).get(id);
-  if (!L) return null;
-  return wallLoadText(L, locale.value, slabOrRoomName);
-});
-function slabOrRoomName(ref: string) {
-  if (ref.startsWith("slab:")) return t("slab.badge");
-  if (ref.startsWith("level:")) return floorName(project.value, ref.slice(6));
-  const r = detected.value.find((x) => x.key === ref.slice(5));
-  return r ? r.label || formatArea(r.floorArea, locale.value) : t("finish.outside");
-}
-
-/** The selected opening's lintel (ADR-052), structure on only. */
-const selectedLintel = computed(() => {
-  if (!structuralOn.value || selection.value.length !== 1) return null;
-  const o = project.value.elements[selection.value[0] ?? ""];
-  if (o?.type !== "opening") return null;
-  const c = lintelCheck(project.value, o, wallLoads(project.value, level.value, packs).get(o.host.elementId), packs);
-  return c ? lintelText(c, locale.value, slabOrRoomName) : null;
 });
 
 // --- floors (ADR-048) ------------------------------------------------------------------------------
@@ -2859,34 +2820,20 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <PropertiesPanel
           v-if="tool === 'select'"
           v-model:keep-original="keepOriginal"
-          :packs="structuralOn ? packs : null"
-          :load="selectedLoad"
           :ui-ctx="uiCtx"
           :module-panel="modulePanel"
           :module-room-panels="moduleRoomPanels"
-          :lintel-load="selectedLintel"
+          :module-sections="moduleSections"
           :project="project"
           :selection="selection"
           :locale="locale"
           :rooms="panelRooms"
           :wall-sides="wallSideLabels"
-          :structural="structuralOn ? (checks?.system ?? null) : null"
-          @role="setRole"
-          @lintel="setOpeningLintel"
-          @lintel-size="setOpeningLintelSize"
-          @contraverga="setOpeningContraverga"
-          @tie-beam="setWallTieBeam"
-          @bonded="setWallBonded"
-          @protect="protectWall"
-          @unprotect="unprotect"
           @apply="run"
           @name="nameRoom"
           @paint-side="paintSide"
           @paint-floor="paintFloor"
           @room-type="typeRoom"
-          @above="setRoomAbove"
-          @material="setMaterial"
-          @slab="editSlab"
           @delete="deleteSelection"
           @duplicate="duplicateSelection"
           @rotate="rotateSelection"

@@ -14,6 +14,10 @@ describe("module boundary (ADR-059)", () => {
     for (const re of OPTIONAL) expect(re.test(text), `${f} mentions ${re}`).toBe(false);
   });
 
+  it("PropertiesPanel.vue doesn't import Structural (step 2: its sections come from the module)", () => {
+    expect(readFileSync(join(SRC, "PropertiesPanel.vue"), "utf8")).not.toMatch(/@prumo\/module-structural/);
+  });
+
   // Structural moves onto the hooks step by step (ADR-059). Step 1: its tools.
   it("App.vue doesn't build Structural's tools itself (step 1)", () => {
     const text = readFileSync(join(SRC, "App.vue"), "utf8");
