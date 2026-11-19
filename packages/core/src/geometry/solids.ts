@@ -10,8 +10,11 @@ import { faceOffsets } from "./joins";
 import { openingPlan } from "./openings";
 import { detectRooms, wallSides } from "./rooms";
 
-/** frame = window / door frame pieces; leaf = a door panel, drawn open like the plan symbol (ADR-057). */
-export type SolidKind = "wall" | "glass" | "slab" | "floor" | "frame" | "leaf";
+/**
+ * frame = window / door frame pieces; leaf = a door panel, drawn open like the plan symbol (ADR-057);
+ * fixture = a small item a module adds (an outlet plate, a ceiling light; ADR-059 `solids3d`).
+ */
+export type SolidKind = "wall" | "glass" | "slab" | "floor" | "frame" | "leaf" | "fixture";
 
 export interface Solid {
   /** Element the solid belongs to (wall, opening, slab) or "room:<levelId>:<key>" for a floor. */

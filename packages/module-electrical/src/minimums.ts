@@ -3,6 +3,7 @@
 // EL-01). "or part of it" = round up. Only general outlets count (one-appliance outlets are extra).
 import {
   detectRooms,
+  faceOffsets,
   inside,
   matchRoomTags,
   roomTags,
@@ -113,11 +114,15 @@ export function roomElectrical(p: Project, levelId: Id, packs: PackSet): Map<str
 
 const dist2 = (a: V, b: V) => Math.hypot(b.x - a.x, b.y - a.y);
 
-/** A point just past the wall's `face`, at `offset` along it: the room the item looks into. */
-export function facePoint(w: Wall, offset: number, face: "left" | "right"): V {
+/**
+ * A point `off` mm past the wall's `face`, at `offset` along it (default: the room the item looks into).
+ * Uses the wall's real faces (a wall drawn by its outside face has its body on one side of the line).
+ */
+export function facePoint(w: Wall, offset: number, face: "left" | "right", off = OFF_FACE): V {
   const L = wallLength(w) || 1;
   const u = { x: (w.end.x - w.start.x) / L, y: (w.end.y - w.start.y) / L };
   const n = { x: -u.y, y: u.x };
-  const d = (w.thickness / 2 + OFF_FACE) * (face === "left" ? 1 : -1);
+  const f = faceOffsets(w);
+  const d = face === "left" ? f.l + off : f.r - off;
   return { x: w.start.x + u.x * offset + n.x * d, y: w.start.y + u.y * offset + n.y * d };
 }
