@@ -48,6 +48,7 @@ import {
   selectionCentre,
   setGridCommand,
   setOutsideFacesCommand,
+  setNorthCommand,
   handoffGuard,
   isHolder,
   compareLevel,
@@ -133,6 +134,7 @@ import {
   Box,
   BrickWall,
   Columns2,
+  Compass,
   Map as MapIcon,
   Cable,
   DoorOpen,
@@ -855,19 +857,24 @@ const WALL_MODES = [
   { id: "full", icon: ArrowUpToLine },
 ] as const;
 /**
- * Sun by time of day (ADR-057): approximate — north = the top of the plan, no date or place. 6 h rises
- * in the east, 18 h sets in the west; at noon it stands to the north (southern hemisphere, Brazil
- * profiles) or to the south, at 60° up.
+ * Sun by time of day (ADR-057): approximate — no date or place. 6 h rises in the east, 18 h sets in
+ * the west; at noon it stands to the north (southern hemisphere, Brazil profiles) or to the south, at
+ * 60° up. North is where the project says (ADR-060; default the top of the plan).
  */
 const sunHour = ref(10);
 const sun3d = computed(() => {
   const t = ((Math.min(18, Math.max(6, sunHour.value)) - 6) / 12) * Math.PI; // 0 … π
   const south = project.value.profileId.startsWith("br");
+  const n = ((project.value.settings.north ?? 0) * Math.PI) / 180;
   return {
-    azimuth: south ? Math.PI / 2 - t : Math.PI / 2 + t,
+    azimuth: n + (south ? Math.PI / 2 - t : Math.PI / 2 + t),
     elevation: Math.max((5 * Math.PI) / 180, ((60 * Math.PI) / 180) * Math.sin(t)),
   };
 });
+/** Where north is on the plan (ADR-060): eight directions in the 3D bar; the plan's arrow turns by 45°. */
+const NORTHS = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+const north = computed(() => project.value.settings.north ?? 0);
+const setNorth = (deg: number) => run(setNorthCommand(deg));
 const sunLabel = computed(() => {
   const h = Math.floor(sunHour.value);
   return `${h}:${sunHour.value % 1 ? "30" : "00"}`;
@@ -1211,6 +1218,8 @@ function sync() {
   slabPicked.value = tool.value === "slab" ? [...slabTool.picked] : [];
   selection.value = [...selectTool.selection];
   box.value = selectTool.box ? { ...selectTool.box } : null;
+  const pan = selectTool.takePan();
+  if (pan) view.value = { ...view.value, x: view.value.x + pan.x, y: view.value.y + pan.y };
   const probs =
     tool.value === "wall"
       ? wallTool.blocked
@@ -2864,6 +2873,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <div v-show="showPlan" class="pane plan-pane" :style="split ? { right: `${100 - splitAt * 100}%` } : undefined">
           <PlanView
             v-model:view="view"
+            :north="north"
+            :north-tip="t('north.plan.tip')"
             :marks="moduleMarks"
             :links="moduleLinks"
             :geometry="geometry"
@@ -2884,6 +2895,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             :ghosts="protectionMarks.ghosts"
             :compare="comparison"
             :grid="gridSize"
+            @north="(d: number) => setNorth(north + d)"
             @pointer="onPointer"
             @resize="onResize"
             @leave="onLeave"
@@ -2904,6 +2916,17 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
               <SunIcon :size="14" />
               <input v-model.number="sunHour" type="range" min="6" max="18" step="0.5" :aria-label="t('view3d.sun')" />
               <span>{{ sunLabel }}</span>
+            </label>
+            <label class="sun" :title="t('north.tip')">
+              <Compass :size="14" />
+              <select
+                :value="north"
+                :aria-label="t('north')"
+                @change="setNorth(+($event.target as HTMLSelectElement).value)"
+              >
+                <option v-if="!NORTHS.includes(north as (typeof NORTHS)[number])" :value="north">{{ north }}°</option>
+                <option v-for="d in NORTHS" :key="d" :value="d">{{ t(`north.${d}`) }}</option>
+              </select>
             </label>
           </span>
           <View3D
@@ -3299,9 +3322,10 @@ button:disabled {
   top: 50%;
   transform: translateY(-50%);
   z-index: 6;
-  width: 10px;
+  width: 14px;
   height: 56px;
   padding: 0;
+  overflow: hidden;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
@@ -3318,6 +3342,14 @@ button:disabled {
   padding: 0 8px;
   color: var(--muted);
   font-size: 12px;
+}
+.walls3d .sun select {
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
 }
 .walls3d .sun input {
   width: 90px;

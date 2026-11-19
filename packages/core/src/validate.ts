@@ -19,6 +19,9 @@ export function validateProject(p: Project): string[] {
     errs.push("project.settings.outsideFaces must be a boolean");
   else if (p.settings.baseline !== undefined && typeof p.settings.baseline !== "string")
     errs.push("project.settings.baseline must be a string");
+  const north = isObj(p.settings) ? p.settings.north : undefined;
+  if (north !== undefined && (!Number.isInteger(north) || north < 0 || north >= 360))
+    errs.push("project.settings.north must be a whole number of degrees, 0…359");
   const h = (p as { handoff?: unknown }).handoff;
   if (h !== undefined) {
     const entryOk = (e: unknown) =>

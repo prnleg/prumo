@@ -133,12 +133,27 @@ describe("select tool", () => {
     expect(tool.selection).toEqual(["w1"]);
   });
 
-  it("box: left→right selects only what's fully inside; right→left anything touched", () => {
+  it("Shift + box: left→right selects only what's fully inside; right→left anything touched", () => {
     const { tool, drag } = setup();
-    drag([-300, -300], [4300, 300]);
+    drag([-300, -300], [4300, 300], { additive: true });
     expect(tool.selection).toEqual(["o1", "w1"]);
-    drag([4300, 300], [-300, -300]);
+    tool.selection = [];
+    drag([4300, 300], [-300, -300], { additive: true });
     expect(tool.selection).toEqual(["o1", "w1", "w2", "w4"]);
+  });
+
+  it("drag on empty space moves the view (the pressed point stays under the pointer); selection kept", () => {
+    const { h, tool, click } = setup();
+    click(2000, 10);
+    const P = (x: number, y: number) => ({ at: { x, y }, scale: SCALE, free: false, additive: false });
+    tool.down(P(-1000, -1000));
+    tool.move(P(-1500, -800));
+    expect(tool.takePan()).toEqual({ x: 500, y: -200 });
+    expect(tool.takePan()).toBeNull();
+    expect(tool.box).toBeNull();
+    tool.up(P(-1500, -800));
+    expect(tool.selection).toEqual(["w1"]);
+    expect(h.canUndo).toBe(false);
   });
 
   it("a blocked move (would squeeze the door out) commits nothing", () => {
