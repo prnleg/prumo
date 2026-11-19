@@ -5,7 +5,7 @@
 // The rest (checks panel, plan marks, 3D / export marks, Settings values) still lives in the app.
 import { DEFAULT_SNAP } from "@prumo/core";
 import type { ModuleUi, ToolContribution, UiContext, UiTool } from "@prumo/ui-api";
-import { Cable, MoveHorizontal, MoveVertical, Pentagon, SquareDashed, SquareStack } from "@lucide/vue";
+import { Building2, Cable, MoveHorizontal, MoveVertical, Pentagon, SquareDashed, SquareStack } from "@lucide/vue";
 import { defineComponent, h, type Component, type PropType } from "vue";
 import { ChaseTool } from "../chase-tool";
 import { SLAB_KINDS, slabInfo, type ChaseDir, type SlabKind } from "../data";
@@ -204,6 +204,8 @@ const slabTool: ToolContribution = {
 export const structuralUi: ModuleUi = {
   moduleId: STRUCTURAL,
   name: "module.structural.name",
+  description: "module.structural.desc",
+  icon: Building2,
   defaultOn: true,
   messages: MESSAGES,
   tools: [chaseTool, slabTool],

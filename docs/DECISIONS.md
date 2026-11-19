@@ -656,3 +656,14 @@ Status: **ACCEPTED (2026-11-18)** — ROADMAP Phase 5b next slice; owner: "hold 
 - **Loads (estimates, UNVERIFIED, EL-02), values in the Electrical Brazil pack:** lighting per room 100 VA up to 6 m², +60 VA per whole 4 m² more, shared equally by the room's light points (a light outside every room: unknown); general outlets 100 VA, in kitchens / laundry areas / bathrooms the first 3 at 600 VA (only 2 if more than 6), by id order; one-appliance outlet = its typed power (unknown if empty). NBR 5410:2004 9.5.2 from memory.
 - **Circuits:** per number — lights / outlets / one-appliance counts, sum of known loads, items with no estimate, and two notes: lights + outlets on one circuit, a one-appliance outlet sharing its circuit (NBR 5410 9.5.3, from memory). Shown in the light / outlet panel ("Circuit" section) with UNVERIFIED and "rough sums, not a circuit design"; plus how many lights / outlets have no circuit yet. No checks panel, no "OK" state.
 - **Not yet:** a panel-board view (all circuits at once), wire / breaker sizing (never: that's design), circuits in the export, remapping a copied switch's lights.
+
+## ADR-062 — Modules screen: install / remove instead of on / off (stage 1)
+Status: **ACCEPTED in principle (2026-11-19, owner: "they should not be something that turn on/off, they should be something in opt to install by the modules 'Store' … with the plugins also")**; the details below are my reading, **PROPOSED** (cheap to change).
+Context: modules were switched on and off (View menu, Settings → Modules). The owner wants an install model, like an app store, that later also lists plugins made by others.
+Decision (stage 1, inside ADR-020's "bundled" stage):
+- A **Modules** screen (tool strip button, Tools → Modules…, Settings → Modules → "Open Modules…"): one card per module (icon, name, "by the Prumo project", plain description), **Install** / **Installed · Remove**. Architect: "always installed". The View menu's module switches are gone.
+- Install state is **per computer** (remembered in settings.json, the old `modules` key; same meaning), not per project. Defaults: Structural installed, Electrical not.
+- "Not installed" = ModuleHost rule 7 (disabled): no tools, panels, checks or marks; **its data always stays** in the project and the file (golden rule 13). Removing never deletes anything; the screen says so.
+- A project with items of a module that isn't installed shows a quiet bar: "This project has N items from Electrical, which isn't installed. They are kept in the file. [Install Electrical]".
+- Modules made by other people: one line, "will come later". **Downloads (ADR-020 stage 2) and third-party plugins wait on ADR-020 (public API) and ADR-023 (trust model)** — the owner's decisions.
+Consequence: the bundled modules are always in the app's download; "install" only turns them on. With real downloads, the same screen gets a source and a size per card.

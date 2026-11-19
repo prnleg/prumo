@@ -12,7 +12,7 @@ import {
   type Wall,
 } from "@prumo/core";
 import type { ModuleUi, PlanLink, PlanMark, UiContext } from "@prumo/ui-api";
-import { Lightbulb, Plug, ToggleRight } from "@lucide/vue";
+import { Lightbulb, Plug, ToggleRight, Zap } from "@lucide/vue";
 import { defineComponent, h, ref, type PropType } from "vue";
 import { circuits, MAX_CIRCUIT } from "../circuits";
 import {
@@ -343,6 +343,8 @@ export const electricalUi: ModuleUi = {
   demo,
   moduleId: ELECTRICAL,
   name: "module.electrical.name",
+  description: "module.electrical.desc",
+  icon: Zap,
   defaultOn: false,
   messages: MESSAGES,
   tools: [tool("outlet", Plug), tool("switch", ToggleRight), tool("light", Lightbulb)],

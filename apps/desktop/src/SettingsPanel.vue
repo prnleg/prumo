@@ -15,7 +15,7 @@ const props = defineProps<{
   angle: number;
   outsideFaces: boolean;
   system: ConstructionSystem;
-  /** Optional modules with a screen part (ADR-059): name key + on/off. */
+  /** Optional modules with a screen part (ADR-059): name key + installed. */
   moduleToggles?: readonly { id: string; name: string; on: boolean }[];
   /** Your name on notes (ADR-044), or null when not set yet. */
   name: string | null;
@@ -33,7 +33,7 @@ const emit = defineEmits<{
   angle: [deg: number];
   outsideFaces: [on: boolean];
   system: [s: ConstructionSystem];
-  module: [id: string, on: boolean];
+  store: [];
   name: [name: string];
   deleteVersion: [id: string];
   exportClean: [];
@@ -124,15 +124,12 @@ const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateS
         <input type="checkbox" checked disabled />
         <span>{{ t("module.architect.name") }} · {{ t("settings.modules.required") }}</span>
       </label>
-      <label v-for="m in moduleToggles ?? []" :key="m.id" class="check">
-        <input
-          type="checkbox"
-          :checked="m.on"
-          @change="emit('module', m.id, ($event.target as HTMLInputElement).checked)"
-        />
+      <label v-for="m in (moduleToggles ?? []).filter((x) => x.on)" :key="m.id" class="check">
+        <input type="checkbox" checked disabled />
         <span>{{ t(m.name) }}</span>
       </label>
       <p class="tip">{{ t("settings.modules.tip") }}</p>
+      <button class="plain" @click="emit('store')">{{ t("settings.modules.open") }}</button>
       <h3>{{ t("settings.you") }}</h3>
       <label :title="t('note.yourName.tip')">
         {{ t("note.yourName") }}
