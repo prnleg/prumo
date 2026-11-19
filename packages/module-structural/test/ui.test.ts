@@ -72,3 +72,87 @@ describe("loads in words (moved from the app, ADR-059 step 2)", () => {
     expect(r.notCounted).toEqual(["load.not.wind"]);
   });
 });
+
+describe("Structural running in the app (ADR-059 step 3)", () => {
+  it("joist arrow reach: across a 4 × 3 m room through its centre", async () => {
+    const { reach } = await import("../src/ui/checks");
+    const room = [
+      { x: 0, y: 0 },
+      { x: 4000, y: 0 },
+      { x: 4000, y: 3000 },
+      { x: 0, y: 3000 },
+    ];
+    // along x from (2000,1500): 2000 to each side → 4000; along y: 1500 each way → 3000
+    expect(reach(room, { x: 2000, y: 1500 }, { x: 1, y: 0 })).toBeCloseTo(4000);
+    expect(reach(room, { x: 2000, y: 1500 }, { x: 0, y: 1 })).toBeCloseTo(3000);
+    // off-centre: nearest edge doubled (1000 to the left → 2000)
+    expect(reach(room, { x: 1000, y: 1500 }, { x: 1, y: 0 })).toBeCloseTo(2000);
+  });
+
+  it("checks re-run after an edit settles (not during it); stop() ends it", async () => {
+    const { vi } = await import("vitest");
+    vi.useFakeTimers();
+    try {
+      const { effectScope } = await import("vue");
+      const opening = (id: string, offset: number) => ({
+        id,
+        type: "opening" as const,
+        levelId: "l",
+        host: { elementId: "b", offset },
+        width: 1200,
+        height: 1200,
+        sillHeight: 1000,
+        kind: "window" as const,
+        components: {},
+      });
+      const p0 = putCommand({ key: "x" }, [wall("b", 0, 0, 6000, 0)]).apply(
+        emptyProject({
+          id: "p",
+          levelId: "l",
+          name: "t",
+          now: "2026-11-18T00:00:00Z",
+          profileId: "br-nbr/structural-masonry",
+        }),
+      );
+      const h = new History(p0, { freeze: true });
+      const ctx = {
+        project: p0,
+        level: "l",
+        selection: [],
+        locale: "en",
+        rooms: [],
+        grid: 100,
+        history: h,
+        ids: counterIds("x"),
+        t: (k: string) => k,
+        run: () => true,
+        refresh: () => {},
+        userName: "",
+        now: () => "2026-11-18T00:00:00Z",
+        levelName: () => "",
+        hiddenRooms: new Set<string>(),
+        baseline: { project: () => null, date: () => null, mark: () => {}, clear: () => {} },
+        select: () => {},
+        openSettings: () => {},
+        formatLength: (mm: number) => `${mm}`,
+        formatArea: (mm2: number) => `${mm2}`,
+        formatCm: (mm: number) => `${mm / 10}`,
+        parseNumber: (s: string) => Number(s),
+      };
+      const scope = effectScope(true);
+      const s = scope.run(() => structuralUi.start!(() => ({ ...ctx, project: h.current })))!;
+      const before = s.marks3d!({ ...ctx, project: h.current });
+      expect(before["o"]).toBeUndefined();
+      h.execute(putCommand({ key: "x" }, [opening("o", 1000)])); // a window with no lintel → R-OPEN-001
+      expect(s.marks3d!({ ...ctx, project: h.current })).toEqual(before); // not yet: quiet while working
+      vi.advanceTimersByTime(1600);
+      expect(s.marks3d!({ ...ctx, project: h.current })["o"]).toBe("warning");
+      expect(s.exportNotes!({ ...ctx, project: h.current }, "l")?.items.map((i) => i.elementId)).toContain("o");
+      s.stop();
+      scope.stop();
+      expect(s.marks3d!({ ...ctx, project: h.current })).toEqual({});
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

@@ -77,20 +77,13 @@ import {
 } from "@prumo/module-architect";
 import {
   constructionSystem,
-  diffFindings,
   profileIdFor,
-  runChecks,
   isChase,
-  isProtection,
   protectCommand,
-  protectionData,
-  protectionsOn,
-  unprotectCommand,
   setLintel,
   setSystemCommand,
   structuralManifest,
   aboveOf,
-  joistDirection,
   setAbove,
   setSlabInfo,
   slabInfo,
@@ -104,14 +97,21 @@ import {
   type WallMaterial,
   type Above,
   type JoistDir,
-  type CheckResult,
-  type Finding,
   type ConstructionSystem,
-  type FindingsDiff,
 } from "@prumo/module-structural";
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { View3D, type Surface, type WallMode } from "@prumo/renderer-3d";
-import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import {
+  computed,
+  effectScope,
+  getCurrentInstance,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  type EffectScope,
+} from "vue";
 import {
   Sun as SunIcon,
   ArrowDownToLine,
@@ -139,7 +139,6 @@ import {
   SquareSplitHorizontal,
   Undo2,
 } from "@lucide/vue";
-import FindingsPanel from "./FindingsPanel.vue";
 import AddFloorDialog from "./AddFloorDialog.vue";
 import LayersPanel from "./LayersPanel.vue";
 import MenuBar, { type Menu } from "./MenuBar.vue";
@@ -164,7 +163,7 @@ import TourBubble, { type TourStep } from "./TourBubble.vue";
 import { EXAMPLES, type Example } from "./examples";
 import { platform } from "./platform";
 import { PREFS_FILE, parsePrefs, serializePrefs, type LoadedPrefs } from "./prefs";
-import { findingText, paramText, unitWeightText } from "./structural-ui";
+import { paramText, unitWeightText } from "./structural-ui";
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
@@ -179,7 +178,7 @@ import {
   translate,
   type Params,
 } from "./i18n";
-import type { ModuleUi, ToolPreview, UiContext, UiTool } from "@prumo/ui-api";
+import type { ModuleSession, ModuleUi, PlanLayers, Severity, ToolPreview, UiContext, UiTool } from "@prumo/ui-api";
 import { SlabUiTool } from "@prumo/module-structural/ui"; // dev demos only
 import { MODULE_UIS, OPTIONAL_MANIFESTS } from "./installed-modules";
 
@@ -198,6 +197,9 @@ const MANIFESTS = [architectManifest, structuralManifest, ...OPTIONAL_MANIFESTS]
 for (const m of MODULE_UIS) registerMessages(m.messages);
 const modulesOn = ref<Record<string, boolean>>(Object.fromEntries(MODULE_UIS.map((m) => [m.moduleId, m.defaultOn])));
 const activeUis = computed(() => MODULE_UIS.filter((m) => modulesOn.value[m.moduleId]));
+/** Running modules (ADR-059 step 3): started when switched on, stopped when off (see `startModules`). */
+const sessions = shallowRef(new Map<string, ModuleSession>());
+const sessionScopes = new Map<string, EffectScope>();
 /** A module tool's id in the tool strip: "mod:<module id>/<tool id>". */
 type ModTool = `mod:${string}`;
 const modToolId = (m: ModuleUi, toolId: string): ModTool => `mod:${m.moduleId}/${toolId}`;
@@ -455,77 +457,17 @@ const tooShort = ref(false);
 const geometry = computed(() => planGeometry(project.value, level.value));
 const walls = computed(() => wallsOnLevel(project.value, level.value));
 
-// --- Structural checks (Phase 2) ---------------------------------------------------------------
-// Module manager stage 1 (ADR-020): Structural can be switched off in Settings → Modules (no UI, no
-// checks; its data stays in the file). Quiet while creating (ADR-025): checks re-run only after an
-// edit settles (not during a drag), with a short delay so findings don't flicker while working.
+// --- Structural (Phase 2) ------------------------------------------------------------------------
+// A module like any other (ADR-059): its checks, panels and marks come from `structuralUi`. Kept here:
+// its on/off switch (the menu's "Structure checks" toggles it too) and a few dev-demo helpers.
 const structuralOn = computed({
   get: () => modulesOn.value[STRUCTURAL] !== false,
   set: (on: boolean) => (modulesOn.value = { ...modulesOn.value, [STRUCTURAL]: on }),
 });
-const checks = shallowRef<CheckResult | null>(null);
-const checksDiff = shallowRef<FindingsDiff | null>(null);
-const SETTLE_MS = 1500;
-let settleTimer: ReturnType<typeof setTimeout> | null = null;
-function recheck(keepDiff = true) {
-  if (!structuralOn.value) {
-    checks.value = null;
-    return;
-  }
-  const next = runChecks(history.current, level.value, { baseline: session.baselineProject() });
-  checksDiff.value = keepDiff && checks.value ? diffFindings(checks.value.findings, next.findings) : null;
-  checks.value = next;
-}
-function scheduleCheck(keepDiff: boolean) {
-  if (settleTimer) clearTimeout(settleTimer);
-  settleTimer = setTimeout(function fire() {
-    if (history.inGesture) settleTimer = setTimeout(fire, SETTLE_MS);
-    else recheck(keepDiff);
-  }, SETTLE_MS);
-}
-history.subscribe((e) => {
-  if (e.type === "commit") scheduleCheck(e.label.key !== "cmd.open");
-});
 watch(structuralOn, (on) => {
   if (!on && isModTool(tool.value) && tool.value.startsWith(`mod:${STRUCTURAL}/`)) setTool("select");
-  recheck(false);
 });
-onBeforeUnmount(() => settleTimer && clearTimeout(settleTimer));
-recheck(false);
 
-/** A "!" over the element each finding is about (its first id). */
-function protectionMid(e: Parameters<typeof protectionData>[0]): V | null {
-  const d = protectionData(e);
-  return d ? { x: (d.wall.start.x + d.wall.end.x) / 2, y: (d.wall.start.y + d.wall.end.y) / 2 } : null;
-}
-const badges = computed(() => badgePoints(checks.value?.findings ?? []));
-/** Where each finding's "!" goes: on the element it's about (first id); one per element. */
-function badgePoints(findings: readonly Finding[]) {
-  const p = project.value;
-  const seen = new Set<string>();
-  return findings.flatMap((f) => {
-    const id = f.elementIds[0] ?? "";
-    if (seen.has(id)) return [];
-    seen.add(id);
-    const e = p.elements[id];
-    const wallOf = (w: Wall | undefined, along: number) => {
-      if (!w) return null;
-      const L = wallLength(w) || 1;
-      return { x: w.start.x + ((w.end.x - w.start.x) * along) / L, y: w.start.y + ((w.end.y - w.start.y) * along) / L };
-    };
-    const at =
-      e?.type === "wall"
-        ? wallOf(e, wallLength(e) / 2)
-        : e?.type === "opening"
-          ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + e.width / 2)
-          : isChase(e)
-            ? wallOf(p.elements[e.host.elementId] as Wall | undefined, e.host.offset + (e.host.length ?? 0) / 2)
-            : isProtection(e)
-              ? protectionMid(e)
-              : null;
-    return at ? [{ at, severity: f.severity, id }] : [];
-  });
-}
 function selectFromCheck(ids: string[]) {
   setTool("select");
   selectTool.selection = ids.filter((id) => history.current.elements[id]).slice(0, 1);
@@ -536,36 +478,6 @@ function protectWall(wallId: string) {
   const w = history.current.elements[wallId];
   if (w?.type === "wall") run(protectCommand(w, myName.value ?? "", new Date().toISOString(), randomIds()));
 }
-function protectAgain(protectionId: string) {
-  const pr = history.current.elements[protectionId];
-  const d = isProtection(pr) ? protectionData(pr) : null;
-  if (d) protectWall(d.wallId);
-}
-function unprotect(protectionId: string) {
-  run(unprotectCommand(protectionId));
-}
-const SAME_MM = 1; // drawing precision (same as R-PROT-001), not a structural value
-/** Locks on protected walls; a protected wall that's gone or moved leaves a dashed ghost where it was. */
-const protectionMarks = computed(() => {
-  if (!structuralOn.value) return { locks: [], ghosts: [] };
-  const p = project.value;
-  const locks: { id: string; at: V; broken: boolean }[] = [];
-  const ghosts: { id: string; a: V; b: V }[] = [];
-  for (const pr of protectionsOn(p, level.value)) {
-    const d = protectionData(pr);
-    if (!d) continue;
-    const w = p.elements[d.wallId];
-    const same =
-      w?.type === "wall" &&
-      (w.kind === "full" || w.kind === "half") &&
-      dist(w.start, d.wall.start) <= SAME_MM &&
-      dist(w.end, d.wall.end) <= SAME_MM;
-    const mid = (a: V, b: V) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-    locks.push({ id: pr.id, at: mid(d.wall.start, d.wall.end), broken: !same });
-    if (!same) ghosts.push({ id: pr.id, a: d.wall.start, b: d.wall.end });
-  }
-  return { locks, ghosts };
-});
 const detected = computed(() => detectedOn(level.value));
 /** Rooms of one floor with their labels (the plan, the export). */
 function detectedOn(levelId: string) {
@@ -668,6 +580,15 @@ const uiCtx = computed<UiContext>(() => ({
   userName: myName.value ?? "",
   now: () => new Date().toISOString(),
   levelName: (id) => floorName(project.value, id),
+  hiddenRooms: hiddenRooms.value,
+  baseline: {
+    project: () => session.baselineProject(),
+    date: () => session.baselineDate(),
+    mark: () => session.markBaseline(),
+    clear: () => session.clearBaseline(),
+  },
+  select: (ids) => selectFromCheck([...ids]),
+  openSettings: () => (showSettings.value = true),
   formatLength: (mm) => formatLength(mm, locale.value),
   formatArea: (mm2) => formatArea(mm2, locale.value),
   formatCm: (mm) => formatCm(mm, locale.value),
@@ -711,22 +632,6 @@ const packValues = computed(() =>
     return { key: r.material, label, ...w };
   }),
 );
-
-/** Drawn slabs on this floor (structure on): outline + badge; selected ones highlighted. */
-const slabMarks = computed(() => {
-  if (!structuralOn.value) return [];
-  return geometry.value.slabs.map((g) => {
-    const e = project.value.elements[g.id];
-    const kind = e?.type === "slab" ? slabInfo(e).kind : null;
-    return {
-      id: g.id,
-      outline: g.outline,
-      at: g.at,
-      label: kind ? t(`slabKind.${kind}.short`) : t("slab.badge"),
-      selected: selection.value.includes(g.id),
-    };
-  });
-});
 
 // --- floors (ADR-048) ------------------------------------------------------------------------------
 /** Generated names follow the floor's place from the bottom: Ground floor, Floor 1, Floor 2… */
@@ -817,20 +722,6 @@ const selection3d = computed(() =>
     id.startsWith(ROOM_PREFIX) ? `room:${level.value}:${id.slice(ROOM_PREFIX.length)}` : id,
   ),
 );
-/** Findings in 3D (Phase 4): worst severity per element; chases / protections light up their wall. */
-const marks3d = computed(() => {
-  const out: Record<string, "critical" | "warning" | "advisory" | "info"> = {};
-  const order = { critical: 0, warning: 1, advisory: 2, info: 3 } as const;
-  // like the plan's "!" badges: the element each finding is about (its first id)
-  for (const f of checks.value?.findings ?? [])
-    for (const id of f.elementIds.slice(0, 1)) {
-      const e = project.value.elements[id];
-      const target = isChase(e) ? e.host.elementId : isProtection(e) ? (protectionData(e)?.wallId ?? id) : id;
-      const cur = out[target];
-      if (!cur || order[f.severity] < order[cur]) out[target] = f.severity;
-    }
-  return out;
-});
 /** A click in 3D selects in the plan too (switching floor if needed). */
 function pick3d(id: string | null) {
   if (tool.value !== "select") setTool("select");
@@ -900,7 +791,6 @@ function setLevel(id: string) {
   pointToolsAt(id, l.defaultWallHeight);
   hiddenRooms.value = new Set();
   sync();
-  recheck(false);
 }
 function addFloor(name: string, height: number, start: NewLevelStart) {
   showAddFloor.value = false;
@@ -995,57 +885,6 @@ async function removeRoom(key: string) {
   run(deleteCommand(history.current, [...walls, ...(tag ? [tag.id] : [])]));
 }
 
-/** Joist arrows (structure on): through the label point, 60% of the room's space that way. */
-const joistArrows = computed(() => {
-  if (!structuralOn.value || !checks.value) return [];
-  return detected.value.flatMap((r) => {
-    if (hiddenRooms.value.has(r.key)) return [];
-    const u = r.above === "joist-slab" ? joistDirection(r.floor, r.joists) : null;
-    if (!u) return [];
-    const half = 0.3 * Math.min(roomReach(r.floor, r.labelAt, u), 4000);
-    const at = r.labelAt;
-    return [
-      {
-        key: r.key,
-        a: { x: at.x - u.x * half, y: at.y - u.y * half },
-        b: { x: at.x + u.x * half, y: at.y + u.y * half },
-      },
-    ];
-  });
-});
-/** Joist arrows of drawn joist slabs (structure on). */
-const slabArrows = computed(() => {
-  if (!structuralOn.value || !checks.value) return [];
-  return geometry.value.slabs.flatMap((g) => {
-    const e = project.value.elements[g.id];
-    const info = e?.type === "slab" ? slabInfo(e) : null;
-    const u = info?.kind === "joist" ? joistDirection(g.outline, info.joists) : null;
-    if (!u) return [];
-    const half = 0.3 * Math.min(roomReach(g.outline, g.at, u), 4000);
-    return [
-      {
-        key: "s" + g.id,
-        a: { x: g.at.x - u.x * half, y: g.at.y - u.y * half },
-        b: { x: g.at.x + u.x * half, y: g.at.y + u.y * half },
-      },
-    ];
-  });
-});
-/** Distance across the room through `at` along ±u (to the nearest edge each way, doubled). */
-function roomReach(poly: readonly V[], at: V, u: V): number {
-  let best = Infinity;
-  for (const [i, a] of poly.entries()) {
-    const b = poly[(i + 1) % poly.length] ?? a;
-    const e = { x: b.x - a.x, y: b.y - a.y };
-    const den = u.x * e.y - u.y * e.x;
-    if (Math.abs(den) < 1e-9) continue;
-    const w = { x: a.x - at.x, y: a.y - at.y };
-    const t = (w.x * e.y - w.y * e.x) / den;
-    const s2 = (w.x * u.y - w.y * u.x) / den;
-    if (s2 >= 0 && s2 <= 1) best = Math.min(best, Math.abs(t));
-  }
-  return Number.isFinite(best) ? 2 * best : 0;
-}
 function setRoomAbove(key: string, above: Above | undefined, joists: JoistDir | undefined) {
   run(
     editRoomCommand(
@@ -1219,9 +1058,13 @@ const showHandoff = ref(false);
 
 // --- export a picture / PDF of the current floor (ADR-056) ------------------------------------------
 const showExport = ref(false);
-/** Structure checks for the export (same baseline as the panel); null when the module is off. */
-const checksFor = (levelId: string) =>
-  structuralOn.value ? runChecks(history.current, levelId, { baseline: session.baselineProject() }) : null;
+/** Numbered notes modules add to an exported floor (e.g. Structural's findings), in module order. */
+const exportNotesFor = (levelId: string) =>
+  [...sessions.value.values()].flatMap((m) => {
+    const n = m.exportNotes?.(uiCtx.value, levelId);
+    return n ? [n] : [];
+  });
+const hasExportNotes = computed(() => [...sessions.value.values()].some((m) => !!m.exportNotes));
 /**
  * Draws one floor's sheet on `canvas` (default: the current floor); null when it has no walls. With
  * `o.marks`, findings get numbers from `first` on, shown on the plan; they are returned for the notes page.
@@ -1245,13 +1088,17 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number, lev
     const e = project.value.elements[id];
     return e?.type === "wall" ? e.kind : "full";
   };
-  const checked = o.marks ? checksFor(levelId) : null;
-  const numbered = (checked?.findings ?? []).map((f, i) => ({ n: first + i, f }));
-  // one mark per element: its numbers, coloured by the worst finding (findings come worst first)
-  const marks = badgePoints(checked?.findings ?? []).map((b) => {
-    const ns = numbered.filter((x) => x.f.elementIds[0] === b.id).map((x) => x.n);
-    return { at: b.at, severity: b.severity, label: ns.join(",") };
-  });
+  const notes = o.marks ? exportNotesFor(levelId) : [];
+  const numbered = notes.flatMap((n) => n.items).map((f, i) => ({ n: first + i, f }));
+  // one mark per element: its numbers, coloured by the worst note (notes come worst first)
+  const marks: { at: V; severity: Severity; label: string }[] = [];
+  const seen = new Set<string>();
+  for (const { f } of numbered) {
+    if (!f.at || seen.has(f.elementId)) continue;
+    seen.add(f.elementId);
+    const ns = numbered.filter((x) => x.f.elementId === f.elementId).map((x) => x.n);
+    marks.push({ at: f.at, severity: f.severity, label: ns.join(",") });
+  }
   const date = new Intl.DateTimeFormat(locale.value, { dateStyle: "medium" }).format(new Date());
   drawSheet(
     ctx,
@@ -1281,7 +1128,8 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number, lev
     L,
     px,
   );
-  return { scale: L.scale, fits: L.fits, numbered, checksRun: checked?.checksRun.length ?? 0 };
+  const checksRun = notes.reduce((a, n) => a + n.checksRun, 0);
+  return { scale: L.scale, fits: L.fits, numbered, checksRun, disclaimers: notes.map((n) => n.disclaimer) };
 }
 /** 200 dots per inch: sharp on paper, a few hundred KB a page. */
 const EXPORT_PX = 200 / 25.4;
@@ -1297,10 +1145,12 @@ function exportCanvases(o: ExportOptions) {
   const notes: HTMLCanvasElement[] = [];
   const sections: NotesInput["sections"] = [];
   let next = 1;
+  const disclaimers = new Set<string>();
   for (const lv of levels) {
     const canvas = document.createElement("canvas");
     const r = drawExport(canvas, o, EXPORT_PX, lv, next);
     if (!r) continue;
+    for (const d of r.disclaimers) disclaimers.add(d);
     next += r.numbered.length;
     sheets.push(canvas);
     sections.push({
@@ -1309,7 +1159,7 @@ function exportCanvases(o: ExportOptions) {
         label: String(n),
         severity: f.severity,
         tag: t(`severity.${f.severity}`),
-        text: findingText(f, project.value, locale.value),
+        text: f.text,
       })),
       empty: t("export.notes.none", { count: r.checksRun }),
     });
@@ -1324,7 +1174,12 @@ function exportCanvases(o: ExportOptions) {
       return m.measureText(text).width;
     };
     const pages = layoutNotes(
-      { title: t("export.notes.title"), intro: t("export.notes.intro"), sections, disclaimer: t("checks.disclaimer") },
+      {
+        title: t("export.notes.title"),
+        intro: t("export.notes.intro"),
+        sections,
+        disclaimer: [...disclaimers].join(" "),
+      },
       paper,
       measure,
     );
@@ -2056,6 +1911,58 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => window.addEventListener("keydown", onKey));
 
 // Dev-only smoke path (?demo=room): draws an L-shaped room through the real wall tool, for screenshots.
+// --- running modules (ADR-059 step 3) ----------------------------------------------------------------
+// Started here, after everything their context reads exists. Each runs in its own reactive scope.
+function startModules(uis: readonly ModuleUi[]) {
+  const next = new Map(sessions.value);
+  for (const [id, m] of next)
+    if (!uis.some((u) => u.moduleId === id)) {
+      m.stop();
+      sessionScopes.get(id)?.stop();
+      sessionScopes.delete(id);
+      next.delete(id);
+    }
+  for (const u of uis) {
+    if (!u.start || next.has(u.moduleId)) continue;
+    const scope = effectScope(true);
+    const m = scope.run(() => u.start?.(() => uiCtx.value));
+    if (m) {
+      next.set(u.moduleId, m);
+      sessionScopes.set(u.moduleId, scope);
+    } else scope.stop();
+  }
+  sessions.value = next;
+}
+watch(activeUis, startModules, { immediate: true });
+onBeforeUnmount(() => startModules([]));
+/** Dev demos: re-run the modules' analyses now (normally they follow the edits themselves). */
+const refreshModules = () => sessions.value.forEach((m) => m.refresh?.());
+/** What the running modules draw on the plan, merged. */
+const moduleLayers = computed(() => {
+  const ls = [...sessions.value.values()].map((m): PlanLayers => m.plan?.(uiCtx.value) ?? {});
+  return {
+    badges: ls.flatMap((l) => l.badges ?? []),
+    locks: ls.flatMap((l) => l.locks ?? []),
+    ghosts: ls.flatMap((l) => l.ghosts ?? []),
+    arrows: ls.flatMap((l) => l.arrows ?? []),
+    areas: ls.flatMap((l) => l.areas ?? []),
+  };
+});
+/** Element colours in 3D from the running modules (worst wins). */
+const marks3d = computed(() => {
+  const order = { critical: 0, warning: 1, advisory: 2, info: 3 } as const;
+  const out: Record<string, Severity> = {};
+  for (const m of sessions.value.values())
+    for (const [id, sev] of Object.entries(m.marks3d?.(uiCtx.value) ?? {})) {
+      const cur = out[id];
+      if (!cur || order[sev] < order[cur]) out[id] = sev;
+    }
+  return out;
+});
+const overlays = computed(() =>
+  [...sessions.value.entries()].flatMap(([id, m]) => (m.overlay ? [{ id, c: m.overlay }] : [])),
+);
+
 const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get("demo") : null;
 if (demo === "rooms" || demo === "names" || demo === "paint") {
   const c = (x: number, y: number) => roomTool.click({ at: { x, y }, scale: 0.1, free: false });
@@ -2380,7 +2287,7 @@ if (demo === "protect") {
       if (inner) protectWall(inner.id);
       if (front) protectWall(front.id);
       if (inner) run(deleteCommand(history.current, [inner.id]));
-      recheck(false);
+      refreshModules();
       sync();
       setTimeout(fitAll, 0);
     });
@@ -2431,7 +2338,7 @@ if (demo === "chase") {
       const c = Object.values(history.current.elements).find(isChase);
       if (c) selectTool.selection = [c.id];
       sync();
-      recheck(false);
+      refreshModules();
       setTimeout(fitAll, 0);
     });
 }
@@ -2452,7 +2359,7 @@ if (demo === "renovation" || demo === "compare" || demo === "versions") {
         myName.value = "Bruno";
         showSettings.value = true;
       }
-      recheck(true);
+      refreshModules();
       setTimeout(fitAll, 0);
     });
 }
@@ -2710,18 +2617,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             :walls="walls"
             :hover="tool === 'wall' || tool === 'room' ? hover : null"
             :rooms="rooms"
-            :slabs="slabMarks"
+            :slabs="moduleLayers.areas"
             :slab-preview="modPreview.outlines ?? []"
             :faces="faces"
             :selected-ids="selection"
             :box="box"
             :labels="labels"
-            :badges="badges"
-            :arrows="[...joistArrows, ...slabArrows]"
+            :badges="moduleLayers.badges"
+            :arrows="moduleLayers.arrows"
             :dimmed="[...hiddenIds]"
             :ghost="ghostBelow"
-            :locks="protectionMarks.locks"
-            :ghosts="protectionMarks.ghosts"
+            :locks="moduleLayers.locks"
+            :ghosts="moduleLayers.ghosts"
             :compare="comparison"
             :grid="gridSize"
             @north="(d: number) => setNorth(north + d)"
@@ -2860,7 +2767,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :locale="locale"
           :floor="currentFloorName"
           :floor-count="project.levels.length"
-          :structure="structuralOn"
+          :structure="hasExportNotes"
           :draw="drawExport"
           @export="doExport"
           @cancel="showExport = false"
@@ -2900,20 +2807,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :selected="selection"
           @select="selectNote"
         />
-        <FindingsPanel
-          v-if="structuralOn && checks"
-          :locale="locale"
-          :project="project"
-          :result="checks"
-          :diff="checksDiff"
-          :baseline="(void tick, session.baselineDate())"
-          @mark="session.markBaseline()"
-          @clear-baseline="session.clearBaseline()"
-          @select="selectFromCheck"
-          @protect-again="protectAgain"
-          @unprotect="unprotect"
-          @system="showSettings = true"
-        />
+        <section v-for="o in overlays" :key="o.id" class="module-overlay">
+          <component :is="o.c" :ctx="uiCtx" />
+        </section>
         <SettingsPanel
           v-if="showSettings"
           :locale="locale"
@@ -3349,5 +3245,171 @@ select.compare {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+/* A module's floating panel over the plan (ADR-059 step 3): the app draws the frame (bottom-left); the
+   module renders a header + body with these classes (cards by severity, never a green state). */
+.module-overlay {
+  position: absolute;
+  left: 12px;
+  bottom: 44px;
+  width: min(360px, calc(100% - 24px));
+  max-height: 55%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
+  font-size: 13px;
+  z-index: 4;
+}
+.module-overlay > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.module-overlay header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+.module-overlay .toggle {
+  border: none;
+  background: none;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.module-overlay .count {
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.module-overlay .count.some {
+  color: var(--warn);
+}
+.module-overlay .diff {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.module-overlay .body {
+  overflow: auto;
+  padding: 0 10px 8px;
+}
+.module-overlay .system,
+.module-overlay .empty,
+.module-overlay .disclaimer {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.module-overlay .baseline {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.module-overlay .baseline p {
+  margin: 0 0 6px;
+}
+.module-overlay .baseline button {
+  margin-right: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.module-overlay .card {
+  border-left: 3px solid var(--muted);
+  padding: 4px 8px;
+  margin: 8px 0;
+  background: var(--bg);
+  border-radius: 4px;
+}
+.module-overlay .card.critical {
+  border-left-color: #d64545;
+}
+.module-overlay .card.warning {
+  border-left-color: var(--warn);
+}
+.module-overlay .card.advisory {
+  border-left-color: #5b8bd6;
+}
+.module-overlay h4 {
+  margin: 2px 0 4px;
+  font-size: 13px;
+}
+.module-overlay .sev {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.module-overlay .rid {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.module-overlay ul {
+  margin: 2px 0;
+  padding-left: 16px;
+}
+.module-overlay .card ul {
+  list-style: none;
+  padding-left: 0;
+}
+.module-overlay .card li {
+  margin: 3px 0;
+}
+.module-overlay .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 3px 0 2px;
+}
+.module-overlay .actions button {
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.module-overlay .assume {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.module-overlay details {
+  margin: 4px 0;
+  font-size: 12px;
+}
+.module-overlay details p {
+  margin: 2px 0;
+}
+.module-overlay .scope .h {
+  font-weight: 600;
+  margin-top: 6px;
+}
+.module-overlay button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  font: inherit;
 }
 </style>

@@ -1,9 +1,16 @@
 // Loads and lintels in words for the panel (ADR-051/052). Moved from the app (ADR-059 step 2): the
 // module formats its own results; `t` is the app's translator (strings still in the app catalogue).
-import type { ResolvedValue } from "@prumo/core";
-import type { LintelCheck } from "../lintel";
-import type { WallLoad } from "../loads";
-import { kgPerM3 } from "../materials";
+import { wallLength, type Project, type ResolvedValue } from "@prumo/core";
+import {
+  isChase,
+  kgPerM3,
+  type AssumptionUse,
+  type Finding,
+  type LintelCheck,
+  type Param,
+  type RuleDef,
+  type WallLoad,
+} from "../index";
 
 type T = (k: string, p?: Record<string, string | number>) => string;
 
@@ -116,4 +123,65 @@ export function lintelText(
     lines,
     notChecked: c.notChecked.map((k) => t(k)),
   };
+}
+
+// --- findings in words (moved from the app, ADR-059 step 3) -----------------------------------------
+type Fmt = { t: T; length: (mm: number) => string };
+
+/** A finding's parameter for people: a length, a name, an element ("the 3,00 m wall"). */
+export function paramText(p: Param, project: Project, f: Fmt): string {
+  switch (p.kind) {
+    case "length":
+      return f.length(p.mm);
+    case "text":
+      return f.t(p.key);
+    case "name":
+      return p.name || f.t("someone");
+    case "element": {
+      const e = project.elements[p.id];
+      if (e?.type === "wall") return f.t("el.wall", { length: f.length(wallLength(e)) });
+      if (e?.type === "opening") return f.t("el.opening", { kind: e.kind, width: f.length(e.width) });
+      if (isChase(e)) return f.t("el.chase");
+      return f.t("el.unknown");
+    }
+  }
+}
+
+const texts = (params: Record<string, Param>, project: Project, f: Fmt) =>
+  Object.fromEntries(Object.entries(params).map(([k, v]) => [k, paramText(v, project, f)]));
+
+export const findingText = (x: Finding, project: Project, f: Fmt) => f.t(x.messageKey, texts(x.params, project, f));
+
+export const assumptionText = (a: AssumptionUse, project: Project, f: Fmt) => f.t(a.key, texts(a.params, project, f));
+
+export interface RuleCard {
+  rule: RuleDef;
+  /** Worst severity among its findings (a rule may grade findings differently, e.g. new vs enlarged). */
+  severity: Finding["severity"];
+  findings: Finding[];
+  /** Distinct assumptions across the card (by text), in order. */
+  assumptions: string[];
+}
+
+export const SEV = { critical: 0, warning: 1, advisory: 2, info: 3 } as const;
+
+/** One card per rule listing its findings (Q-135); worst severity first, then rule id. */
+export function cards(rules: readonly RuleDef[], findings: readonly Finding[], project: Project, f: Fmt): RuleCard[] {
+  return rules
+    .map((rule) => {
+      const fs = findings.filter((x) => x.ruleId === rule.id);
+      // one line per assumption kind; several walls → the plural wording ("these walls …")
+      const byId = new Map<string, AssumptionUse[]>();
+      for (const a of fs.flatMap((x) => x.assumptions)) byId.set(a.id, [...(byId.get(a.id) ?? []), a]);
+      const assumptions = [...byId.values()].map((as) => {
+        const distinct = new Set(as.map((a) => JSON.stringify(a.params)));
+        const first = as[0];
+        if (!first) return "";
+        return distinct.size > 1 ? f.t(`${first.key}.many`) : assumptionText(first, project, f);
+      });
+      const severity = fs.map((x) => x.severity).sort((a, b) => SEV[a] - SEV[b])[0] ?? rule.severity;
+      return { rule, severity, findings: fs, assumptions };
+    })
+    .filter((c) => c.findings.length)
+    .sort((a, b) => SEV[a.severity] - SEV[b.severity] || (a.rule.id < b.rule.id ? -1 : 1));
 }

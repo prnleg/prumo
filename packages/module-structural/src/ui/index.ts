@@ -11,6 +11,7 @@ import { ChaseTool } from "../chase-tool";
 import { SLAB_KINDS, type ChaseDir, type SlabKind } from "../data";
 import { STRUCTURAL } from "../manifest";
 import { SlabTool, type SlabMode } from "../slab-tool";
+import { startStructural } from "./checks";
 import { MESSAGES } from "./messages";
 import { ChasePanel, OpeningSection, RoomSection, SlabSection, WallSection } from "./sections";
 
@@ -209,4 +210,7 @@ export const structuralUi: ModuleUi = {
   sections: { wall: WallSection, opening: OpeningSection, slab: SlabSection },
   elementTypes: [`${STRUCTURAL}:chase`],
   elementPanel: ChasePanel,
+  start: startStructural,
 };
+
+export * from "./text";

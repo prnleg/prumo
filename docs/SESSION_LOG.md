@@ -1069,3 +1069,15 @@ Branch `modules/structural-panels`, stacked on `modules/structural-tools`.
 **Tests**: structural +1 (load wording, hand values), desktop +1 (PropertiesPanel doesn't import Structural). Screenshots: wall load (ground floor and with a floor above — floor name via `levelName`), lintel estimate, chase panel — same as before.
 
 **Next**: step 3 — the checks panel (FindingsPanel) and plan marks (badges, locks / ghosts, joist / slab arrows, slab badges).
+
+### Session #13, part 8 — Structural onto the module hooks, step 3: checks, marks, export notes (ADR-059), 2026-11-18
+
+Branch `modules/structural-checks`, stacked on `modules/structural-panels`.
+
+**Done**: ui-api `ModuleSession` / `PlanLayers` / `ExportNotes` / `Severity`, `ModuleUi.start`, more `UiContext` (hidden rooms, baseline, select, open Settings). `module-structural/src/ui/checks.ts`: `startStructural` (checks after the edit settles — same 1.5 s rule; level change re-runs; findings diff), the checks panel as a render function, plan layers, 3D colours, export notes; `badgePoints` / `reach` moved from the app. Findings wording (`paramText` / `findingText` / `cards`) now lives in the module's `ui/text.ts`; the app's `structural-ui.ts` is a thin adapter binding them to its translator (its tests still pass against the real strings). App: sessions started / stopped with the module switch (effect scopes), merged layers / 3D colours / export notes from every running module, the overlay frame + card kit; checks state, badges, protection marks, joist / slab arrows, slab badges and `FindingsPanel.vue` removed.
+
+**Decided alone (reversible):** the app draws the overlay frame and keeps the card styles (severity colours are generic, any checking module can use them); export notes from several modules are numbered in module order, their closing texts joined.
+
+**Tests**: structural +2 (reach hand values; checks wait for the edit to settle, export notes, stop), desktop +1 (App doesn't run checks). Screenshots: checks panel, 3D colours, exported sheet notes page — same as before.
+
+**Next**: step 4 — Settings → values (material weights, pack sources), the "structure" menu item and the remaining dev demos; then the strings sweep (all Structural keys into the module) and Structural's manifest into the install list.
