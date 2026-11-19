@@ -6,9 +6,16 @@ export type { Locale, MessageKey };
 export type Params = Record<string, string | number>;
 
 const cache = new Map<string, IntlMessageFormat>();
+/** Strings modules bring (ADR-059), per locale. The app's own catalogue wins on a clash. */
+const moduleStrings: Record<string, Record<string, string>> = {};
+
+/** Add a module's strings (its `ModuleUi.messages`). */
+export function registerMessages(messages: Readonly<Record<string, Readonly<Record<string, string>>>>) {
+  for (const [loc, m] of Object.entries(messages)) moduleStrings[loc] = { ...moduleStrings[loc], ...m };
+}
 
 export function translate(locale: Locale, key: string, params: Params = {}): string {
-  const src = CATALOGUES[locale][key as MessageKey];
+  const src = CATALOGUES[locale][key as MessageKey] ?? moduleStrings[locale]?.[key];
   if (src === undefined) return key; // visible, never crashes the UI; a test guards completeness
   const id = `${locale}\u0000${key}`;
   let f = cache.get(id);

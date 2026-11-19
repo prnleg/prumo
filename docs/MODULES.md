@@ -120,3 +120,12 @@ This project uses these modules:
   The UX in every Vision still lets you draw walls (you can't place an outlet without a wall), but only the Architect module adds the "pretty" layer.
 - Uninstalling a module that open projects use → those projects hit the missing-module dialog (§7) next time.
 
+
+## Screen parts of a module (ADR-059)
+
+A module's screen part is one `ModuleUi` object (`@prumo/ui-api`), exported from `<module>/ui`:
+- `name`, `defaultOn`, `messages` (its own strings, every locale),
+- `tools` (strip button + hint + a framework-free tool: move / click / finish / active),
+- `marks(ctx)` / `links(ctx)` (symbols and dashed links on the plan),
+- `elementTypes` + `elementPanel` (the panel for its own items), `roomPanel` (a section in each room's panel).
+The app never names the module: `apps/desktop/src/installed-modules.ts` is the install list. Edits go through `ctx.run(command)`. Example: `packages/module-electrical/src/ui/index.ts`.

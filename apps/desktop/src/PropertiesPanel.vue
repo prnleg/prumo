@@ -47,10 +47,10 @@ import {
   type RoleOrigin,
   type WallRole,
 } from "@prumo/module-structural";
-import { computed, ref } from "vue";
+import { computed, ref, type Component } from "vue";
+import type { UiContext } from "@prumo/ui-api";
 import { formatArea, formatCm, formatLength, parseNumber, translate, type Locale, type Params } from "./i18n";
 import { paramText, unitWeightText } from "./structural-ui";
-import { OUTLET_PURPOSES, electricalData, kindOf as electricalKind } from "@prumo/module-electrical";
 
 const props = defineProps<{
   project: Project;
@@ -67,17 +67,6 @@ const props = defineProps<{
     joists: JoistDir | null;
     /** A drawn slab covers it (ADR-050): the slab's own answers count. */
     coveredBySlab?: boolean;
-    /** Electrical minimums (ADR-058); null = module off. */
-    electrical?: {
-      rule: string;
-      typed: boolean;
-      perimeter: number;
-      lights: number;
-      lightsMin: number | null;
-      outlets: number;
-      outletsMin: number | null;
-      values: { source: string }[];
-    } | null;
   }[];
   /** What each side of the selected wall faces ("Sala", "outside"). */
   wallSides?: { left: string; right: string } | null;
@@ -94,10 +83,12 @@ const props = defineProps<{
   } | null;
   /** Installed data packs (ADR-049): material values shown with their source. */
   packs?: PackSet | null;
-  /** Electrical module on (ADR-058). */
-  electrical?: boolean;
-  /** This floor's ceiling lights, for a switch's "turns on" list. */
-  lights?: readonly { id: string; label: string }[];
+  /** What module sections may read or do (ADR-059). */
+  uiCtx?: UiContext | null;
+  /** The panel a module draws for the selected element (its own item types), if any. */
+  modulePanel?: Component | null;
+  /** Sections modules add to the room panel. */
+  moduleRoomPanels?: readonly Component[];
   /** The project's construction system when the Structural module is on; null = module off. */
   structural?: ConstructionSystem | null;
 }>();
@@ -115,7 +106,6 @@ const emit = defineEmits<{
   role: [wallId: string, role: WallRole | undefined, origin: RoleOrigin | undefined];
   lintel: [openingId: string, has: boolean];
   lintelSize: [openingId: string, size: LintelSize];
-  electrical: [itemId: string, change: { height?: number; purpose?: string; light?: { id: string; on: boolean } }];
   contraverga: [openingId: string, has: boolean];
   tieBeam: [wallId: string, has: boolean];
   protect: [wallId: string];
@@ -212,20 +202,6 @@ const BAR_OPTIONS = BAR_COUNTS.flatMap((n) => BAR_DIAMETERS.map((d) => ({ n, d, 
 /** Has a side to flip (hinge / slide direction, which face): doors and side-dependent windows (ADR-046). */
 const sided = (o: Opening) =>
   o.kind === "door" || (o.kind === "window" && ["sliding", "casement", "top-hung"].includes(openingStyle(o) ?? ""));
-/** A selected electrical item (ADR-058). */
-const eItem = computed(() => {
-  const e = one.value;
-  const k = props.electrical ? electricalKind(e ?? undefined) : null;
-  return e && k ? { e, kind: k, data: electricalData(e) } : null;
-});
-function eHeight(id: string, ev: Event) {
-  const cm = parseNumber((ev.target as HTMLInputElement).value, props.locale);
-  if (cm === null || cm < 0 || cm > 500) {
-    rev.value++;
-    return;
-  }
-  emit("electrical", id, { height: Math.round(cm * 10) });
-}
 const chase = computed(() => {
   const e = one.value ?? undefined;
   return isChase(e) ? e : null;
@@ -377,28 +353,10 @@ function commitLength(w: Wall, ev: Event) {
           </select>
         </label>
       </template>
-      <!-- Electrical (ADR-058): NBR 5410 minimums for this room — information, UNVERIFIED -->
-      <template v-if="room.electrical">
-        <h4>{{ t("props.electrical") }}</h4>
-        <p :class="{ warn: room.electrical.lightsMin !== null && room.electrical.lights < room.electrical.lightsMin }">
-          {{ t("elec.lights", { n: room.electrical.lights, min: room.electrical.lightsMin ?? "?" }) }}
-        </p>
-        <p
-          :class="{ warn: room.electrical.outletsMin !== null && room.electrical.outlets < room.electrical.outletsMin }"
-        >
-          {{
-            t(`elec.outlets.${room.electrical.rule}`, {
-              n: room.electrical.outlets,
-              min: room.electrical.outletsMin ?? "?",
-              perimeter: formatLength(room.electrical.perimeter * 1000, locale),
-            })
-          }}
-        </p>
-        <p v-if="!room.electrical.typed" class="ro">{{ t("elec.noType") }}</p>
-        <p class="ro" :title="room.electrical.values.map((v) => v.source).join('\n')">
-          {{ t("elec.source") }} · <span class="unverified">{{ t("value.review.unverified") }}</span>
-        </p>
-      </template>
+      <!-- sections modules add to every room (ADR-059) -->
+      <div v-for="(sec, k) in moduleRoomPanels ?? []" :key="'m' + k" class="module-section">
+        <component :is="sec" :ctx="uiCtx" :room-key="room.key" />
+      </div>
     </template>
 
     <template v-else-if="slab">
@@ -779,42 +737,8 @@ function commitLength(w: Wall, ev: Event) {
       </div>
     </template>
 
-    <template v-else-if="eItem">
-      <h3>{{ t(`elec.item.${eItem.kind}`) }}</h3>
-      <label v-if="eItem.kind !== 'light'" :title="t('elec.height.tip')">
-        {{ t("props.height") }}
-        <span class="field">
-          <input
-            :key="eItem.e.id + (eItem.data.height ?? '') + '/' + rev"
-            :value="formatCm(eItem.data.height ?? 0, locale)"
-            @change="eHeight(eItem.e.id, $event)"
-          />cm
-        </span>
-      </label>
-      <label v-if="eItem.kind === 'outlet'" class="stack" :title="t('elec.purpose.tip')">
-        {{ t("elec.purpose") }}
-        <select
-          :value="eItem.data.purpose ?? 'general'"
-          @change="emit('electrical', eItem.e.id, { purpose: ($event.target as HTMLSelectElement).value })"
-        >
-          <option v-for="pu in OUTLET_PURPOSES" :key="pu" :value="pu">{{ t(`elec.purpose.${pu}`) }}</option>
-        </select>
-      </label>
-      <template v-if="eItem.kind === 'switch'">
-        <p class="ro">{{ t("elec.turnsOn") }}</p>
-        <p v-if="!lights?.length" class="ro">{{ t("elec.noLights") }}</p>
-        <label v-for="l in lights ?? []" :key="l.id" class="check">
-          <input
-            type="checkbox"
-            :checked="(eItem.data.lights ?? []).includes(l.id)"
-            @change="
-              emit('electrical', eItem.e.id, { light: { id: l.id, on: ($event.target as HTMLInputElement).checked } })
-            "
-          />
-          {{ l.label }}
-        </label>
-      </template>
-      <p v-if="eItem.kind === 'light'" class="ro">{{ t("elec.light.note") }}</p>
+    <template v-else-if="modulePanel && one && uiCtx">
+      <div class="module-section"><component :is="modulePanel" :ctx="uiCtx" :element="one" /></div>
     </template>
 
     <template v-else-if="chase">
@@ -988,5 +912,71 @@ input.text {
 .load summary {
   cursor: pointer;
   color: var(--accent);
+}
+</style>
+
+<style>
+/* Module sections (ADR-059) get the panel's own look: they render their own elements, so the scoped
+   rules above don't reach them. */
+.module-section h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.module-section h4 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.module-section label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.module-section label.stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+.module-section label.check {
+  justify-content: flex-start;
+  margin: 0;
+  font-size: 12px;
+}
+.module-section .field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+.module-section input {
+  width: 64px;
+  text-align: right;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.module-section label.check input {
+  width: auto;
+}
+.module-section select {
+  font: inherit;
+  max-width: 130px;
+}
+.module-section p {
+  margin: 4px 0;
+}
+.module-section .ro {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+.module-section .warn,
+.module-section .unverified {
+  color: var(--warn);
 }
 </style>

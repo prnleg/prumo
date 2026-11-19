@@ -15,7 +15,8 @@ const props = defineProps<{
   outsideFaces: boolean;
   system: ConstructionSystem;
   structural: boolean;
-  electrical: boolean;
+  /** Optional modules with a screen part (ADR-059): name key + on/off. */
+  moduleToggles?: readonly { id: string; name: string; on: boolean }[];
   /** Your name on notes (ADR-044), or null when not set yet. */
   name: string | null;
   /** Saved versions in this file (Q-124), oldest first; `inUse` = the existing building (can't delete). */
@@ -31,7 +32,7 @@ const emit = defineEmits<{
   outsideFaces: [on: boolean];
   system: [s: ConstructionSystem];
   structural: [on: boolean];
-  electrical: [on: boolean];
+  module: [id: string, on: boolean];
   name: [name: string];
   deleteVersion: [id: string];
   exportClean: [];
@@ -140,13 +141,13 @@ const when = (iso: string) => new Date(iso).toLocaleString(props.locale, { dateS
         />
         <span>{{ t("module.structural.name") }}</span>
       </label>
-      <label class="check">
+      <label v-for="m in moduleToggles ?? []" :key="m.id" class="check">
         <input
           type="checkbox"
-          :checked="electrical"
-          @change="emit('electrical', ($event.target as HTMLInputElement).checked)"
+          :checked="m.on"
+          @change="emit('module', m.id, ($event.target as HTMLInputElement).checked)"
         />
-        <span>{{ t("module.electrical.name") }}</span>
+        <span>{{ t(m.name) }}</span>
       </label>
       <p class="tip">{{ t("settings.modules.tip") }}</p>
       <h3>{{ t("settings.you") }}</h3>

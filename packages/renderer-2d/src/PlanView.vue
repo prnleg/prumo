@@ -47,11 +47,11 @@ const props = defineProps<{
   /** Dimmed (hidden room's own walls and what's on them, Q-141): drawn faded; picking is the tools' job. */
   dimmed?: readonly string[];
   /**
-   * Module items drawn as symbols instead of the generic marker (ADR-058, Electrical): outlet = triangle,
-   * dedicated outlet = filled triangle, switch = "S" in a circle, ceiling light = circle with a cross.
+   * Symbols modules draw for their items (ADR-059): an SVG path in screen px around `at`, optional text,
+   * outline or filled. Items with a mark skip the generic marker.
    */
-  itemMarks?: readonly { id: string; at: V; shape: "outlet" | "outlet-dedicated" | "switch" | "light" }[];
-  /** Dashed links between items (a switch and the lights it turns on). */
+  marks?: readonly { id: string; at: V; path: string; text?: string; filled?: boolean }[];
+  /** Dashed links between items (e.g. a switch and the lights it turns on). */
   links?: readonly { key: string; a: V; b: V }[];
   /** Double-headed arrows inside rooms (joist direction, structure on). */
   arrows?: readonly { key: string; a: V; b: V }[];
@@ -123,7 +123,7 @@ const roomLabels = computed(() =>
   }),
 );
 const selected = computed(() => new Set(props.selectedIds ?? []));
-const marked = computed(() => new Set((props.itemMarks ?? []).map((m) => m.id)));
+const marked = computed(() => new Set((props.marks ?? []).map((m) => m.id)));
 const dim = computed(() => new Set(props.dimmed ?? []));
 /** Badge width from the character count (deterministic, like the room labels). */
 const badgeW = (label: string) => Math.ceil(label.length * 11 * 0.6) + 12;
@@ -373,20 +373,13 @@ function wheel(e: WheelEvent) {
     </g>
     <g class="marks">
       <g
-        v-for="m in itemMarks ?? []"
+        v-for="m in marks ?? []"
         :key="m.id"
-        :class="[m.shape, { selected: selected.has(m.id) }]"
+        :class="{ selected: selected.has(m.id), filled: m.filled }"
         :transform="`translate(${S(m.at).x},${S(m.at).y})`"
       >
-        <polygon v-if="m.shape === 'outlet' || m.shape === 'outlet-dedicated'" points="0,-6 6,5 -6,5" />
-        <template v-else-if="m.shape === 'switch'">
-          <circle r="6.5" />
-          <text text-anchor="middle" dominant-baseline="central">S</text>
-        </template>
-        <template v-else>
-          <circle r="7" />
-          <path d="M-5,-5 L5,5 M5,-5 L-5,5" />
-        </template>
+        <path :d="m.path" />
+        <text v-if="m.text" text-anchor="middle" dominant-baseline="central">{{ m.text }}</text>
       </g>
     </g>
     <rect
@@ -626,23 +619,19 @@ function wheel(e: WheelEvent) {
 .marks g {
   pointer-events: none;
 }
-.marks polygon,
-.marks circle,
 .marks path {
-  stroke: var(--elec, #8a5cc2);
+  stroke: var(--module-mark, #8a5cc2);
   stroke-width: 1.6;
   fill: var(--plan-bg);
 }
-.marks .outlet-dedicated polygon {
-  fill: var(--elec, #8a5cc2);
+.marks .filled path {
+  fill: var(--module-mark, #8a5cc2);
 }
 .marks text {
   font-size: 9px;
   font-weight: 700;
-  fill: var(--elec, #8a5cc2);
+  fill: var(--module-mark, #8a5cc2);
 }
-.marks .selected polygon,
-.marks .selected circle,
 .marks .selected path {
   stroke: var(--accent);
 }

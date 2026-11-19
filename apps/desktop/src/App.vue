@@ -2,7 +2,6 @@
 // App shell (Phase 1): one level, room/wall/door/window/select tools, undo/redo, pan/zoom, files,
 // start screen + examples, settings.
 import {
-  type Element,
   DEFAULT_SNAP,
   History,
   anchorOutsideWalls,
@@ -127,9 +126,6 @@ import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prum
 import { View3D, type Surface, type WallMode } from "@prumo/renderer-3d";
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import {
-  Lightbulb,
-  Plug,
-  ToggleRight,
   Sun as SunIcon,
   ArrowDownToLine,
   ArrowUpToLine,
@@ -164,27 +160,10 @@ import AddFloorDialog from "./AddFloorDialog.vue";
 import LayersPanel from "./LayersPanel.vue";
 import MenuBar, { type Menu } from "./MenuBar.vue";
 import HandoffDialog from "./HandoffDialog.vue";
-import {
-  ElectricalTool,
-  electricalData,
-  electricalManifest,
-  electricalPacks,
-  facePoint,
-  newLight,
-  newWallItem,
-  sideOf,
-  kindOf as electricalKind,
-  roomElectrical,
-  setSwitchLight,
-  switchLights,
-  withElectricalData,
-  type ItemKind,
-} from "@prumo/module-electrical";
 import ExportDialog, { type ExportOptions } from "./ExportDialog.vue";
 import {
   drawNotesPage,
   drawSheet,
-  exportManifest,
   layoutNotes,
   layoutSheet,
   PAPERS,
@@ -205,7 +184,19 @@ import { findingText, lintelText, paramText, unitWeightText, wallLoadText } from
 import { CRASH_LOG_FILE, appendEntry, issueUrl, makeEntry, osName, type CrashEntry } from "./crashlog";
 import { AUTOSAVE_MS, type RecoveryEntry } from "./recovery";
 import { Session, type Outcome } from "./session";
-import { detectLocale, formatArea, formatLength, formatSmall, translate, type Params } from "./i18n";
+import {
+  detectLocale,
+  formatArea,
+  formatCm,
+  formatLength,
+  formatSmall,
+  parseNumber,
+  registerMessages,
+  translate,
+  type Params,
+} from "./i18n";
+import type { ModuleUi, UiContext, UiTool } from "@prumo/ui-api";
+import { MODULE_UIS, OPTIONAL_MANIFESTS } from "./installed-modules";
 
 // dev screenshots: ?lang=pt-BR forces the language (ignored in builds)
 const devLang = import.meta.env.DEV ? new URLSearchParams(location.search).get("lang") : null;
@@ -214,7 +205,20 @@ const t = (key: string, params?: Params) => translate(locale.value, key, params)
 const tl = (l: Label | null) => (l ? t(l.key, l.params) : "");
 
 // Modules (ADR-020: bundled). Only Architect for now; it's required.
-const MANIFESTS = [architectManifest, structuralManifest, exportManifest, electricalManifest];
+const MANIFESTS = [architectManifest, structuralManifest, ...OPTIONAL_MANIFESTS];
+/**
+ * Modules with a screen part (ADR-059). The app knows only this list: tools, plan symbols, panel
+ * sections, strings and the Settings line all come from each module's `ModuleUi`.
+ */
+for (const m of MODULE_UIS) registerMessages(m.messages);
+const modulesOn = ref<Record<string, boolean>>(Object.fromEntries(MODULE_UIS.map((m) => [m.moduleId, m.defaultOn])));
+const activeUis = computed(() => MODULE_UIS.filter((m) => modulesOn.value[m.moduleId]));
+/** A module tool's id in the tool strip: "mod:<module id>/<tool id>". */
+type ModTool = `mod:${string}`;
+const modToolId = (m: ModuleUi, toolId: string): ModTool => `mod:${m.moduleId}/${toolId}`;
+const isModTool = (n: string): n is ModTool => n.startsWith("mod:");
+/** Module tool instances, created on first use. */
+const modTools = new Map<string, UiTool>();
 const modules = new ModuleHost(MANIFESTS);
 const PROFILE = "br-nbr/structural-masonry";
 
@@ -352,15 +356,6 @@ const chaseTool = new ChaseTool(history, {
   grid: DEFAULT_SNAP.grid,
 });
 const chaseDirection = ref<ChaseDir>("horizontal");
-/** Electrical tool (ADR-058): outlets / switches on walls, ceiling lights at a point. */
-const electricalTool = new ElectricalTool(history, {
-  ids: randomIds,
-  levelId: firstLevelId,
-  kind: "outlet",
-  grid: DEFAULT_SNAP.grid,
-});
-const ELECTRICAL_TOOLS: readonly ToolName[] = ["outlet", "switch", "light"];
-const isElectricalTool = (n: ToolName): n is ItemKind => ELECTRICAL_TOOLS.includes(n);
 
 // --- slab tool (ADR-050): cover rooms, or draw an outline -------------------------------------------
 const slabTool = new SlabTool(history, {
@@ -410,8 +405,7 @@ history.subscribe((e) => {
 });
 function pointToolsAt(id: string, wallHeight: number) {
   level.value = id;
-  for (const tl of [openingTool, selectTool, chaseTool, slabTool, electricalTool])
-    tl.options = { ...tl.options, levelId: id };
+  for (const tl of [openingTool, selectTool, chaseTool, slabTool]) tl.options = { ...tl.options, levelId: id };
   wallTool.options = { ...wallTool.options, levelId: id, height: wallHeight };
   roomTool.options = { ...roomTool.options, levelId: id, height: wallHeight };
   selectTool.selection = [];
@@ -494,16 +488,15 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   if (prefs.prefs.locale && !devLang) locale.value = prefs.prefs.locale;
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
   if (prefs.prefs.structuralOff) structuralOn.value = false;
-  if (prefs.prefs.electricalOn) electricalOn.value = true;
+  if (prefs.prefs.modules) modulesOn.value = { ...modulesOn.value, ...prefs.prefs.modules };
   if (prefs.prefs.name) myName.value = prefs.prefs.name;
   watch(structuralOn, (on) => savePrefs({ structuralOff: !on }));
-  watch(electricalOn, (on) => savePrefs({ electricalOn: on }));
+  watch(modulesOn, (m) => savePrefs({ modules: m }));
   watch(locale, (l) => savePrefs({ locale: l }));
   watch(angleStep, (a) => savePrefs({ angleStepDeg: a }));
 });
 
-type ToolName =
-  "select" | "room" | "wall" | "door" | "window" | "chase" | "note" | "slab" | "outlet" | "switch" | "light";
+type ToolName = "select" | "room" | "wall" | "door" | "window" | "chase" | "note" | "slab" | ModTool;
 const tool = ref<ToolName>("room"); // ADR-031: the room tool is the default
 const hover = shallowRef(wallTool.hover);
 const blocked = ref<string[]>([]);
@@ -517,11 +510,6 @@ const walls = computed(() => wallsOnLevel(project.value, level.value));
 // checks; its data stays in the file). Quiet while creating (ADR-025): checks re-run only after an
 // edit settles (not during a drag), with a short delay so findings don't flicker while working.
 const structuralOn = ref(true);
-/** Electrical (ADR-058): opt-in, off by default (MODULES: each role turns on what its work needs). */
-const electricalOn = ref(false);
-watch(electricalOn, (on) => {
-  if (!on && isElectricalTool(tool.value)) setTool("select");
-});
 const checks = shallowRef<CheckResult | null>(null);
 const checksDiff = shallowRef<FindingsDiff | null>(null);
 const SETTLE_MS = 1500;
@@ -731,91 +719,46 @@ const panelRooms = computed(() =>
     above: r.above,
     joists: r.joists,
     coveredBySlab: geometry.value.slabs.some((g) => inside(r.labelAt, g.outline)),
-    electrical: roomsElectrical.value?.get(r.key) ?? null,
   })),
 );
-// --- Electrical (ADR-058): symbols on the plan, switch → light links, minimums per room -----------------
-const ePacks = electricalPacks();
-/** Where each item's symbol goes: outlets / switches just off the face they're on; lights at their point. */
-type ItemMark = { id: string; at: V; shape: "outlet" | "outlet-dedicated" | "switch" | "light" };
-const itemMarks = computed((): ItemMark[] => {
-  if (!electricalOn.value) return [];
-  const p = project.value;
-  return Object.values(p.elements).flatMap((e): ItemMark[] => {
-    const k = electricalKind(e);
-    if (!k || e.levelId !== level.value) return [];
-    if (k === "light") return "at" in e && e.at ? [{ id: e.id, at: e.at, shape: "light" }] : [];
-    const w = "host" in e && e.host ? p.elements[e.host.elementId] : undefined;
-    if (w?.type !== "wall" || !("host" in e) || !e.host) return [];
-    const d = electricalData(e);
-    const at = facePoint({ ...w, thickness: 0 }, e.host.offset, d.face ?? "left");
-    const shape =
-      k === "switch"
-        ? ("switch" as const)
-        : d.purpose === "dedicated"
-          ? ("outlet-dedicated" as const)
-          : ("outlet" as const);
-    return [{ id: e.id, at, shape }];
-  });
+// --- modules' screen parts (ADR-059) ---------------------------------------------------------------
+const uiCtx = computed<UiContext>(() => ({
+  project: project.value,
+  level: level.value,
+  selection: selection.value,
+  locale: locale.value,
+  rooms: detected.value.map((r) => ({
+    key: r.key,
+    label: r.label,
+    floor: r.floor,
+    floorArea: r.floorArea,
+    labelAt: r.labelAt,
+  })),
+  grid: gridSize.value,
+  history,
+  ids: randomIds,
+  t: (k, p) => t(k, p),
+  run,
+  formatLength: (mm) => formatLength(mm, locale.value),
+  formatArea: (mm2) => formatArea(mm2, locale.value),
+  formatCm: (mm) => formatCm(mm, locale.value),
+  parseNumber: (text) => parseNumber(text, locale.value),
+}));
+const moduleMarks = computed(() => activeUis.value.flatMap((m) => m.marks?.(uiCtx.value) ?? []));
+const moduleLinks = computed(() => activeUis.value.flatMap((m) => m.links?.(uiCtx.value) ?? []));
+/** The panel a module draws for the selected element (one element of one of its types). */
+const modulePanel = computed(() => {
+  if (selection.value.length !== 1) return null;
+  const e = project.value.elements[selection.value[0] ?? ""];
+  return (e && activeUis.value.find((m) => m.elementTypes?.includes(e.type))?.elementPanel) ?? null;
 });
-/** The selected switch's lights (or the switches of a selected light): dashed lines on the plan. */
-const itemLinks = computed(() => {
-  if (!electricalOn.value || selection.value.length !== 1) return [];
-  const p = project.value;
-  const id = selection.value[0] ?? "";
-  const pos = new Map(itemMarks.value.map((m) => [m.id, m.at]));
-  const sel = p.elements[id];
-  const pairs: [string, string][] =
-    electricalKind(sel) === "switch" && sel
-      ? switchLights(p, sel).map((l) => [id, l])
-      : electricalKind(sel) === "light"
-        ? Object.values(p.elements)
-            .filter((e) => electricalKind(e) === "switch" && switchLights(p, e).includes(id))
-            .map((e) => [e.id, id])
-        : [];
-  return pairs.flatMap(([a, b]) => {
-    const pa = pos.get(a);
-    const pb = pos.get(b);
-    return pa && pb ? [{ key: `${a}-${b}`, a: pa, b: pb }] : [];
-  });
-});
-const roomsElectrical = computed(() =>
-  electricalOn.value ? roomElectrical(project.value, level.value, ePacks) : null,
+const moduleRoomPanels = computed(() => activeUis.value.flatMap((m) => (m.roomPanel ? [m.roomPanel] : [])));
+const moduleToggles = computed(() =>
+  MODULE_UIS.map((m) => ({ id: m.moduleId, name: m.name, on: !!modulesOn.value[m.moduleId] })),
 );
-/** The lights of this floor, for the switch panel ("Light in Bedroom 1"). */
-const floorLights = computed(() => {
-  if (!electricalOn.value) return [];
-  return Object.values(project.value.elements)
-    .filter((e) => electricalKind(e) === "light" && e.levelId === level.value)
-    .sort((a, b) => (a.id < b.id ? -1 : 1))
-    .map((e, i) => {
-      const at = "at" in e && e.at ? e.at : null;
-      const room = at ? detected.value.find((r) => inside(at, r.floor)) : undefined;
-      return {
-        id: e.id,
-        label: room
-          ? t("elec.lightIn", { room: room.label || formatArea(room.floorArea, locale.value) })
-          : t("elec.lightN", { n: i + 1 }),
-      };
-    });
-});
-function editElectrical(
-  id: string,
-  change: { height?: number; purpose?: string; light?: { id: string; on: boolean } },
-) {
-  run(
-    updateCommand({ key: "cmd.editElectrical" }, [id], (e) => {
-      if (e.type !== "org.prumo.electrical:outlet" && e.type !== "org.prumo.electrical:switch") return e;
-      if (change.light)
-        return setSwitchLight(e as Parameters<typeof setSwitchLight>[0], change.light.id, change.light.on);
-      const d = electricalData(e);
-      return withElectricalData(e, {
-        ...d,
-        ...(change.height !== undefined ? { height: change.height } : {}),
-        ...(change.purpose !== undefined ? { purpose: change.purpose === "dedicated" ? "dedicated" : undefined } : {}),
-      });
-    }),
-  );
+function setModuleOn(id: string, on: boolean) {
+  modulesOn.value = { ...modulesOn.value, [id]: on };
+  if (!on && isModTool(tool.value) && tool.value.startsWith(`mod:${id}/`)) setTool("select");
 }
 
 // --- data packs (ADR-049): bundled with the Structural module; values shown with their source ---------
@@ -1275,7 +1218,7 @@ function sync() {
         ? selectTool.blocked
         : tool.value === "room"
           ? roomTool.blocked
-          : tool.value === "chase" || isElectricalTool(tool.value)
+          : tool.value === "chase" || isModTool(tool.value)
             ? []
             : tool.value === "slab"
               ? slabTool.blocked
@@ -1289,7 +1232,7 @@ function endTools() {
   roomTool.finish();
   openingTool.finish();
   chaseTool.finish();
-  electricalTool.finish();
+  for (const tl of modTools.values()) tl.finish();
   noteDraft.value = null;
   selectTool.cancel();
 }
@@ -1528,19 +1471,11 @@ async function takeOver() {
   if (await session.takeOver(name)) sync();
 }
 /** Tools that change the plan; off while it's not your turn. */
-const EDIT_TOOLS: readonly ToolName[] = [
-  "room",
-  "wall",
-  "door",
-  "window",
-  "chase",
-  "slab",
-  "outlet",
-  "switch",
-  "light",
-];
+const EDIT_TOOLS: readonly ToolName[] = ["room", "wall", "door", "window", "chase", "slab"];
+/** Every module tool edits the plan. */
+const editsPlan = (n: ToolName) => EDIT_TOOLS.includes(n) || isModTool(n);
 watch(notMyTurn, (locked) => {
-  if (locked && EDIT_TOOLS.includes(tool.value)) setTool("select");
+  if (locked && editsPlan(tool.value)) setTool("select");
 });
 
 const levelNotes = computed(() =>
@@ -1715,6 +1650,14 @@ function paste() {
 function onPointer(e: PlanPointer) {
   cursorAt = e.at;
   const info = { at: e.at, scale: e.scale, free: e.free };
+  const mt = currentModTool();
+  if (mt) {
+    if (e.type === "move") mt.move(info);
+    else if (e.type === "down" && e.button === 0) mt.click(info);
+    else if (e.type === "down" && e.button === 2) mt.finish();
+    sync();
+    return;
+  }
   if (tool.value === "door" || tool.value === "window") {
     if (e.type === "move") openingTool.move(info);
     else if (e.type === "down" && e.button === 0) openingTool.click(info);
@@ -1723,13 +1666,6 @@ function onPointer(e: PlanPointer) {
   }
   if (tool.value === "note") {
     if (e.type === "down" && e.button === 0 && !noteDraft.value) startNote(e.at, e.scale);
-    return;
-  }
-  if (isElectricalTool(tool.value)) {
-    if (e.type === "move") electricalTool.move(info);
-    else if (e.type === "down" && e.button === 0) electricalTool.click(info);
-    else if (e.type === "down" && e.button === 2) electricalTool.finish();
-    sync();
     return;
   }
   if (tool.value === "chase") {
@@ -1825,21 +1761,43 @@ function redo() {
 /** The Divider button = the wall tool drawing room dividers (ADR-040: wall kind "separator"). */
 const dividerMode = ref(false);
 function setTool(n: ToolName, divider = false) {
-  if (notMyTurn.value && EDIT_TOOLS.includes(n)) return; // keyboard shortcuts too (ADR-044)
+  if (notMyTurn.value && editsPlan(n)) return; // keyboard shortcuts too (ADR-044)
   endTools();
   if (n !== "select" && viewMode.value === "3d" && !split.value) viewMode.value = "plan"; // drawing needs the plan
   tool.value = n;
   dividerMode.value = n === "wall" && divider;
   wallTool.options = { ...wallTool.options, kind: dividerMode.value ? "separator" : "full" };
   if (n === "door" || n === "window") applyOpeningStyle(n);
-  if (isElectricalTool(n)) electricalTool.options = { ...electricalTool.options, kind: n };
+  if (isModTool(n)) currentModTool()?.finish();
   sync();
 }
+/** The module tool that's on, created on first use (with the current floor). */
+function currentModTool(): UiTool | null {
+  const n = tool.value;
+  if (!isModTool(n)) return null;
+  let tl = modTools.get(n);
+  if (!tl) {
+    const [moduleId, toolId] = n.slice(4).split("/");
+    const c = MODULE_UIS.find((m) => m.moduleId === moduleId)?.tools?.find((x) => x.id === toolId);
+    if (!c) return null;
+    tl = c.create(uiCtx.value);
+    modTools.set(n, tl);
+  }
+  if (tl.options.levelId !== level.value) tl.options = { ...tl.options, levelId: level.value };
+  return tl;
+}
+/** The contribution behind a module tool id (for its hint). */
+const modToolDef = (n: ToolName) => {
+  if (!isModTool(n)) return null;
+  const [moduleId, toolId] = n.slice(4).split("/");
+  return MODULE_UIS.find((m) => m.moduleId === moduleId)?.tools?.find((x) => x.id === toolId) ?? null;
+};
 function onLeave() {
   cursorAt = null;
   if (tool.value === "door" || tool.value === "window") openingTool.finish();
   if (tool.value === "chase" && !chaseTool.active) chaseTool.finish();
-  if (isElectricalTool(tool.value)) electricalTool.finish();
+  const mt = currentModTool();
+  if (mt && !mt.active) mt.finish();
   sync();
 }
 
@@ -1862,7 +1820,8 @@ const hint = computed(() => {
   }
   if (tool.value === "room") return roomTool.active ? t("hint.room.active") : t("hint.room.idle");
   if (tool.value === "note") return t("hint.note");
-  if (isElectricalTool(tool.value)) return t(`hint.${tool.value}`);
+  const mdef = modToolDef(tool.value);
+  if (mdef) return mdef.hint(uiCtx.value);
   if (tool.value === "slab")
     return slabMode.value === "rooms"
       ? slabPicked.value.length
@@ -1998,24 +1957,18 @@ const toolButtons = computed(() => [
         },
       ]
     : []),
-  ...(electricalOn.value
-    ? (
-        [
-          ["outlet", Plug],
-          ["switch", ToggleRight],
-          ["light", Lightbulb],
-        ] as const
-      ).map(([id, icon]) => ({
-        id,
-        icon,
-        label: `tool.${id}`,
-        tip: `tool.${id}.tip`,
-        tour: undefined,
-        edits: true,
-        on: tool.value === id,
-        pick: () => setTool(id),
-      }))
-    : []),
+  ...activeUis.value.flatMap((m) =>
+    (m.tools ?? []).map((tl) => ({
+      id: modToolId(m, tl.id),
+      icon: tl.icon,
+      label: tl.label,
+      tip: tl.tip,
+      tour: undefined,
+      edits: true,
+      on: tool.value === modToolId(m, tl.id),
+      pick: () => setTool(modToolId(m, tl.id)),
+    })),
+  ),
 ]);
 const currentTool = computed(() => toolButtons.value.find((b) => b.on) ?? toolButtons.value[0]);
 const hasSelection = computed(() => selection.value.length > 0);
@@ -2472,33 +2425,17 @@ if (demo === "export" || demo === "export-full") {
       document.body.append(img);
     });
 }
-if (demo === "electrical" || demo === "electrical-room") {
+if (demo === "module" || demo === "module-room") {
+  // every module with a screen part on, its sample items placed (`ModuleUi.demo`)
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
     void startExample(ex).then(() => {
-      electricalOn.value = true;
-      const r = [...detected.value].sort((a, b) => b.floorArea - a.floorArea)[1]; // the biggest bedroom
-      if (!r) return;
-      const ws = r.wallIds.map((id) => history.current.elements[id]).filter((e): e is Wall => e?.type === "wall");
-      // where the room's centre projects on a wall: that stretch of the wall faces the room
-      const along = (w: Wall) => {
-        const L = wallLength(w) || 1;
-        return (
-          ((r.labelAt.x - w.start.x) * (w.end.x - w.start.x) + (r.labelAt.y - w.start.y) * (w.end.y - w.start.y)) / L
-        );
-      };
-      const items: Element[] = [newLight("demo-light", level.value, { x: r.labelAt.x, y: r.labelAt.y - 600 })];
-      ws.slice(0, 2).forEach((w, i) =>
-        items.push(newWallItem(`demo-outlet-${i}`, "outlet", w, along(w), sideOf(w, r.labelAt))),
-      );
-      const w2 = ws[2];
-      if (w2) {
-        const sw = newWallItem("demo-switch", "switch", w2, along(w2) + 800, sideOf(w2, r.labelAt));
-        items.push(setSwitchLight(sw, "demo-light", true));
-      }
-      run(putCommand({ key: "cmd.add.outlet" }, items));
+      modulesOn.value = Object.fromEntries(MODULE_UIS.map((m) => [m.moduleId, true]));
       setTool("select");
-      selectTool.selection = demo === "electrical" ? ["demo-switch"] : [ROOM_PREFIX + r.key];
+      for (const m of MODULE_UIS) {
+        const r = m.demo?.(uiCtx.value);
+        if (r) selectTool.selection = [demo === "module" ? r.item : ROOM_PREFIX + r.room];
+      }
       sync();
     });
 }
@@ -2927,6 +2864,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
         <div v-show="showPlan" class="pane plan-pane" :style="split ? { right: `${100 - splitAt * 100}%` } : undefined">
           <PlanView
             v-model:view="view"
+            :marks="moduleMarks"
+            :links="moduleLinks"
             :geometry="geometry"
             :walls="walls"
             :hover="tool === 'wall' || tool === 'room' ? hover : null"
@@ -2938,8 +2877,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
             :box="box"
             :labels="labels"
             :badges="badges"
-            :item-marks="itemMarks"
-            :links="itemLinks"
             :arrows="[...joistArrows, ...slabArrows]"
             :dimmed="[...hiddenIds]"
             :ghost="ghostBelow"
@@ -3033,8 +2970,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           v-model:keep-original="keepOriginal"
           :packs="structuralOn ? packs : null"
           :load="selectedLoad"
-          :electrical="electricalOn"
-          :lights="floorLights"
+          :ui-ctx="uiCtx"
+          :module-panel="modulePanel"
+          :module-room-panels="moduleRoomPanels"
           :lintel-load="selectedLintel"
           :project="project"
           :selection="selection"
@@ -3045,7 +2983,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           @role="setRole"
           @lintel="setOpeningLintel"
           @lintel-size="setOpeningLintelSize"
-          @electrical="editElectrical"
           @contraverga="setOpeningContraverga"
           @tie-beam="setWallTieBeam"
           @bonded="setWallBonded"
@@ -3146,18 +3083,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           :angle="angleStep"
           :outside-faces="project.settings.outsideFaces === true"
           :system="constructionSystem(project)"
+          :module-toggles="moduleToggles"
           :structural="structuralOn"
           :values="packValues"
           :name="myName"
           :versions="snapshots.map((v) => ({ ...v, inUse: v.id === project.settings.baseline }))"
           :versions-size="(void tick, void fileTick, session.snapshotsSize())"
-          :electrical="electricalOn"
           @delete-version="deleteVersion"
           @export-clean="file(() => session.exportClean())"
           @name="setMyName"
           @system="(s) => run(setSystemCommand(s))"
           @structural="(on) => (structuralOn = on)"
-          @electrical="(on) => (electricalOn = on)"
+          @module="setModuleOn"
           @grid="setGrid"
           @angle="(a) => (angleStep = a)"
           @outside-faces="(on) => run(setOutsideFacesCommand(on))"
