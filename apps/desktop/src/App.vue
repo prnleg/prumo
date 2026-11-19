@@ -1107,6 +1107,8 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number, lev
         lines: [r.label, formatArea(r.floorArea, locale.value)].filter((x): x is string => !!x),
       })),
       marks,
+      // modules' item symbols on this floor (the same `marks` hook the plan uses)
+      symbols: activeUis.value.flatMap((m) => m.marks?.({ ...uiCtx.value, level: levelId }) ?? []),
       north: project.value.settings.north ?? 0,
       bounds,
       texts: {
@@ -2212,7 +2214,7 @@ if (demo === "export" || demo === "export-full") {
       document.body.append(img);
     });
 }
-if (demo === "module" || demo === "module-room") {
+if (demo === "module" || demo === "module-room" || demo === "module-sheet") {
   // every module with a screen part on, its sample items placed (`ModuleUi.demo`)
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -2224,6 +2226,15 @@ if (demo === "module" || demo === "module-room") {
         if (r) selectTool.selection = [demo === "module" ? r.item : ROOM_PREFIX + r.room];
       }
       sync();
+      if (demo === "module-sheet") {
+        // the exported sheet with the modules' symbols (checking the output)
+        const c = exportCanvases({ format: "png", paper: "a4", scale: "fit", floors: "this", marks: false }).sheets[0];
+        if (!c) return;
+        const img = document.createElement("img");
+        img.src = c.toDataURL("image/png");
+        img.style.cssText = "position:fixed;inset:0;z-index:99;width:100vw;background:#fff";
+        document.body.append(img);
+      }
     });
 }
 if (demo === "3d-problems") {
