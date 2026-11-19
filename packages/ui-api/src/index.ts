@@ -42,6 +42,12 @@ export interface UiContext {
   run(cmd: Command): boolean;
   /** Redraw after a tool changed by itself (an options-bar button, a finished shape). */
   refresh(): void;
+  /** The user's name as they gave it in Settings ("" = not given). For authorship (e.g. markers). */
+  readonly userName: string;
+  /** Now, ISO 8601 UTC (the app owns the clock; core never reads it). */
+  now(): string;
+  /** A floor's display name ("Ground floor", "Floor 1", or the name the user gave). */
+  levelName(levelId: string): string;
   formatLength(mm: number): string;
   formatArea(mm2: number): string;
   formatCm(mm: number): string;
@@ -136,6 +142,11 @@ export interface ModuleUi {
   elementPanel?: PanelSection;
   /** A section in the room panel (each room). */
   roomPanel?: PanelSection;
+  /**
+   * Sections added to the panels of the core's own elements ("wall", "opening", "slab"), under the app's
+   * fields. Props: `ctx` + `element` (as `elementPanel`). ADR-059 step 2.
+   */
+  sections?: Readonly<Partial<Record<"wall" | "opening" | "slab", PanelSection>>>;
   /** Dev only (`?demo=module`): add sample items; returns an item and a room key to select. */
   demo?(ctx: UiContext): { item: string; room: string } | null;
 }

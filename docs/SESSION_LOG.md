@@ -1057,3 +1057,15 @@ Branch `modules/structural-tools`, stacked on `fixes/ui-polish`. Owner away; ask
 **Tests**: structural +2 (strings complete, slab tool Esc / Enter), desktop +1 (App doesn't build Structural's tools). Screenshot: slab tool picking 2 rooms, bar and hint from the module.
 
 **Next**: step 2 — panel sections (what's above, wall loads, lintel, wall role / tie beam / bonded, slab panel).
+
+### Session #13, part 7 — Structural onto the module hooks, step 2: panel sections (ADR-059), 2026-11-18
+
+Branch `modules/structural-panels`, stacked on `modules/structural-tools`.
+
+**Done**: `module-structural/src/ui/sections.ts` — `RoomSection` (what's above + joists; reads the room's tag through core `matchRoomTags`), `WallSection` (material + weight, load estimate, role + origin, tie beam, bonded ends, protect / unprotect), `OpeningSection` (lintel, size, estimate, contraverga), `SlabSection` (type, joists, thickness), `ChasePanel` (the chase's own panel, via `elementTypes`). `ui/text.ts`: `unitWeightText` / `sig2` / `wallLoadText` / `lintelText` with the translator passed in. ui-api: `ModuleUi.sections`, `UiContext.userName` / `now` / `levelName`. PropertiesPanel: no Structural import any more (−~330 lines); App: the panel's Structural handlers and computed load / lintel removed (three kept as dev-demo helpers). Panel kit (`.module-section`) gained buttons, the dashed estimate box and the protection box.
+
+**Decided alone (reversible):** strings stay in the app catalogue until the last Structural screen moves (one sweep then); `unitWeightText` exists twice for now (the module's, and the app's for Settings → values, which moves in a later step).
+
+**Tests**: structural +1 (load wording, hand values), desktop +1 (PropertiesPanel doesn't import Structural). Screenshots: wall load (ground floor and with a floor above — floor name via `levelName`), lintel estimate, chase panel — same as before.
+
+**Next**: step 3 — the checks panel (FindingsPanel) and plan marks (badges, locks / ghosts, joist / slab arrows, slab badges).

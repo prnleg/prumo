@@ -1,7 +1,8 @@
 /* eslint-disable vue/one-component-per-file -- small render-function bars of one module */
 // Structural's part of the screens (ADR-059). Step 1: the chase and slab tools, with their option bars,
 // hints and plan previews, come from here; the app only lists `structuralUi` among the installed modules.
-// The rest (panel sections, checks panel, 3D / export marks) still lives in the app — next steps.
+// Step 2: its panel sections (room, wall, opening, slab) and the chase panel (./sections).
+// The rest (checks panel, plan marks, 3D / export marks, Settings values) still lives in the app.
 import { DEFAULT_SNAP } from "@prumo/core";
 import type { ModuleUi, ToolContribution, UiContext, UiTool } from "@prumo/ui-api";
 import { Cable, MoveHorizontal, MoveVertical, Pentagon, SquareDashed, SquareStack } from "@lucide/vue";
@@ -11,6 +12,7 @@ import { SLAB_KINDS, type ChaseDir, type SlabKind } from "../data";
 import { STRUCTURAL } from "../manifest";
 import { SlabTool, type SlabMode } from "../slab-tool";
 import { MESSAGES } from "./messages";
+import { ChasePanel, OpeningSection, RoomSection, SlabSection, WallSection } from "./sections";
 
 /** The slab tool in the app's terms: Esc / right-click drop the picks, Enter / double-click create. */
 export class SlabUiTool implements UiTool {
@@ -203,4 +205,8 @@ export const structuralUi: ModuleUi = {
   defaultOn: true,
   messages: MESSAGES,
   tools: [chaseTool, slabTool],
+  roomPanel: RoomSection,
+  sections: { wall: WallSection, opening: OpeningSection, slab: SlabSection },
+  elementTypes: [`${STRUCTURAL}:chase`],
+  elementPanel: ChasePanel,
 };
