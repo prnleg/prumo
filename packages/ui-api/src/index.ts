@@ -141,9 +141,13 @@ export type PanelSection = Component;
 
 export interface ModuleUi {
   moduleId: string;
-  /** i18n key of the module's name (Settings → Modules). */
+  /** i18n key of the module's name (the Modules screen, menus). */
   name: string;
-  /** On for a new user? (Owner: modules are opt-in for each role.) */
+  /** i18n key: one or two plain sentences for the Modules screen ("what does this add?"). */
+  description: string;
+  /** Icon on the Modules screen. */
+  icon?: Component;
+  /** Installed for a new user? (Owner: modules are opt-in for each role; installed from the Modules screen.) */
   defaultOn: boolean;
   /** The module's own strings, per locale ("en", "pt-BR"). */
   messages: Readonly<Record<string, Readonly<Record<string, string>>>>;

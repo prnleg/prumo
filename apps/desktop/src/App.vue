@@ -120,6 +120,7 @@ import {
   DoorOpen,
   GitCompare,
   Grid2x2,
+  Blocks,
   Layers as LayersIcon,
   Maximize,
   MessageSquare,
@@ -176,6 +177,8 @@ import {
 import type { ModuleSession, ModuleUi, PlanLayers, Severity, ToolPreview, UiContext, UiTool } from "@prumo/ui-api";
 import { SlabUiTool } from "@prumo/module-structural/ui"; // dev demos only
 import { MODULE_UIS, OPTIONAL_MANIFESTS } from "./installed-modules";
+import ModuleStore from "./ModuleStore.vue";
+import { installedFrom, usedButNotInstalled } from "./module-store";
 
 // dev screenshots: ?lang=pt-BR forces the language (ignored in builds)
 const devLang = import.meta.env.DEV ? new URLSearchParams(location.search).get("lang") : null;
@@ -190,7 +193,10 @@ const MANIFESTS = [architectManifest, ...OPTIONAL_MANIFESTS];
  * sections, strings and the Settings line all come from each module's `ModuleUi`.
  */
 for (const m of MODULE_UIS) registerMessages(m.messages);
-const modulesOn = ref<Record<string, boolean>>(Object.fromEntries(MODULE_UIS.map((m) => [m.moduleId, m.defaultOn])));
+/** Installed modules (the Modules screen; owner 2026-11-19: installed, not switched on/off). Bundled: data always kept. */
+const modulesOn = ref<Record<string, boolean>>(installedFrom(MODULE_UIS, undefined));
+const showStore = ref(false);
+const notInstalled = computed(() => usedButNotInstalled(project.value, MODULE_UIS, modulesOn.value));
 const activeUis = computed(() => MODULE_UIS.filter((m) => modulesOn.value[m.moduleId]));
 /** Running modules (ADR-059 step 3): started when switched on, stopped when off (see `startModules`). */
 const sessions = shallowRef(new Map<string, ModuleSession>());
@@ -436,7 +442,7 @@ void platform.readAppText(PREFS_FILE).then((text) => {
   if (prefs.prefs.angleStepDeg) angleStep.value = prefs.prefs.angleStepDeg;
   // before ADR-059 step 1 Structural had its own switch (`structuralOff`); now it's one of the modules
   if (prefs.prefs.structuralOff && prefs.prefs.modules?.[STRUCTURAL] === undefined) structuralOn.value = false;
-  if (prefs.prefs.modules) modulesOn.value = { ...modulesOn.value, ...prefs.prefs.modules };
+  if (prefs.prefs.modules) modulesOn.value = { ...modulesOn.value, ...installedFrom(MODULE_UIS, prefs.prefs.modules) };
   if (prefs.prefs.name) myName.value = prefs.prefs.name;
   watch(modulesOn, (m) => savePrefs({ modules: m }));
   watch(locale, (l) => savePrefs({ locale: l }));
@@ -1775,23 +1781,22 @@ const menus = computed<Menu[]>(() => {
           checked: showBelow.value,
           disabled: !levelBelow(project.value, level.value),
         },
-        ...MODULE_UIS.map((m) => ({
-          id: "module:" + m.moduleId,
-          label: t(m.name),
-          checked: !!modulesOn.value[m.moduleId],
-        })),
       ],
     },
     {
       id: "tools",
       label: t("menu.tools"),
-      items: toolButtons.value.map((b) => ({
-        id: "tool:" + b.id,
-        label: t(b.label),
-        checked: b.on,
-        disabled: b.edits && notMyTurn.value,
-        ...(TOOL_KEYS[b.id] ? { shortcut: TOOL_KEYS[b.id] } : {}),
-      })),
+      items: [
+        ...toolButtons.value.map((b) => ({
+          id: "tool:" + b.id,
+          label: t(b.label),
+          checked: b.on,
+          disabled: b.edits && notMyTurn.value,
+          ...(TOOL_KEYS[b.id] ? { shortcut: TOOL_KEYS[b.id] } : {}),
+        })),
+        "sep",
+        { id: "store", label: t("store.title") + "…" },
+      ],
     },
     {
       id: "help",
@@ -1803,9 +1808,9 @@ const menus = computed<Menu[]>(() => {
 const TOOL_KEYS: Record<string, string> = { select: "V", room: "Q", wall: "W", divider: "L", door: "D", window: "J" };
 function onMenu(id: string) {
   if (id.startsWith("tool:")) return toolButtons.value.find((b) => "tool:" + b.id === id)?.pick();
-  if (id.startsWith("module:")) return setModuleOn(id.slice(7), !modulesOn.value[id.slice(7)]);
   const acts: Record<string, () => void> = {
     new: () => void doNew(),
+    store: () => (showStore.value = true),
     open: () => void doOpen(),
     save: () => void doSave(false),
     saveAs: () => void doSave(true),
@@ -2011,6 +2016,7 @@ if (demo === "rooms" || demo === "names" || demo === "paint") {
   sync();
 }
 if (demo === "settings") showSettings.value = true;
+if (demo === "store") showStore.value = true;
 if (demo === "tour") setTimeout(() => (showTour.value = true), 0);
 if (demo === "shape") {
   // any-shape room in progress: an L with the pointer near the last corner
@@ -2636,6 +2642,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           <span>{{ t(tb.label) }}</span>
         </button>
         <span class="grow" />
+        <button :class="{ on: showStore }" :title="t('store.tip')" @click="showStore = true">
+          <Blocks :size="20" :stroke-width="1.75" />
+          <span>{{ t("store.title") }}</span>
+        </button>
         <button :class="{ on: showLayers }" :title="t('layers.tip')" @click="showLayers = !showLayers">
           <LayersIcon :size="20" :stroke-width="1.75" />
           <span>{{ t("layers.title") }}</span>
@@ -2795,6 +2805,23 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           <span class="key gone">{{ t("compare.gone", { count: comparison.gone.length }) }}</span>
           <button @click="compareWith = null">{{ t("compare.stop") }}</button>
         </div>
+        <div v-if="notInstalled.length && !showStore && !notMyTurn" class="turn" role="status">
+          <span>{{
+            t("store.notInstalled", { count: notInstalled[0]!.count, module: t(notInstalled[0]!.name) })
+          }}</span>
+          <button @click="setModuleOn(notInstalled[0]!.moduleId, true)">
+            {{ t("store.installIt", { module: t(notInstalled[0]!.name) }) }}
+          </button>
+        </div>
+        <ModuleStore
+          v-if="showStore"
+          :locale="locale"
+          :modules="MODULE_UIS"
+          :installed="modulesOn"
+          @install="(id) => setModuleOn(id, true)"
+          @remove="(id) => setModuleOn(id, false)"
+          @close="showStore = false"
+        />
         <div v-if="notMyTurn" class="turn" role="status">
           <span>{{ t("handoff.banner", { name: holder }) }}</span>
           <button @click="takeOver">{{ t("handoff.takeOver") }}</button>
@@ -2864,7 +2891,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
           @export-clean="file(() => session.exportClean())"
           @name="setMyName"
           @system="(s) => run(setSystemCommand(s))"
-          @module="setModuleOn"
+          @store="((showSettings = false), (showStore = true))"
           @grid="setGrid"
           @angle="(a) => (angleStep = a)"
           @outside-faces="(on) => run(setOutsideFacesCommand(on))"

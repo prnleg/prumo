@@ -1132,3 +1132,10 @@ Branch `phase5b/electrical-circuits`, stacked on `export/module-symbols`.
 - README.md rewritten: it still said "planning only, no code". Now: what works, how to run (browser / native / installers / checks), package layout, pointers. CONTRIBUTING "early planning" → "early development".
 - CURRENT_STATE next step updated with the post-merge list (Windows findings, ADR-020/023 + Q-143, known gaps, G-1, engineer batch, name check).
 - Next: fix whatever the Windows test finds.
+
+## 2026-11-19 — Owner's Windows test: three fixes
+
+Owner ran the app on Windows (booted, no errors) and asked for:
+1. **`fixes/drag-selected`** — pressing a room or wall to move the view grabbed and moved it. Now only what's already selected can be dragged; anything else moves the view (Shift = box). Click, then drag, to move. Hints / tour updated; EDITING_OPERATIONS logged. Inference logged: the rule applies to doors/windows too (click first, then slide).
+2. **`fixes/wall-continue-face`** — a wall drawn on from a room's corner sat half a thickness off the room's outside face (room walls are drawn by their outside face, ADR-038; the new wall was centred). New open walls drawn from the end of a face-drawn wall now continue that face (ADR-038 addition). Dev demo `?demo=continue`.
+3. **`modules/store`** — modules are installed from a Modules screen, not switched on/off (ADR-062, accepted in principle, details PROPOSED). Bundled modules only; third-party plugins + downloads wait on ADR-020/023 (owner is looking at them). Dev demo `?demo=store`.

@@ -3,6 +3,8 @@
 export const MESSAGES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   en: {
     "module.structural.name": "Structural checks",
+    "module.structural.desc":
+      "Simple checks that point out possible structural problems: walls that carry the building, openings, slabs, loads. Doesn't replace an engineer.",
     "tool.chase": "Chase",
     "tool.chase.tip": "Mark where a wall will be cut for pipes or wiring (a chase)",
     "chaseDir.label": "Chase direction",
@@ -288,6 +290,8 @@ export const MESSAGES: Readonly<Record<string, Readonly<Record<string, string>>>
   },
   "pt-BR": {
     "module.structural.name": "Verificações estruturais",
+    "module.structural.desc":
+      "Verificações simples que apontam possíveis problemas de estrutura: paredes que sustentam a construção, aberturas, lajes, cargas. Não substitui um engenheiro.",
     "tool.chase": "Rasgo",
     "tool.chase.tip": "Marcar onde a parede vai ser cortada para canos ou fios (um rasgo)",
     "chaseDir.label": "Direção do rasgo",

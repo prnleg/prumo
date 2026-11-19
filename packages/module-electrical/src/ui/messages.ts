@@ -2,6 +2,8 @@
 export const MESSAGES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   en: {
     "module.electrical.name": "Electrical",
+    "module.electrical.desc":
+      "Outlets, switches and ceiling lights on the plan, the minimum number per room, and circuits with estimated loads.",
     "tool.outlet": "Outlet",
     "tool.outlet.tip": "Put a power outlet on a wall (the side you click is the side it faces)",
     "tool.switch": "Switch",
@@ -63,6 +65,8 @@ export const MESSAGES: Readonly<Record<string, Readonly<Record<string, string>>>
   },
   "pt-BR": {
     "module.electrical.name": "Elétrica",
+    "module.electrical.desc":
+      "Tomadas, interruptores e luzes de teto na planta, a quantidade mínima por cômodo e circuitos com cargas estimadas.",
     "tool.outlet": "Tomada",
     "tool.outlet.tip": "Colocar uma tomada na parede (o lado em que você clica é o lado para onde ela fica)",
     "tool.switch": "Interruptor",
