@@ -16,6 +16,10 @@ export interface ElectricalData {
   purpose?: OutletPurpose | undefined;
   /** Switch: the lights it turns on (the link graph). */
   lights?: Id[] | undefined;
+  /** Light / outlet: the circuit (breaker number on the panel, 1…99; ADR-061). Missing = not given yet. */
+  circuit?: number | undefined;
+  /** One-appliance outlet: the appliance's power, VA (ADR-061). Missing = not known. */
+  power?: number | undefined;
   [more: string]: unknown;
 }
 export const ELECTRICAL_DATA_VERSION = 1;

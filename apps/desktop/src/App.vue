@@ -2214,7 +2214,7 @@ if (demo === "export" || demo === "export-full") {
       document.body.append(img);
     });
 }
-if (demo === "module" || demo === "module-room" || demo === "module-sheet") {
+if (demo === "module" || demo === "module-room" || demo === "module-sheet" || demo === "module-alt") {
   // every module with a screen part on, its sample items placed (`ModuleUi.demo`)
   const ex = EXAMPLES.find((e) => e.id === "house");
   if (ex)
@@ -2223,7 +2223,10 @@ if (demo === "module" || demo === "module-room" || demo === "module-sheet") {
       setTool("select");
       for (const m of MODULE_UIS) {
         const r = m.demo?.(uiCtx.value);
-        if (r) selectTool.selection = [demo === "module" ? r.item : ROOM_PREFIX + r.room];
+        if (r)
+          selectTool.selection = [
+            demo === "module-alt" ? (r.alt ?? r.item) : demo === "module-room" ? ROOM_PREFIX + r.room : r.item,
+          ];
       }
       sync();
       if (demo === "module-sheet") {

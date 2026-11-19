@@ -166,8 +166,8 @@ export interface ModuleUi {
   slabThickness?(slab: Slab): number | null | undefined;
   /** Switched on: start its session (analysis, panels, marks). `ctx` always returns the current context. */
   start?(ctx: () => UiContext): ModuleSession;
-  /** Dev only (`?demo=module`): add sample items; returns an item and a room key to select. */
-  demo?(ctx: UiContext): { item: string; room: string } | null;
+  /** Dev only (`?demo=module`): add sample items; returns an item and a room key to select (+ another item, `?demo=module-alt`). */
+  demo?(ctx: UiContext): { item: string; room: string; alt?: string } | null;
 }
 
 /** How serious a mark is (never a green / "OK" level: SAFETY_AND_LIABILITY). */
