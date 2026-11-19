@@ -45,6 +45,9 @@ body,
   height: 100%;
   /* the app fills the window; the page itself never scrolls (a stray pixel used to add a scrollbar) */
   overflow: hidden;
+  /* an app, not a page: double-clicking a label must not highlight the whole screen (WebKit needs the prefix) */
+  -webkit-user-select: none;
+  user-select: none;
   background: var(--bg);
   color: var(--ink);
   font:
@@ -56,4 +59,11 @@ body,
 button {
   font: inherit;
   color: inherit;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
 }

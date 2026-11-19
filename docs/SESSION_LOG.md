@@ -1040,6 +1040,8 @@ Branch `fixes/ui-polish`, stacked on `modules/ui-extension-points`. Owner: fix t
 
 **Decided alone (reversible):** "change the face of the sun" read as "turn north" (the sun was fixed to north = top of the plan); north saved in the project (it's a fact about the site, not a view preference); 8 directions in the UI, any whole degree in the data; plain drag on empty = move view (box select needs Shift); a drag on a room's floor still moves the room.
 
+- Double-clicking the north arrow highlighted the whole screen (WebKit text selection): the app shell is now not text-selectable (`-webkit-user-select: none`; inputs / text areas still are); the arrow also swallows double clicks.
+
 **Tests**: core +3 (north), architect +1 (drag on empty pans, Shift box).
 
 **Next**: Structural onto the module hooks, step 1 (chase + slab tools).
