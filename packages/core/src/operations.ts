@@ -179,7 +179,7 @@ export interface DuplicateResult {
  */
 export function duplicateCommand(p: Project, ids: readonly Id[], delta: V, newId: IdSource): DuplicateResult {
   const clip = copyToClipboard(p, ids);
-  const count = clip.walls.length + clip.hosted.length;
+  const count = clip.walls.length + clip.hosted.length + clip.points.length;
   return pasteCommand(clip, delta, undefined, newId, { key: "cmd.duplicate", params: { count } });
 }
 

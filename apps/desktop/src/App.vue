@@ -1107,6 +1107,7 @@ function drawExport(canvas: HTMLCanvasElement, o: ExportOptions, px: number, lev
         lines: [r.label, formatArea(r.floorArea, locale.value)].filter((x): x is string => !!x),
       })),
       marks,
+      north: project.value.settings.north ?? 0,
       bounds,
       texts: {
         title: project.value.name || t("export.untitled"),

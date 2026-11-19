@@ -4,11 +4,28 @@
 //   - walls bring the openings hosted on them (new ids, hosts remapped)
 //   - an opening copied WITHOUT its wall is "loose": pasting it needs a target wall
 //   - room names don't travel with copies (same as duplicate/mirror copy)
+//   - module items placed at a point (ADR-058: a ceiling light) travel like walls, moved by the delta.
+//     Module data is copied as is: a copied switch still lists the original lights (core doesn't read
+//     module data, MODULES rule 1)
 import { putElements, wallLength, type Label } from "./edit";
 import { add, sub, type V } from "./geometry/vec";
 import type { Command } from "./history";
 import type { IdSource } from "./ids";
-import { isHosted, type Element, type Hosted, type Id, type Opening, type Project, type Wall } from "./model";
+import {
+  isHosted,
+  isModuleElement,
+  type Element,
+  type Hosted,
+  type Id,
+  type ModuleElement,
+  type Opening,
+  type Project,
+  type Wall,
+} from "./model";
+
+/** A module item placed at a point, not on a host (ADR-058). */
+export type PointItem = ModuleElement & { at: V };
+export const isPointItem = (e: Element | undefined): e is PointItem => !!e && isModuleElement(e) && !!e.at && !e.host;
 
 export interface Clipboard {
   walls: Wall[];
@@ -16,7 +33,9 @@ export interface Clipboard {
   hosted: Hosted[];
   /** Openings copied without their wall, sorted by (original host, offset). */
   loose: Opening[];
-  /** Centre of the copied walls' bounding box (paste puts this under the cursor); null = no walls. */
+  /** Module items placed at a point (lights…), selected themselves. */
+  points: PointItem[];
+  /** Centre of the copied walls' and point items' bounding box (paste puts it under the cursor); null = neither. */
   anchor: V | null;
 }
 
@@ -39,18 +58,20 @@ export function copyToClipboard(p: Project, ids: readonly Id[]): Clipboard {
           : 1
         : a.host.offset - b.host.offset,
     );
+  const points = els.filter(isPointItem).sort(byId);
   let anchor: V | null = null;
-  if (walls.length) {
-    const xs = walls.flatMap((w) => [w.start.x, w.end.x]);
-    const ys = walls.flatMap((w) => [w.start.y, w.end.y]);
+  const pts = [...walls.flatMap((w) => [w.start, w.end]), ...points.map((e) => e.at)];
+  if (pts.length) {
+    const xs = pts.map((q) => q.x);
+    const ys = pts.map((q) => q.y);
     anchor = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
   }
-  return structuredClone({ walls, hosted, loose, anchor });
+  return structuredClone({ walls, hosted, loose, points, anchor });
 }
 
 export interface PasteResult {
   command: Command;
-  /** Ids of the pasted walls (what the UI selects afterwards). */
+  /** Ids of the pasted walls and point items (what the UI selects afterwards). */
   newIds: Id[];
 }
 
@@ -64,7 +85,7 @@ export function pasteCommand(
   delta: V,
   levelId: Id | undefined,
   newId: IdSource,
-  label: Label = { key: "cmd.paste", params: { count: clip.walls.length + clip.hosted.length } },
+  label: Label = { key: "cmd.paste", params: { count: clip.walls.length + clip.hosted.length + clip.points.length } },
 ): PasteResult {
   const map = new Map(clip.walls.map((w) => [w.id, newId()]));
   const copies: Element[] = clip.walls.map((w) => ({
@@ -84,7 +105,16 @@ export function pasteCommand(
         host: { ...o.host, elementId: host },
       });
   }
-  return { command: { label, apply: (q) => putElements(q, copies), exact: true }, newIds: [...map.values()] };
+  const pointIds: Id[] = [];
+  for (const e of clip.points) {
+    const id = newId();
+    pointIds.push(id);
+    copies.push({ ...structuredClone(e), id, levelId: levelId ?? e.levelId, at: add(e.at, delta) });
+  }
+  return {
+    command: { label, apply: (q) => putElements(q, copies), exact: true },
+    newIds: [...map.values(), ...pointIds],
+  };
 }
 
 /**
