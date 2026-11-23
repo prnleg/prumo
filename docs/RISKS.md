@@ -29,7 +29,7 @@ Likelihood (L) and Impact (I): 1 (low) – 5 (high). Score = L × I. Review at t
 
 | ID | Risk / flaw | L | I | Score | Mitigation | Owner/status |
 |---|---|---|---|---|---|---|
-| R-21 | **Premature plugin API**: designing a public module API before real modules exist leads to the wrong abstractions and breaking changes for contributors. | 5 | 4 | **20** | ADR-020: internal API, bundled modules, public only after 3 modules. Architect is built *as* a module. | Open |
+| R-21 | **Premature plugin API**: designing a public module API before real modules exist leads to the wrong abstractions and breaking changes for contributors. | 5 | 4 | **20** | ADR-020: internal API, bundled modules, public only after 3 modules. Architect is built *as* a module. **2026-11-23:** condition met (3 modules on the same hooks); owner made it public (ADR-020 revision 2), versioned 1.0 from publication. | Open |
 | R-22 | **"Platform" scope trap**: building module infrastructure (registry, marketplace, sandbox) instead of features. | 4 | 4 | 16 | Phase exit criteria are user-visible features, never "infrastructure done". No marketplace/sandbox before ADR-020 says so. | Open |
 | R-23 | **"EU" isn't one ruleset**: National Annexes differ per country. | 5 | 3 | 15 | Label the profile "EN recommended values"; Q-051. | Open |
 | R-24 | **Code profile abstraction biased to one code style** (BR vs EN load combinations and material classes differ). | 4 | 3 | 12 | Design the profile interface against both from day 1; write one validation case per profile. | Open |
@@ -92,6 +92,7 @@ Likelihood (L) and Impact (I): 1 (low) – 5 (high). Score = L × I. Review at t
 | R-55 | **Local toolchain drift**: Node 20.11 here caps Vite at 6.x (Vite 7+ needs ≥ 20.19). | 3 | 2 | 6 | Pin Node in `.nvmrc`/CI when the real monorepo starts. **Done s#11**: `.nvmrc` 22, `engines` ≥ 22.12, `engine-strict`; Node 22.23.5 installed user-locally. Owner's global Node still 20.11. | Mitigated |
 | R-58 | **TypeScript 7 lag**: TS 7 (native compiler) is out but typescript-eslint supports `<6.1`, so we're on TS 6.0. Staying behind too long makes the jump bigger. | 3 | 2 | 6 | Re-check each Phase; upgrade when typescript-eslint and vue-tsc support TS 7. | Open |
 | R-59 | **Zip timestamps are local time**: fflate writes DOS local time, which would make saved bytes depend on the machine's timezone. | 2 | 3 | 6 | Fixed date built from local components + golden SHA-256 test run on Linux/Windows/macOS in CI; verified locally in 4 timezones. | Mitigated |
+| R-60 | **Add-on code reaching the computer**: an installed add-on (approved or not) running inside the app's webview could call Tauri's file / dialog commands and read or change the user's files. | 5 | 3 | 15 | ADR-023: every installed add-on runs sandboxed with messages only; Spike F must show Tauri IPC is unreachable from the sandbox on WebView2 and WKWebView before any install-from-file ships. Approval tag is per version + hash. | Open |
 
 R-07 (geometry eats the schedule) → **reduced by Spike A**: L/T/X/Y joins at any angle work in ~250 lines; L 5 → 4 (score 12). The remaining traps are listed in CURRENT_STATE (unequal thickness near-straight, short walls, X overlap).
 

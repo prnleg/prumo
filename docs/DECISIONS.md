@@ -290,6 +290,13 @@ Reconciliation proposed (still keeps the anti-platform-trap intent):
 Status of revision: **ACCEPTED (2026-11-15, owner: Q-127, stage 1 and 2)**.
 Confidence: high. Owner: accept?
 
+**⚠️ Revision 2 (owner, 2026-11-23): the API goes public.** The 3-module condition is met (Architect, Structural, Electrical all run on the same hooks, ADR-059). Owner: *"Yes, but since this is a built-in app, not actually a web browser, we might need to tweak some things."* Status: **ACCEPTED**; the "tweaks" below are my reading, **PROPOSED** until a spike (Spike F) checks them:
+- **Loading.** A module is a folder (manifest + one JS bundle + strings + icon), not a URL. The app reads it from Prumo's app-data `modules/` folder; nothing is fetched from the web at run time. The webview's content-security policy stays closed to remote scripts.
+- **Two kinds of module code.** *Bundled* modules (Architect, Structural, Electrical) keep running in the app's own webview, as today. *Installed* modules (downloaded or from a file) never do: they run sandboxed (ADR-023), because code in the main webview can reach Tauri's file and dialog commands.
+- **What the public API is:** `@prumo/core`'s `ModuleManifest` / `ComponentDecl` / commands and a message-based form of `@prumo/ui-api` (tools, panel sections, checks, plan / 3D / export marks). Vue components can't cross a sandbox, so installed modules describe their panels as data (fields, lists, buttons) and the app draws them. Plan / 3D marks are already data (`solids3d`, plan marks).
+- **Versioning:** `apiVersion` goes 0.x → 1.0 when published; after that, breaking changes need a major version, and the app refuses (with a plain message) a module built for an API it doesn't have.
+- **Downloads (stage 2):** from the module's GitHub Releases, checked against a hash in the approved list (ADR-023); "Install from file…" works offline. Updates are offered, never automatic.
+
 ## ADR-021 — Internationalization
 **Owner principle (session #7, Q-116/117):** *every locale-dependent default follows the UI language and stays customizable*: number format for display **and** input (no mixed parsing), floor names (Térreo / Ground floor), room-type names, etc.
 Status: **ACCEPTED (2026-11-16, owner: "lean")**: i18n from day 1 (no hard-coded UI strings), shipping **pt-BR + en**. Every module ships its own strings. Rule/finding messages are i18n keys with parameters, never concatenated sentences.
@@ -302,8 +309,17 @@ Spike E evidence (session #11): `element.components[moduleId] = { v, data }` wor
 Alternatives rejected: (a) one separate model per Vision, synced (sync bugs); (b) a giant model where the core knows every discipline (breaks modularity).
 
 ## ADR-023 — Trust model for third-party add-ons
-Status: **OPEN** (not needed until the API is public — ADR-020)
-Options: only official/bundled modules; unsigned community modules with a big warning; sandboxed modules (iframe/Web Worker/WASM with a message-passing API only). Lean: sandboxed when the public API arrives. Bundled-only until then.
+Status: **ACCEPTED in principle (2026-11-23, owner)**; details **PROPOSED** (Spike F).
+Owner: *"Any module/plug-in MUST be available only if it's approved. Third party will be installed whether we approve or not, since this is open-source anyone will be able to create add-ons to the system if I approve or not, the ones we approve we have a 'Tag' saying approved by the team."*
+My reading (inference, logged in SESSION_LOG): "available" = **listed on the Modules screen**. Anyone can still install any add-on from a file; it just isn't listed and carries no tag.
+Decision:
+- **Approved list.** The Prumo team keeps a list of approved add-ons (name, author, version, download link, SHA-256 of the file), published in the Prumo repo and signed with the project's key. The Modules screen lists only these. Each card shows **"Approved by the Prumo team"**.
+- **Approval is per version.** A new version is "not approved" until the team approves that version too (the hash changes).
+- **Install from file…** for anything else: shown as **"Not approved — not checked by the Prumo team"**, with one plain warning when installing (not on every launch). Works offline.
+- **Every installed add-on runs sandboxed, approved or not.** Approval means "the team looked at it", not "it gets more access". Sandbox: no access to files, network, or Tauri commands; it only talks to the app through messages (read the project, propose commands, return marks / findings / panel data). Its changes go through the normal undo history. Its findings follow the same honesty rules (golden rule 5) — the app wraps them, the add-on can't write "safe".
+- **Data** of an add-on follows the same rules as bundled modules: namespaced components, kept when the add-on is removed (golden rule 13, ADR-032).
+- Bundled modules (part of the app's own build) aren't sandboxed: they're reviewed with the app's code.
+Open for the spike: which sandbox (Web Worker vs. a separate sandboxed webview / iframe) keeps Tauri's IPC out of reach on Windows (WebView2) and macOS (WKWebView); how panels described as data cover what Electrical's panel does today.
 
 ## ADR-024 — Generic hosting of elements on walls/slabs
 Spike E note (session #11): an Electrical outlet hosted on a core wall needed a generic `host` field **in the core** (the core must know hosting to cascade deletes later). Supports this ADR. Cascade not tested yet.
