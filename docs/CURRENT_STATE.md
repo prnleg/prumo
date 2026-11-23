@@ -54,7 +54,7 @@ All ADRs in the checklist accepted by the owner on 2026-11-16 ("lean"); details 
 
 ## Next immediate step
 
-0. (2026-11-23) Windows fixes, Modules screen and the three gaps merged (through PR #80). Owner decided ADR-020 (API public), ADR-023 (approved list + tag, every add-on sandboxed), Q-143 (construction system in the project profile, done). Next: (a) Spike F — sandboxed add-on in Tauri (ADR-023 details); (b) Phase 1 exit: G-1 usability test; (c) engineer batch (E-40…E-45, EL-01, EL-02) when the owner un-defers it; (d) final name trademark check (Q-109) before any release.
+0. (2026-11-23) Windows fixes, Modules screen and the three gaps merged (through PR #80). Owner decided ADR-020 (API public), ADR-023 (approved list + tag, every add-on sandboxed), Q-143 (construction system in the project profile, done). Spike F done (blob Web Worker = the sandbox, ADR-023); shape pass drafted (ADR-063…070, PROPOSED). Next: (a) owner reviews ADR-063…070 → publish module API 1.0 → Install from file… → approved list + downloads; meanwhile the "sooner" app items (COMPETITOR_FEATURES timing); (b) Phase 1 exit: G-1 usability test; (c) engineer batch (E-40…E-45, EL-01, EL-02) when the owner un-defers it; (d) final name trademark check (Q-109) before any release.
 
 1. Owner: try the app — `pnpm install && pnpm --filter @prumo/desktop dev` (browser) or `cd apps/desktop && pnpm tauri dev`; on Windows, download the `prumo-windows-latest` artifact from the `desktop` workflow run (Q-130). Tell me what feels wrong (G-1 usability, early).
 2. Owner: try Save / Open in the native app (`cd apps/desktop && pnpm tauri dev`, or the `desktop` workflow's installers) — dialogs aren't click-tested by me.

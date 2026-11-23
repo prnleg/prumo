@@ -691,3 +691,62 @@ Decision (stage 1, inside ADR-020's "bundled" stage):
 - A project with items of a module that isn't installed shows a quiet bar: "This project has N items from Electrical, which isn't installed. They are kept in the file. [Install Electrical]".
 - Modules made by other people: one line, "will come later". **Downloads (ADR-020 stage 2) and third-party plugins wait on ADR-020 (public API) and ADR-023 (trust model)** — the owner's decisions.
 Consequence: the bundled modules are always in the app's download; "install" only turns them on. With real downloads, the same screen gets a source and a size per card.
+
+## ADR-063 — Shape pass: keeping module API 1.0 stable while the building model grows
+Status: **ACCEPTED in principle (2026-11-23, owner: shape pass before API 1.0)**; the rules below **PROPOSED**.
+Context: API 1.0 (ADR-020 rev. 2) freezes what add-ons may rely on. Several planned features change the shared building data (COMPETITOR_FEATURES group A). ADR-064…070 fix their **shape** now; building them stays in ROADMAP order.
+Rules that make the later builds non-breaking for add-ons:
+1. **New building data is additive.** New element types and new **optional** fields only; a missing field means today's behaviour (a wall without layers is one body of `thickness`). Nothing an add-on reads today changes meaning.
+2. **A new core element type bumps `schemaVersion`.** An older Prumo opens such a file read-only (already the case: "newer-schema"); add-ons never see a type the app doesn't know.
+3. **Add-ons read geometry through core questions, not raw fields**: `wallFaces(w)` (exists as `faceOffsets`), `ceilingAt(p, levelId, point)`, `floorAt(p, levelId, point)`, `solids(p)`. When storage grows (layers, room ceilings, steps), the answers change, the add-on code doesn't. API 1.0 publishes these; Electrical moves to `ceilingAt` (it reads `defaultWallHeight` today).
+4. **Every element switch has a default branch.** API docs and the add-on template say so; unknown element types are skipped, never an error (golden rule 13).
+5. **Meaning stays in modules, geometry in the core** (as walls/slabs today): the core stores sizes and positions; what a layer is made of, what a column carries, what a fixture needs (water, power) live in module components.
+Consequence: API 1.0 can ship once ADR-064…070 are accepted, before any of those features exists.
+
+## ADR-064 — Wall layers (shape only; COMPETITOR_FEATURES 1.22)
+Status: **PROPOSED** (shape pass, ADR-063).
+- `Wall.layers?: { id: Id; thickness: number; role: "core" | "lining" }[]`, listed left → right (looking from start to end). Missing = one core layer of `thickness`.
+- Invariant: with layers, `thickness` = their sum (kept in sync by the core on every edit), so every reader that ignores layers still sees the right body.
+- `alignment` keeps meaning the whole body. Exactly one or more "core" layers; outside-face drawing (ADR-038) keeps working on the whole body.
+- What a layer is made of is module data keyed by layer id: Structural (block type, ADR-042) on core layers; Architect (plaster, tiles: finish thickness, later) on linings. Finishes stay colour-only until then.
+- Doubt (engineer, later): does Structural's wall thickness for checks mean the core layer only? Lean yes → `coreThickness(w)` core question. Goes to ENGINEER_QUESTIONS when built.
+
+## ADR-065 — Ceiling height per room and steps in a floor (shape only; 1.25, 1.26)
+Status: **PROPOSED**.
+- Rooms stay derived (walls); user data stays on the room tag. `RoomTag.ceiling?: number` (mm above the level's elevation; missing = `Level.defaultWallHeight`) and `RoomTag.floorStep?: number` (mm, + up / − down; missing = 0).
+- Core questions: `ceilingAt(p, levelId, point)` and `floorAt(p, levelId, point)` (room under the point → its values; outside every room → level values). Lights, 3D floors, slabs and loads use them.
+- Walls don't follow room ceilings automatically (a wall belongs to two rooms). Dropped ceilings are a ceiling below the slab: the slab stays where it is.
+- A room tag that matches no room keeps its values (rule 13), as names do today.
+
+## ADR-066 — Placed objects: furniture and fixtures (shape only; 2.12, 2.13)
+Status: **PROPOSED**. (Catalogue / "Buy mode" stays parked in GOALS; this is only the shape.)
+- New core element `object`: `{ at, rotation (radians), size: { w, d, h }, elevation (mm above the floor), catalogId: string, mirrored?: true, host?: Host }`. `host` = hung on a wall (a sink, a TV).
+- `catalogId` points into a **data pack** catalogue (ADR-030): name per language, size, plan symbol, 3D box or simple mesh. Unknown id → a labelled box of `size` (rule 13). No code needed to add furniture.
+- Modules add meaning through components: Plumbing marks a sink's water / drain points; Electrical an appliance's power. A module can also offer its own catalogue pack.
+- Electrical's own point items (lights, outlets) stay module elements: they're symbols, not things with a size.
+- New core type → schema bump (ADR-063 rule 2).
+
+## ADR-067 — Stairs and holes in slabs (shape only; 2.1)
+Status: **PROPOSED**.
+- New core element `stair`: `levelId` = the floor it starts on, `toLevelId`, `shape: "straight" | "l" | "u" | "spiral"`, `path: Vec2[]` (walking line, start → end), `width`, optional `landings`. Steps (count, riser, tread) are **derived** from the two levels' elevations and the path, never stored.
+- `Slab.holes?: { outline: Vec2[]; by?: Id }[]` — a hole in a slab; `by` = the stair that needs it. A stair offers to cut its hole; the hole is stored, so Structural sees it and the user can change it.
+- First element across two floors: deleting either level asks about its stairs; moving a stair moves its linked hole.
+- Rules on risers / treads (NBR 9050, codes) are module checks with sources, not core.
+
+## ADR-068 — Roofs (shape only; 2.3, 2.4)
+Status: **PROPOSED**. (Pitched roofs stay parked in GOALS; this is only the shape.)
+- New core element `roof`: `levelId` (sits on that level's walls), `outline: Vec2[]` (includes overhang), `edges: { pitch: number | null; overhang: number }[]` (one per outline edge; pitch in degrees; `null` = gable end). All edges `0` = flat roof. Planes are **derived** (per-edge pitch, the common hip / gable model).
+- `ADR-045 A` "what's above = roof" keeps working: a room under a roof outline reads "roof" from the geometry instead of a tag, when roofs exist.
+- Material, weight and structure (tiles, metal, timber) are Structural / Architect components.
+
+## ADR-069 — Columns and beams (shape only; 1.10, 1.11)
+Status: **PROPOSED**.
+- Core geometry, module meaning (as walls). `column`: `{ at, size: { w, d } | { r }, rotation, baseOffset, height }`. `beam`: `{ start, end, width, depth, top }` (`top` mm below the level's ceiling; missing = 0).
+- They're **drawn** by Architect (a pillar is visible in the plan) and **read** by Structural (loads, Tier 2 later). Electrical / Plumbing can host on them (ADR-024 host works for any element).
+- Structural masonry projects rarely have them; they matter for RC frame (`profileId`, Q-143). No RC design (non-goal).
+
+## ADR-070 — Lock and groups (shape only; 1.16, 1.17)
+Status: **PROPOSED**.
+- `ElementBase.locked?: true` — the user's "don't let me move this". Core edit commands skip locked elements and say so ("2 locked items weren't moved"). It's the user's choice; it never comes from a rule (ADR-026). Different from Structural's protection marker (engineer's note, ADR-044), which warns and never blocks.
+- Groups: new core element `group`: `{ name, members: Id[] }`. Members don't know their group. Selecting a member selects the group (click again = the member). Deleting a member drops it from `members`.
+- Add-ons' commands go through the core's edit helpers, which apply the lock; an add-on can't skip it.
