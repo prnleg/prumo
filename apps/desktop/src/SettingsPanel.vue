@@ -2,7 +2,7 @@
 // Settings (UX_PRINCIPLES 3b: discoverable; opened from the toolbar or by clicking the status bar).
 // Grid = this project's value (saved with it, undoable; Q-108 "Project → Drawing").
 // Angle step + language = app preferences, remembered across launches (ADR-037, prefs.ts).
-import { SYSTEMS, type ConstructionSystem } from "@prumo/module-structural";
+import { SYSTEMS, type ConstructionSystem } from "@prumo/core";
 import type { UiContext } from "@prumo/ui-api";
 import { computed, type Component } from "vue";
 import { formatSmall, translate, type Locale, type Params } from "./i18n";

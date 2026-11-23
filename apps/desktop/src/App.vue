@@ -59,6 +59,10 @@ import {
   type Project,
   buildingModel,
   wallSides,
+  constructionSystem,
+  profileIdFor,
+  setSystemCommand,
+  type ConstructionSystem,
 } from "@prumo/core";
 import {
   DEFAULT_OPENING_SIZES,
@@ -76,12 +80,9 @@ import {
   architectManifest,
 } from "@prumo/module-architect";
 import {
-  constructionSystem,
-  profileIdFor,
   isChase,
   protectCommand,
   setLintel,
-  setSystemCommand,
   setAbove,
   setSlabInfo,
   type SlabKind,
@@ -92,7 +93,6 @@ import {
   type WallMaterial,
   type Above,
   type JoistDir,
-  type ConstructionSystem,
 } from "@prumo/module-structural";
 import { PlanView, fit, toScreen, type PlanPointer, type ViewState } from "@prumo/renderer-2d";
 import { View3D, type Surface, type WallMode } from "@prumo/renderer-3d";

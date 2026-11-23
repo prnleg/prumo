@@ -1143,3 +1143,7 @@ Owner ran the app on Windows (booted, no errors) and asked for:
 5. **`fixes/module-overlays`** — modules' floating panels stack in one column bottom-left instead of overlapping (`?demo=overlays`).
 6. **`electrical/3d`** — Electrical items in 3D via a new `ModuleUi.solids3d` hook (plates, ceiling lights; drawing sizes only). Bug fixed on the way: `facePoint` ignored wall alignment, so on room-tool walls (drawn by the outside face) outlet/switch symbols sat inside the wall body.
 Branches are stacked in that order (each on the previous) because they share lines in CURRENT_STATE.
+
+## 2026-11-23 — Owner answers ADR-020, ADR-023, Q-143
+
+1. **`decisions/q143-profile`** — Q-143 → A (owner: "Why not?"). The construction system (`ConstructionSystem`, `SYSTEMS`, `constructionSystem`, `profileIdFor`, `setSystemCommand`) moved from Structural into `packages/core/src/profile.ts`; Structural re-exports them and keeps `rulesSystem`. The app's start screen and Settings no longer import Structural. Test: `core/test/profile.test.ts` (3).

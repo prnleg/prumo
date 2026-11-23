@@ -1,4 +1,4 @@
-// Structural data on walls and openings (ADR-042) + the construction system (project.profileId).
+// Structural data on walls and openings (ADR-042). The construction system is in the core (Q-143).
 import {
   ccw,
   isHosted,
@@ -6,6 +6,7 @@ import {
   type RoomTag,
   type Vec2,
   type Command,
+  type ConstructionSystem,
   type Element,
   type Id,
   type ModuleElement,
@@ -112,32 +113,12 @@ export function setBonded(w: Wall, end: WallEnd, bonded: boolean): Wall {
   return withStructuralData(w, { ...d, bonded: Object.keys(clean).length ? clean : undefined });
 }
 
-// --- construction system (project.profileId = "<country>/<system>", ADR-004/009/042) ----------------
+// --- construction system: lives in the core project profile (Q-143); re-exported for this module ------
 
-export type ConstructionSystem = "structural-masonry" | "rc-frame" | "unknown";
-export const SYSTEMS: readonly ConstructionSystem[] = ["structural-masonry", "rc-frame", "unknown"];
-
-export function constructionSystem(p: Project): ConstructionSystem {
-  const s = p.profileId.split("/")[1];
-  return (SYSTEMS as readonly string[]).includes(s ?? "") ? (s as ConstructionSystem) : "unknown";
-}
-
-export const profileIdFor = (s: ConstructionSystem, country = "br-nbr") => `${country}/${s}`;
+export { constructionSystem, profileIdFor, setSystemCommand, SYSTEMS, type ConstructionSystem } from "@prumo/core";
 
 /** The system whose rules run: "don't know" → structural masonry, the conservative side (E-01). */
 export const rulesSystem = (s: ConstructionSystem): ConstructionSystem => (s === "unknown" ? "structural-masonry" : s);
-
-/** Change the project's construction system (one undo step; walls and their marks are untouched). */
-export function setSystemCommand(s: ConstructionSystem): Command {
-  return {
-    label: { key: "cmd.setSystem" },
-    apply: (p) => {
-      const country = p.profileId.split("/")[0] || "br-nbr";
-      const id = profileIdFor(s, country);
-      return p.profileId === id ? p : { ...p, profileId: id };
-    },
-  };
-}
 
 // --- chases (rasgos): channels cut into a wall for pipes / wiring (R-WALL-004, ADR-042 addition) ------
 

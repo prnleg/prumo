@@ -88,13 +88,13 @@ The owner asked when building can start. Answer: **now.** Every remaining questi
 - **Q-064 🟡** Min OS versions: whatever Tauri 2 supports for Win/macOS.
 - **Q-067 🟡** Third Vision: Electrical. → slice 1 done (ADR-058), screen part pluggable (ADR-059).
 - **Q-142 🟡** Plumbing (hidráulica), ventilation and similar: future **modules** (never core, never wired into the app — ADR-059). Owner 2026-11-18: keep them out so anyone can add their own. Not scheduled; a candidate for the first module written only against the public API. — 2026-11-18
-- **Q-143 🟡** Who owns the **construction system** question (structural masonry / RC frame / don't know)? Today it's asked by the app (start screen for a blank project, Settings → This project) and stored in the core's `profileId`, but the list and its wording come from Structural. Options: A) keep it in the app as part of the project's profile (it describes the building, and the engineer asked for it up front, E-01) — B) move it into Structural (hidden when Structural is off). Lean A (low confidence: with Structural off nothing uses it). Blocks nothing; it's the last place the app's screens name Structural (besides dev demos). — 2026-11-18
 - **Q-070 🟡** Which codes/systems does the engineer know best?
 
 ---
 
 ## Resolved
 
+- **Q-143** — The construction system question stays **in the app, as part of the project profile** (option A; owner 2026-11-23: "Why not?"). It describes the building, the engineer asked for it up front (E-01), and it costs nothing when no module reads it. The list + `setSystemCommand` moved from Structural into the core (`packages/core/src/profile.ts`); Structural re-exports them and keeps only `rulesSystem` ("don't know" → masonry rules). Implemented on `decisions/q143-profile`. — 2026-11-23
 - **Q-141** — Layers panel (owner 2026-11-18): hiding a room hides its floor + name and **dims its own walls** (walls no other room uses) and what's on them, which can't be picked; shared walls stay; checks still run on everything; view only, not saved. **Remove** deletes the room's own walls (+ their doors/windows and the room's tag), asks first, one undo step. Floors: list now (one floor), adding floors later (Phase 5, own ADR). Implemented on `ui/layers`. — 2026-11-18
 - **Q-138** — App menu: **in-app menu bar + left tool strip + options bar, no native menus**, icons from Lucide (owner 2026-11-18) → **ADR-047**. Implemented on `ui/menu-bar`. — 2026-11-18
 - **Q-139** — Element types: "all usual types" (owner 2026-11-18); list approved → **ADR-046** (doors, windows, wall "built with"). Implemented on `types/openings`. — 2026-11-18

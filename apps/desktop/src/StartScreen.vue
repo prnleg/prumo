@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Start screen (Q-119/Q-125): blank, examples, or open a file. Shown at launch and on New.
 import { counterIds, type Wall } from "@prumo/core";
-import { SYSTEMS, type ConstructionSystem } from "@prumo/module-structural";
+import { SYSTEMS, type ConstructionSystem } from "@prumo/core";
 import { computed, ref } from "vue";
 import { EXAMPLES, type Example } from "./examples";
 import { translate, type Locale, type Params } from "./i18n";
