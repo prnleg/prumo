@@ -319,7 +319,14 @@ Decision:
 - **Every installed add-on runs sandboxed, approved or not.** Approval means "the team looked at it", not "it gets more access". Sandbox: no access to files, network, or Tauri commands; it only talks to the app through messages (read the project, propose commands, return marks / findings / panel data). Its changes go through the normal undo history. Its findings follow the same honesty rules (golden rule 5) — the app wraps them, the add-on can't write "safe".
 - **Data** of an add-on follows the same rules as bundled modules: namespaced components, kept when the add-on is removed (golden rule 13, ADR-032).
 - Bundled modules (part of the app's own build) aren't sandboxed: they're reviewed with the app's code.
-Open for the spike: which sandbox (Web Worker vs. a separate sandboxed webview / iframe) keeps Tauri's IPC out of reach on Windows (WebView2) and macOS (WKWebView); how panels described as data cover what Electrical's panel does today.
+**Spike F results (2026-11-23, `spikes/sandbox`, real Tauri 2.12 app, run locally on macOS and in CI on Windows WebView2 + macOS WKWebView; same results everywhere):**
+- **Web Worker started from a blob URL = the sandbox.** It inherits the page's content-security policy: no Tauri objects, IPC endpoints unreachable (`ipc://` and `http://ipc.localhost`), no `file:` / `asset:` reads, no network at all (fetch, `no-cors`, WebSocket, remote `importScripts` all refused). The canary command was never reached (0 hits).
+- **A worker started from a file the app serves is NOT a sandbox:** it gets no policy, so it can send data anywhere (`no-cors` request sent, WebSocket open, remote scripts load) and reach Tauri's IPC endpoint, stopped only by Tauri's invoke key. → Add-on code is **never** served from the app's origin: Rust reads the add-on file, the page turns the text into a blob worker.
+- **Sandboxed iframe: rejected.** It never answered on Windows or macOS CI, and froze the whole app on a local macOS run.
+- **Runaway add-on:** an endless loop in the worker doesn't slow the app (timers ≤ 2 ms late); `terminate()` stops it. → the app gives each answer a time budget and stops an add-on that misses it.
+- **Message round trip** (whole project copied each time): 200 elements ≈ 1 ms median; 5,000 elements ≈ 16–23 ms. → send the project once, then the changes; pointer moves send only the pointer.
+- **Panels as data cover Electrical's panel**: it uses only headings, text (plain / muted / warning, UNVERIFIED badge, tooltip), a number with a unit, a choice list, checkboxes. Field kinds for 1.0: `heading`, `text`, `number`, `choice`, `check`, `checklist`, `button`, `badge`.
+- Must keep: the app's own policy (`default-src 'self'`, no remote scripts, `worker-src 'self' blob:`). Loosening it would open the sandbox too.
 
 ## ADR-024 — Generic hosting of elements on walls/slabs
 Spike E note (session #11): an Electrical outlet hosted on a core wall needed a generic `host` field **in the core** (the core must know hosting to cascade deletes later). Supports this ADR. Cascade not tested yet.
