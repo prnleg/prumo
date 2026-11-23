@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Same fs grants as the real app (apps/desktop), so an escape here means an escape there.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive"
+  ]
+}

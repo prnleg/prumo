@@ -1,0 +1,63 @@
+# Spike F (throwaway): can a sandboxed add-on reach Tauri, files or the network? Builds spikes/sandbox and
+# runs it on Windows (WebView2) and macOS (WKWebView); the JSON report lands in the job summary.
+# Delete together with /spikes/sandbox.
+name: spike-sandbox
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [spikes/f-sandbox]
+    paths: ["spikes/sandbox/**", ".github/workflows/spike-sandbox.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: spikes/sandbox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/sandbox/src-tauri
+      - run: pnpm install --ignore-workspace --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm tauri build --debug --no-bundle
+      - name: Run (workers only, then with the sandboxed iframe)
+        shell: bash
+        run: |
+          exe=src-tauri/target/debug/spike-sandbox
+          [ -f "$exe.exe" ] && exe="$exe.exe"
+          for mode in noframe frame; do
+            echo "== $mode"
+            SPIKE_MODE=$mode "$exe" > "out-$mode.log" 2>&1 &
+            pid=$!
+            for i in $(seq 1 90); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+            kill $pid 2>/dev/null && echo "(killed after 90 s: hung)" | tee -a "out-$mode.log"
+            grep -v SPIKE-F-REPORT "out-$mode.log" || true
+            {
+              echo "### ${{ matrix.os }} — $mode"
+              echo '```json'
+              grep SPIKE-F-REPORT "out-$mode.log" | sed 's/^SPIKE-F-REPORT //' || echo "(no report)"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spike-sandbox-${{ matrix.os }}
+          path: spikes/sandbox/out-*.log
