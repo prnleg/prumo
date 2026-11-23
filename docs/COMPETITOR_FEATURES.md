@@ -2,9 +2,23 @@
 
 > Owner request (2026-11-18): "search for apps that do the same things and list their functions that we don't
 > have yet. The most amount of things the better." This is a **backlog to pick from**, not a plan.
-> Nothing here is accepted. Each item still needs the normal steps (ROADMAP order, ADR when it is a new decision).
+> Nothing here is accepted as a feature; the timing below is (owner 2026-11-23). Each item still needs the normal steps (ROADMAP order, ADR when it is a new decision).
 > Items marked ⛔ are **non-goals today** (`docs/GOALS.md`) — listed so we know they exist; they need the owner
 > to change GOALS first. ⏸ = parked "for now" in GOALS. 🧩 = would fit as an optional module (ADR-019/059).
+
+## Timing and what each item touches (owner 2026-11-23: "We can go")
+
+What matters for modules is not the feature but **what it changes**. Agreed order: Spike F → **shape pass** (A) → publish module API 1.0 → build features.
+
+- **A. Changes the shared building data (core) — shape decided before API 1.0, built later.** One ADR each, documents only, so add-ons built on 1.0 don't break: 1.22 wall layers · 1.25/1.26 ceiling height per room, steps in a floor · 2.12/2.13 placed objects (furniture, fixtures) · 2.1 stairs + slab openings (first element across two floors) · 2.3 roofs · 1.10/1.11 columns, beams (core or Structural?) · 1.16/1.17 lock, groups.
+- **B. Needs new module hooks — additive (API minor version), later is fine:** 3.3/3.4 sections, elevations · 4.7/4.8/4.9 schedules, area table, quantities · 4.3/4.4/4.6 DXF, IFC, glTF · 3.10 editing in 3D · 1.32 command palette. (6.11/6.12 rule packs fit today's checks + data packs.)
+- **C. App / Architect only, no module effect.**
+  - **Sooner:** 1.2 dimension tool · 1.4 text labels · 1.7 trace over a photo of a paper plan · 1.13 split / join wall · 1.18 measure · 4.2 north + scale bar on the sheet · 4.5 SVG export · 4.8 area table · 6.10 undo list.
+  - **Later:** 1.3, 1.5, 1.14, 1.15, 1.19–1.21, 1.24, 3.1, 3.2, 3.5, 3.11, 4.1, 4.12, 6.3, 6.6.
+- **D. Not in the app unless GOALS changes (⛔):** 2.6, 3.6, 4.10, 5.1, 5.2, 6.1; 2.14/2.15 only as modules (Q-142).
+- **E. Parked (⏸):** curved walls, pitched roofs, terrain / lot, furniture catalogue, mobile, phone scans.
+
+Each item still goes through ROADMAP order and its own ADR when it is a new decision.
 
 Apps looked at: Sweet Home 3D (open source), Planner 5D, Floorplanner, RoomSketcher, Cedreo, Chief Architect /
 Home Designer, SketchUp + LayOut, Revit, Archicad, FreeCAD BIM, magicplan, Homestyler / Coohom, Eberick /

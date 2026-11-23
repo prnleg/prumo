@@ -47,12 +47,12 @@ Status: **DRAFT.** Every goal here is a proposal until the owner confirms it. Ma
 - ❌ Full 3D finite-element analysis (plates/shells/solids) — at least until Phase 6+, possibly never.
 - ❌ Dynamic analysis (earthquake time-history, vibration).
 - ❌ Foundations / soil mechanics (we'll assume "supported" at ground level). ⚠️ This is a big simplification; see RISKS R-05.
-- ❌ MEP (plumbing, electrical, HVAC).
+- ❌ MEP design in the app itself (plumbing, electrical, HVAC). *Updated 2026-11-23:* Electrical exists as an optional, information-only module (ADR-058/061); plumbing, ventilation and the like can only come as modules (Q-142).
 - ❌ Cost estimation.
 - ❌ Real-time multi-user collaboration.
 - ❌ Photorealistic rendering.
-- ❌ (for now) Electrical or any other Vision beyond Architect + Structural. Planned, not built.
-- ❌ (for now) Plugin marketplace, runtime installation of third-party modules, public stable plugin API (ADR-020).
+- ~~❌ (for now) Electrical or any other Vision beyond Architect + Structural.~~ Done 2026-11-18 (Electrical, ADR-058).
+- ~~❌ (for now) Plugin marketplace, runtime installation of third-party modules, public stable plugin API.~~ Lifted 2026-11-23 (owner): API public, approved list + sandbox (ADR-020 rev. 2, ADR-023). Still not: paid add-ons, automatic updates.
 - ❌ (for now) Mobile apps.
 - ❌ (for now) Furniture/objects catalogue ("Buy mode"), pitched roofs, terrain, curved walls (Q-096/098/100).
 - ❌ Real-time collaboration and automatic merging of diverged files (handoff is sequential, ADR-029).
