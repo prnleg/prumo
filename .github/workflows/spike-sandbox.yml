@@ -49,6 +49,9 @@ jobs:
             for i in $(seq 1 90); do kill -0 $pid 2>/dev/null || break; sleep 1; done
             kill $pid 2>/dev/null && echo "(killed after 90 s: hung)" | tee -a "out-$mode.log"
             grep -v SPIKE-F-REPORT "out-$mode.log" || true
+            # one annotation per run: readable through the public checks API without logging in
+            rep=$(grep SPIKE-F-REPORT "out-$mode.log" | sed 's/^SPIKE-F-REPORT //' | head -c 60000 || true)
+            echo "::notice title=spike-f ${{ matrix.os }} $mode::${rep:-no report}"
             {
               echo "### ${{ matrix.os }} — $mode"
               echo '```json'
